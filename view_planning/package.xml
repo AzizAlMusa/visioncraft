@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>view_planning</name>
+  <version>0.0.0</version>
+  <description>The view_planning package</description>
+
+  <maintainer email="abdulaziz@todo.todo">abdulaziz</maintainer>
+
+  <license>TODO</license>
+
+  <!-- Remove ROS-specific build tool dependency -->
+  <!-- <buildtool_depend>catkin</buildtool_depend> -->
+
+  <!-- Include necessary non-ROS dependencies -->
+  <build_depend>pcl_conversions</build_depend>
+  <build_depend>octomap</build_depend>
+
+  <!-- Include necessary non-ROS export dependencies -->
+  <build_export_depend>pcl_conversions</build_export_depend>
+  <build_export_depend>octomap</build_export_depend>
+
+  <!-- Include necessary non-ROS execution dependencies -->
+  <exec_depend>pcl_conversions</exec_depend>
+  <exec_depend>octomap</exec_depend>
+
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+  </export>
+</package>
