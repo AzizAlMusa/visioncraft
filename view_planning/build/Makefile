@@ -65,16 +65,6 @@ CMAKE_BINARY_DIR = /home/abdulaziz/playground/NBV-net/view_planning/build
 #=============================================================================
 # Targets provided globally by CMake.
 
-# Special rule for the target edit_cache
-edit_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
-	/home/abdulaziz/cmake-install/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
-.PHONY : edit_cache
-
-# Special rule for the target edit_cache
-edit_cache/fast: edit_cache
-.PHONY : edit_cache/fast
-
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
@@ -84,6 +74,16 @@ rebuild_cache:
 # Special rule for the target rebuild_cache
 rebuild_cache/fast: rebuild_cache
 .PHONY : rebuild_cache/fast
+
+# Special rule for the target edit_cache
+edit_cache:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
+	/home/abdulaziz/cmake-install/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
+.PHONY : edit_cache
+
+# Special rule for the target edit_cache
+edit_cache/fast: edit_cache
+.PHONY : edit_cache/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -117,64 +117,37 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named nbv_input_visualizer
+# Target rules for targets named cuda_lib
 
 # Build rule for target.
-nbv_input_visualizer: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 nbv_input_visualizer
-.PHONY : nbv_input_visualizer
+cuda_lib: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 cuda_lib
+.PHONY : cuda_lib
 
 # fast build rule for target.
-nbv_input_visualizer/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/nbv_input_visualizer.dir/build.make CMakeFiles/nbv_input_visualizer.dir/build
-.PHONY : nbv_input_visualizer/fast
+cuda_lib/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cuda_lib.dir/build.make CMakeFiles/cuda_lib.dir/build
+.PHONY : cuda_lib/fast
 
 #=============================================================================
-# Target rules for targets named exploration_view_tests
+# Target rules for targets named visualizer_test
 
 # Build rule for target.
-exploration_view_tests: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 exploration_view_tests
-.PHONY : exploration_view_tests
+visualizer_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 visualizer_test
+.PHONY : visualizer_test
 
 # fast build rule for target.
-exploration_view_tests/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/exploration_view_tests.dir/build.make CMakeFiles/exploration_view_tests.dir/build
-.PHONY : exploration_view_tests/fast
-
-#=============================================================================
-# Target rules for targets named model_loader_tests
-
-# Build rule for target.
-model_loader_tests: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 model_loader_tests
-.PHONY : model_loader_tests
-
-# fast build rule for target.
-model_loader_tests/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/model_loader_tests.dir/build.make CMakeFiles/model_loader_tests.dir/build
-.PHONY : model_loader_tests/fast
-
-#=============================================================================
-# Target rules for targets named viewpoint_tests
-
-# Build rule for target.
-viewpoint_tests: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 viewpoint_tests
-.PHONY : viewpoint_tests
-
-# fast build rule for target.
-viewpoint_tests/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/viewpoint_tests.dir/build.make CMakeFiles/viewpoint_tests.dir/build
-.PHONY : viewpoint_tests/fast
+visualizer_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/build
+.PHONY : visualizer_test/fast
 
 src/visioncraft/model_loader.o: src/visioncraft/model_loader.cpp.o
 .PHONY : src/visioncraft/model_loader.o
 
 # target to build an object file
 src/visioncraft/model_loader.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/exploration_view_tests.dir/build.make CMakeFiles/exploration_view_tests.dir/src/visioncraft/model_loader.cpp.o
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/model_loader_tests.dir/build.make CMakeFiles/model_loader_tests.dir/src/visioncraft/model_loader.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/model_loader.cpp.o
 .PHONY : src/visioncraft/model_loader.cpp.o
 
 src/visioncraft/model_loader.i: src/visioncraft/model_loader.cpp.i
@@ -182,8 +155,7 @@ src/visioncraft/model_loader.i: src/visioncraft/model_loader.cpp.i
 
 # target to preprocess a source file
 src/visioncraft/model_loader.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/exploration_view_tests.dir/build.make CMakeFiles/exploration_view_tests.dir/src/visioncraft/model_loader.cpp.i
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/model_loader_tests.dir/build.make CMakeFiles/model_loader_tests.dir/src/visioncraft/model_loader.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/model_loader.cpp.i
 .PHONY : src/visioncraft/model_loader.cpp.i
 
 src/visioncraft/model_loader.s: src/visioncraft/model_loader.cpp.s
@@ -191,17 +163,39 @@ src/visioncraft/model_loader.s: src/visioncraft/model_loader.cpp.s
 
 # target to generate assembly for a file
 src/visioncraft/model_loader.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/exploration_view_tests.dir/build.make CMakeFiles/exploration_view_tests.dir/src/visioncraft/model_loader.cpp.s
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/model_loader_tests.dir/build.make CMakeFiles/model_loader_tests.dir/src/visioncraft/model_loader.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/model_loader.cpp.s
 .PHONY : src/visioncraft/model_loader.cpp.s
+
+src/visioncraft/raycasting.o: src/visioncraft/raycasting.cu.o
+.PHONY : src/visioncraft/raycasting.o
+
+# target to build an object file
+src/visioncraft/raycasting.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cuda_lib.dir/build.make CMakeFiles/cuda_lib.dir/src/visioncraft/raycasting.cu.o
+.PHONY : src/visioncraft/raycasting.cu.o
+
+src/visioncraft/raycasting.i: src/visioncraft/raycasting.cu.i
+.PHONY : src/visioncraft/raycasting.i
+
+# target to preprocess a source file
+src/visioncraft/raycasting.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cuda_lib.dir/build.make CMakeFiles/cuda_lib.dir/src/visioncraft/raycasting.cu.i
+.PHONY : src/visioncraft/raycasting.cu.i
+
+src/visioncraft/raycasting.s: src/visioncraft/raycasting.cu.s
+.PHONY : src/visioncraft/raycasting.s
+
+# target to generate assembly for a file
+src/visioncraft/raycasting.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cuda_lib.dir/build.make CMakeFiles/cuda_lib.dir/src/visioncraft/raycasting.cu.s
+.PHONY : src/visioncraft/raycasting.cu.s
 
 src/visioncraft/viewpoint.o: src/visioncraft/viewpoint.cpp.o
 .PHONY : src/visioncraft/viewpoint.o
 
 # target to build an object file
 src/visioncraft/viewpoint.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/exploration_view_tests.dir/build.make CMakeFiles/exploration_view_tests.dir/src/visioncraft/viewpoint.cpp.o
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/viewpoint_tests.dir/build.make CMakeFiles/viewpoint_tests.dir/src/visioncraft/viewpoint.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/viewpoint.cpp.o
 .PHONY : src/visioncraft/viewpoint.cpp.o
 
 src/visioncraft/viewpoint.i: src/visioncraft/viewpoint.cpp.i
@@ -209,8 +203,7 @@ src/visioncraft/viewpoint.i: src/visioncraft/viewpoint.cpp.i
 
 # target to preprocess a source file
 src/visioncraft/viewpoint.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/exploration_view_tests.dir/build.make CMakeFiles/exploration_view_tests.dir/src/visioncraft/viewpoint.cpp.i
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/viewpoint_tests.dir/build.make CMakeFiles/viewpoint_tests.dir/src/visioncraft/viewpoint.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/viewpoint.cpp.i
 .PHONY : src/visioncraft/viewpoint.cpp.i
 
 src/visioncraft/viewpoint.s: src/visioncraft/viewpoint.cpp.s
@@ -218,105 +211,56 @@ src/visioncraft/viewpoint.s: src/visioncraft/viewpoint.cpp.s
 
 # target to generate assembly for a file
 src/visioncraft/viewpoint.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/exploration_view_tests.dir/build.make CMakeFiles/exploration_view_tests.dir/src/visioncraft/viewpoint.cpp.s
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/viewpoint_tests.dir/build.make CMakeFiles/viewpoint_tests.dir/src/visioncraft/viewpoint.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/viewpoint.cpp.s
 .PHONY : src/visioncraft/viewpoint.cpp.s
 
-tests/exploration_view_tests.o: tests/exploration_view_tests.cpp.o
-.PHONY : tests/exploration_view_tests.o
+src/visioncraft/visualizer.o: src/visioncraft/visualizer.cpp.o
+.PHONY : src/visioncraft/visualizer.o
 
 # target to build an object file
-tests/exploration_view_tests.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/exploration_view_tests.dir/build.make CMakeFiles/exploration_view_tests.dir/tests/exploration_view_tests.cpp.o
-.PHONY : tests/exploration_view_tests.cpp.o
+src/visioncraft/visualizer.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.o
+.PHONY : src/visioncraft/visualizer.cpp.o
 
-tests/exploration_view_tests.i: tests/exploration_view_tests.cpp.i
-.PHONY : tests/exploration_view_tests.i
+src/visioncraft/visualizer.i: src/visioncraft/visualizer.cpp.i
+.PHONY : src/visioncraft/visualizer.i
 
 # target to preprocess a source file
-tests/exploration_view_tests.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/exploration_view_tests.dir/build.make CMakeFiles/exploration_view_tests.dir/tests/exploration_view_tests.cpp.i
-.PHONY : tests/exploration_view_tests.cpp.i
+src/visioncraft/visualizer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.i
+.PHONY : src/visioncraft/visualizer.cpp.i
 
-tests/exploration_view_tests.s: tests/exploration_view_tests.cpp.s
-.PHONY : tests/exploration_view_tests.s
+src/visioncraft/visualizer.s: src/visioncraft/visualizer.cpp.s
+.PHONY : src/visioncraft/visualizer.s
 
 # target to generate assembly for a file
-tests/exploration_view_tests.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/exploration_view_tests.dir/build.make CMakeFiles/exploration_view_tests.dir/tests/exploration_view_tests.cpp.s
-.PHONY : tests/exploration_view_tests.cpp.s
+src/visioncraft/visualizer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.s
+.PHONY : src/visioncraft/visualizer.cpp.s
 
-tests/model_loader_tests.o: tests/model_loader_tests.cpp.o
-.PHONY : tests/model_loader_tests.o
+tests/visualizer_test.o: tests/visualizer_test.cpp.o
+.PHONY : tests/visualizer_test.o
 
 # target to build an object file
-tests/model_loader_tests.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/model_loader_tests.dir/build.make CMakeFiles/model_loader_tests.dir/tests/model_loader_tests.cpp.o
-.PHONY : tests/model_loader_tests.cpp.o
+tests/visualizer_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/tests/visualizer_test.cpp.o
+.PHONY : tests/visualizer_test.cpp.o
 
-tests/model_loader_tests.i: tests/model_loader_tests.cpp.i
-.PHONY : tests/model_loader_tests.i
-
-# target to preprocess a source file
-tests/model_loader_tests.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/model_loader_tests.dir/build.make CMakeFiles/model_loader_tests.dir/tests/model_loader_tests.cpp.i
-.PHONY : tests/model_loader_tests.cpp.i
-
-tests/model_loader_tests.s: tests/model_loader_tests.cpp.s
-.PHONY : tests/model_loader_tests.s
-
-# target to generate assembly for a file
-tests/model_loader_tests.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/model_loader_tests.dir/build.make CMakeFiles/model_loader_tests.dir/tests/model_loader_tests.cpp.s
-.PHONY : tests/model_loader_tests.cpp.s
-
-tests/nbv_input_visualizer.o: tests/nbv_input_visualizer.cpp.o
-.PHONY : tests/nbv_input_visualizer.o
-
-# target to build an object file
-tests/nbv_input_visualizer.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/nbv_input_visualizer.dir/build.make CMakeFiles/nbv_input_visualizer.dir/tests/nbv_input_visualizer.cpp.o
-.PHONY : tests/nbv_input_visualizer.cpp.o
-
-tests/nbv_input_visualizer.i: tests/nbv_input_visualizer.cpp.i
-.PHONY : tests/nbv_input_visualizer.i
+tests/visualizer_test.i: tests/visualizer_test.cpp.i
+.PHONY : tests/visualizer_test.i
 
 # target to preprocess a source file
-tests/nbv_input_visualizer.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/nbv_input_visualizer.dir/build.make CMakeFiles/nbv_input_visualizer.dir/tests/nbv_input_visualizer.cpp.i
-.PHONY : tests/nbv_input_visualizer.cpp.i
+tests/visualizer_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/tests/visualizer_test.cpp.i
+.PHONY : tests/visualizer_test.cpp.i
 
-tests/nbv_input_visualizer.s: tests/nbv_input_visualizer.cpp.s
-.PHONY : tests/nbv_input_visualizer.s
-
-# target to generate assembly for a file
-tests/nbv_input_visualizer.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/nbv_input_visualizer.dir/build.make CMakeFiles/nbv_input_visualizer.dir/tests/nbv_input_visualizer.cpp.s
-.PHONY : tests/nbv_input_visualizer.cpp.s
-
-tests/viewpoint_tests.o: tests/viewpoint_tests.cpp.o
-.PHONY : tests/viewpoint_tests.o
-
-# target to build an object file
-tests/viewpoint_tests.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/viewpoint_tests.dir/build.make CMakeFiles/viewpoint_tests.dir/tests/viewpoint_tests.cpp.o
-.PHONY : tests/viewpoint_tests.cpp.o
-
-tests/viewpoint_tests.i: tests/viewpoint_tests.cpp.i
-.PHONY : tests/viewpoint_tests.i
-
-# target to preprocess a source file
-tests/viewpoint_tests.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/viewpoint_tests.dir/build.make CMakeFiles/viewpoint_tests.dir/tests/viewpoint_tests.cpp.i
-.PHONY : tests/viewpoint_tests.cpp.i
-
-tests/viewpoint_tests.s: tests/viewpoint_tests.cpp.s
-.PHONY : tests/viewpoint_tests.s
+tests/visualizer_test.s: tests/visualizer_test.cpp.s
+.PHONY : tests/visualizer_test.s
 
 # target to generate assembly for a file
-tests/viewpoint_tests.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/viewpoint_tests.dir/build.make CMakeFiles/viewpoint_tests.dir/tests/viewpoint_tests.cpp.s
-.PHONY : tests/viewpoint_tests.cpp.s
+tests/visualizer_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/tests/visualizer_test.cpp.s
+.PHONY : tests/visualizer_test.cpp.s
 
 # Help Target
 help:
@@ -326,28 +270,23 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... exploration_view_tests"
-	@echo "... model_loader_tests"
-	@echo "... nbv_input_visualizer"
-	@echo "... viewpoint_tests"
+	@echo "... cuda_lib"
+	@echo "... visualizer_test"
 	@echo "... src/visioncraft/model_loader.o"
 	@echo "... src/visioncraft/model_loader.i"
 	@echo "... src/visioncraft/model_loader.s"
+	@echo "... src/visioncraft/raycasting.o"
+	@echo "... src/visioncraft/raycasting.i"
+	@echo "... src/visioncraft/raycasting.s"
 	@echo "... src/visioncraft/viewpoint.o"
 	@echo "... src/visioncraft/viewpoint.i"
 	@echo "... src/visioncraft/viewpoint.s"
-	@echo "... tests/exploration_view_tests.o"
-	@echo "... tests/exploration_view_tests.i"
-	@echo "... tests/exploration_view_tests.s"
-	@echo "... tests/model_loader_tests.o"
-	@echo "... tests/model_loader_tests.i"
-	@echo "... tests/model_loader_tests.s"
-	@echo "... tests/nbv_input_visualizer.o"
-	@echo "... tests/nbv_input_visualizer.i"
-	@echo "... tests/nbv_input_visualizer.s"
-	@echo "... tests/viewpoint_tests.o"
-	@echo "... tests/viewpoint_tests.i"
-	@echo "... tests/viewpoint_tests.s"
+	@echo "... src/visioncraft/visualizer.o"
+	@echo "... src/visioncraft/visualizer.i"
+	@echo "... src/visioncraft/visualizer.s"
+	@echo "... tests/visualizer_test.o"
+	@echo "... tests/visualizer_test.i"
+	@echo "... tests/visualizer_test.s"
 .PHONY : help
 
 

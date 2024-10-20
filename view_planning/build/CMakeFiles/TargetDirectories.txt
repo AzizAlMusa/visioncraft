@@ -1,6 +1,4 @@
-/home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles/edit_cache.dir
-/home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles/nbv_input_visualizer.dir
 /home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles/rebuild_cache.dir
-/home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles/exploration_view_tests.dir
-/home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles/model_loader_tests.dir
-/home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles/viewpoint_tests.dir
+/home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles/edit_cache.dir
+/home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles/cuda_lib.dir
+/home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles/visualizer_test.dir
