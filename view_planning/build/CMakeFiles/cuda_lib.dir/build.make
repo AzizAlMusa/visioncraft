@@ -93,7 +93,7 @@ cuda_lib_EXTERNAL_OBJECTS =
 libcuda_lib.a: CMakeFiles/cuda_lib.dir/src/visioncraft/raycasting.cu.o
 libcuda_lib.a: CMakeFiles/cuda_lib.dir/build.make
 libcuda_lib.a: CMakeFiles/cuda_lib.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CUDA static library libcuda_lib.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX static library libcuda_lib.a"
 	$(CMAKE_COMMAND) -P CMakeFiles/cuda_lib.dir/cmake_clean_target.cmake
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/cuda_lib.dir/link.txt --verbose=$(VERBOSE)
 

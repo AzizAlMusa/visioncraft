@@ -675,6 +675,7 @@ CMakeFiles/visualizer_test.dir/tests/visualizer_test.cpp.o: \
  /opt/ros/melodic/include/octomap/MCTables.h \
  /usr/local/include/open3d/t/geometry/RaycastingScene.h \
  /home/abdulaziz/playground/NBV-net/view_planning/include/visioncraft/viewpoint.h \
+ /home/abdulaziz/playground/NBV-net/view_planning/include/visioncraft/model_loader.h \
  /usr/local/cuda-11.4/include/cuda_runtime.h \
  /usr/local/cuda-11.4/include/crt/host_config.h \
  /usr/local/cuda-11.4/include/builtin_types.h \

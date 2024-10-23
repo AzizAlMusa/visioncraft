@@ -173,6 +173,7 @@ visualizer_test: /home/abdulaziz/programs/vtk9.1/install/lib/libvtkCommonMath-9.
 visualizer_test: /home/abdulaziz/programs/vtk9.1/install/lib/libvtkkissfft-9.1.so.9.1.0
 visualizer_test: /home/abdulaziz/programs/vtk9.1/install/lib/libvtkCommonCore-9.1.so.9.1.0
 visualizer_test: /home/abdulaziz/programs/vtk9.1/install/lib/libvtksys-9.1.so.9.1.0
+visualizer_test: /usr/local/lib/libOpen3D.a
 visualizer_test: /usr/local/lib/libOpen3D_3rdparty_assimp.a
 visualizer_test: /usr/local/lib/libOpen3D_3rdparty_jpeg.a
 visualizer_test: /usr/local/lib/libOpen3D_3rdparty_jsoncpp.a
@@ -221,6 +222,8 @@ visualizer_test: /usr/lib/gcc/x86_64-linux-gnu/7/libgomp.so
 visualizer_test: /usr/lib/x86_64-linux-gnu/libpthread.so
 visualizer_test: /usr/local/lib/libOpen3D_3rdparty_ippicv_ippiw.a
 visualizer_test: /usr/local/lib/libOpen3D_3rdparty_ippicv_ippicv.a
+visualizer_test: /usr/local/cuda-11.4/lib64/libcudart_static.a
+visualizer_test: /usr/lib/x86_64-linux-gnu/librt.so
 visualizer_test: CMakeFiles/visualizer_test.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Linking CXX executable visualizer_test"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/visualizer_test.dir/link.txt --verbose=$(VERBOSE)
