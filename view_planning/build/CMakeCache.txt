@@ -683,6 +683,9 @@ view_planning_BINARY_DIR:STATIC=/home/abdulaziz/playground/NBV-net/view_planning
 //Value Computed by CMake
 view_planning_SOURCE_DIR:STATIC=/home/abdulaziz/playground/NBV-net/view_planning
 
+//Dependencies for the target
+visioncraft_py_LIB_DEPENDS:STATIC=general;VTK::CommonColor;general;VTK::CommonCore;general;VTK::FiltersSources;general;VTK::InteractionStyle;general;VTK::RenderingContextOpenGL2;general;VTK::RenderingCore;general;VTK::RenderingFreeType;general;VTK::RenderingGL2PSOpenGL2;general;VTK::RenderingOpenGL2;general;VTK::RenderingAnnotation;general;/opt/ros/melodic/lib/liboctomap.so;general;/opt/ros/melodic/lib/liboctomath.so;general;Open3D_no_OpenGL;general;/usr/lib/x86_64-linux-gnu/libpython3.6m.so;general;cuda_lib;
+
 
 ########################
 # INTERNAL cache entries
@@ -952,6 +955,8 @@ FIND_PACKAGE_MESSAGE_DETAILS_OpenGL:INTERNAL=[/usr/lib/x86_64-linux-gnu/libOpenG
 FIND_PACKAGE_MESSAGE_DETAILS_OpenMP:INTERNAL=[TRUE][c ][v4.5()]
 //Details about finding OpenMP_CXX
 FIND_PACKAGE_MESSAGE_DETAILS_OpenMP_CXX:INTERNAL=[-fopenmp][/usr/lib/gcc/x86_64-linux-gnu/7/libgomp.so][/usr/lib/x86_64-linux-gnu/libpthread.so][v4.5()]
+//Details about finding Python3
+FIND_PACKAGE_MESSAGE_DETAILS_Python3:INTERNAL=[/usr/bin/python3.8][/usr/include/python3.8][cfound components: Interpreter Development.Module Development.Embed ][v3.8.0(3.8)]
 //Details about finding PythonLibs
 FIND_PACKAGE_MESSAGE_DETAILS_PythonLibs:INTERNAL=[/usr/lib/x86_64-linux-gnu/libpython3.6m.so][/usr/include/python3.6m][v3.6.9(3.6)]
 //Details about finding Threads
@@ -1195,6 +1200,17 @@ X11_xkbcommon_X11_LIB-ADVANCED:INTERNAL=1
 X11_xkbfile_INCLUDE_PATH-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: X11_xkbfile_LIB
 X11_xkbfile_LIB-ADVANCED:INTERNAL=1
+_Python3_DEVELOPMENT_EMBED_SIGNATURE:INTERNAL=0a1c5fc8719f4e4a44cf594e6aedd419
+_Python3_DEVELOPMENT_MODULE_SIGNATURE:INTERNAL=5c4d899b694456d2130e67e0e2e103ee
+//Path to a program.
+_Python3_EXECUTABLE:INTERNAL=/usr/bin/python3.8
+//Path to a file.
+_Python3_INCLUDE_DIR:INTERNAL=/usr/include/python3.8
+//Python3 Properties
+_Python3_INTERPRETER_PROPERTIES:INTERNAL=Python;3;8;0;64;;cpython-38-x86_64-linux-gnu;/usr/lib/python3.8;/usr/lib/python3.8;/usr/lib/python3.8/site-packages;/usr/lib/python3.8/site-packages
+_Python3_INTERPRETER_SIGNATURE:INTERNAL=1d67f3455c450d8c2e1e4f08924f9fd7
+//Path to a library.
+_Python3_LIBRARY_RELEASE:INTERNAL=/usr/lib/x86_64-linux-gnu/libpython3.8.so
 __pkg_config_arguments_PKG_FONTCONFIG:INTERNAL=QUIET;fontconfig
 __pkg_config_checked_PKG_FONTCONFIG:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib_PKG_FONTCONFIG_fontconfig

@@ -1,4 +1,5 @@
 /home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles/rebuild_cache.dir
 /home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles/edit_cache.dir
+/home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles/visioncraft_py.dir
 /home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles/cuda_lib.dir
 /home/abdulaziz/playground/NBV-net/view_planning/build/CMakeFiles/visualizer_test.dir

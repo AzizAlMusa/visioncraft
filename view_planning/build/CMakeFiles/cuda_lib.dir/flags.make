@@ -6,5 +6,5 @@ CUDA_DEFINES = -DFMT_HEADER_ONLY=0 -DFMT_STRING_ALIAS=1 -DFMT_USE_WINDOWS_H=0 -D
 
 CUDA_INCLUDES = -I/usr/include/python3.6m -I/home/abdulaziz/playground/open3d/env/lib/python3.6/site-packages/pybind11/include -I/opt/ros/melodic/include -I/usr/local/cuda-11.4/include -I/home/abdulaziz/playground/NBV-net/view_planning/include -I/home/abdulaziz/playground/NBV-net/view_planning/include/visioncraft -isystem=/usr/local/include/open3d/3rdparty
 
-CUDA_FLAGS =  --generate-code=arch=compute_52,code=[compute_52,sm_52] -std=c++14
+CUDA_FLAGS =  -Xcompiler -fPIC --generate-code=arch=compute_52,code=[compute_52,sm_52] -std=c++14
 

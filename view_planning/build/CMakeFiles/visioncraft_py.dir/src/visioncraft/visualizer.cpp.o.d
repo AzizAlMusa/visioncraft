@@ -1,4 +1,4 @@
-CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.o: \
+CMakeFiles/visioncraft_py.dir/src/visioncraft/visualizer.cpp.o: \
  /home/abdulaziz/playground/NBV-net/view_planning/src/visioncraft/visualizer.cpp \
  /usr/include/stdc-predef.h \
  /home/abdulaziz/playground/NBV-net/view_planning/include/visioncraft/visualizer.h \

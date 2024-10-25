@@ -1,8 +1,13 @@
-CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.o: \
- /home/abdulaziz/playground/NBV-net/view_planning/src/visioncraft/visualizer.cpp \
+CMakeFiles/visioncraft_py.dir/src/visioncraft/viewpoint.cpp.o: \
+ /home/abdulaziz/playground/NBV-net/view_planning/src/visioncraft/viewpoint.cpp \
  /usr/include/stdc-predef.h \
- /home/abdulaziz/playground/NBV-net/view_planning/include/visioncraft/visualizer.h \
- /usr/include/c++/7/memory /usr/include/c++/7/bits/stl_algobase.h \
+ /home/abdulaziz/playground/NBV-net/view_planning/include/visioncraft/viewpoint.h \
+ /usr/local/include/open3d/3rdparty/Eigen/Dense \
+ /usr/local/include/open3d/3rdparty/Eigen/Core \
+ /usr/local/include/open3d/3rdparty/Eigen/src/Core/util/DisableStupidWarnings.h \
+ /usr/local/include/open3d/3rdparty/Eigen/src/Core/util/Macros.h \
+ /usr/local/include/open3d/3rdparty/Eigen/src/Core/InternalHeaderCheck.h \
+ /usr/include/c++/7/cmath \
  /usr/include/x86_64-linux-gnu/c++/7/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/7/bits/os_defines.h \
  /usr/include/features.h /usr/include/x86_64-linux-gnu/sys/cdefs.h \
@@ -11,108 +16,119 @@ CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.o: \
  /usr/include/x86_64-linux-gnu/gnu/stubs.h \
  /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \
  /usr/include/x86_64-linux-gnu/c++/7/bits/cpu_defines.h \
- /usr/include/c++/7/bits/functexcept.h \
- /usr/include/c++/7/bits/exception_defines.h \
  /usr/include/c++/7/bits/cpp_type_traits.h \
- /usr/include/c++/7/ext/type_traits.h \
- /usr/include/c++/7/ext/numeric_traits.h \
- /usr/include/c++/7/bits/stl_pair.h /usr/include/c++/7/bits/move.h \
- /usr/include/c++/7/bits/concept_check.h /usr/include/c++/7/type_traits \
- /usr/include/c++/7/bits/stl_iterator_base_types.h \
- /usr/include/c++/7/bits/stl_iterator_base_funcs.h \
- /usr/include/c++/7/debug/assertions.h \
- /usr/include/c++/7/bits/stl_iterator.h \
- /usr/include/c++/7/bits/ptr_traits.h /usr/include/c++/7/debug/debug.h \
- /usr/include/c++/7/bits/predefined_ops.h \
- /usr/include/c++/7/bits/allocator.h \
- /usr/include/x86_64-linux-gnu/c++/7/bits/c++allocator.h \
- /usr/include/c++/7/ext/new_allocator.h /usr/include/c++/7/new \
- /usr/include/c++/7/exception /usr/include/c++/7/bits/exception.h \
- /usr/include/c++/7/bits/exception_ptr.h \
- /usr/include/c++/7/bits/cxxabi_init_exception.h \
- /usr/lib/gcc/x86_64-linux-gnu/7/include/stddef.h \
- /usr/include/c++/7/typeinfo /usr/include/c++/7/bits/hash_bytes.h \
- /usr/include/c++/7/bits/nested_exception.h \
- /usr/include/c++/7/bits/memoryfwd.h \
- /usr/include/c++/7/bits/stl_construct.h \
- /usr/include/c++/7/ext/alloc_traits.h \
- /usr/include/c++/7/bits/alloc_traits.h \
- /usr/include/c++/7/bits/stl_uninitialized.h \
- /usr/include/c++/7/bits/stl_tempbuf.h \
- /usr/include/c++/7/bits/stl_raw_storage_iter.h /usr/include/c++/7/iosfwd \
- /usr/include/c++/7/bits/stringfwd.h /usr/include/c++/7/bits/postypes.h \
- /usr/include/c++/7/cwchar /usr/include/wchar.h \
+ /usr/include/c++/7/ext/type_traits.h /usr/include/math.h \
  /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
+ /usr/include/x86_64-linux-gnu/bits/types.h \
+ /usr/include/x86_64-linux-gnu/bits/typesizes.h \
+ /usr/include/x86_64-linux-gnu/bits/math-vector.h \
+ /usr/include/x86_64-linux-gnu/bits/libm-simd-decl-stubs.h \
  /usr/include/x86_64-linux-gnu/bits/floatn.h \
  /usr/include/x86_64-linux-gnu/bits/floatn-common.h \
- /usr/lib/gcc/x86_64-linux-gnu/7/include/stdarg.h \
+ /usr/include/x86_64-linux-gnu/bits/flt-eval-method.h \
+ /usr/include/x86_64-linux-gnu/bits/fp-logb.h \
+ /usr/include/x86_64-linux-gnu/bits/fp-fast.h \
+ /usr/include/x86_64-linux-gnu/bits/mathcalls-helper-functions.h \
+ /usr/include/x86_64-linux-gnu/bits/mathcalls.h \
+ /usr/include/x86_64-linux-gnu/bits/iscanonical.h \
+ /usr/include/c++/7/bits/std_abs.h /usr/include/stdlib.h \
+ /usr/lib/gcc/x86_64-linux-gnu/7/include/stddef.h \
+ /usr/include/x86_64-linux-gnu/bits/waitflags.h \
+ /usr/include/x86_64-linux-gnu/bits/waitstatus.h \
+ /usr/include/x86_64-linux-gnu/bits/types/locale_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h \
+ /usr/include/x86_64-linux-gnu/sys/types.h \
+ /usr/include/x86_64-linux-gnu/bits/types/clock_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/clockid_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/time_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/timer_t.h \
+ /usr/include/x86_64-linux-gnu/bits/stdint-intn.h /usr/include/endian.h \
+ /usr/include/x86_64-linux-gnu/bits/endian.h \
+ /usr/include/x86_64-linux-gnu/bits/byteswap.h \
+ /usr/include/x86_64-linux-gnu/bits/byteswap-16.h \
+ /usr/include/x86_64-linux-gnu/bits/uintn-identity.h \
+ /usr/include/x86_64-linux-gnu/sys/select.h \
+ /usr/include/x86_64-linux-gnu/bits/select.h \
+ /usr/include/x86_64-linux-gnu/bits/types/sigset_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/__sigset_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct_timespec.h \
+ /usr/include/x86_64-linux-gnu/sys/sysmacros.h \
+ /usr/include/x86_64-linux-gnu/bits/sysmacros.h \
+ /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h \
+ /usr/include/x86_64-linux-gnu/bits/thread-shared-types.h \
+ /usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h \
+ /usr/include/alloca.h /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
+ /usr/local/include/open3d/3rdparty/Eigen/src/Core/util/ConfigureVectorization.h \
+ /usr/lib/gcc/x86_64-linux-gnu/7/include/mmintrin.h \
+ /usr/lib/gcc/x86_64-linux-gnu/7/include/emmintrin.h \
+ /usr/lib/gcc/x86_64-linux-gnu/7/include/xmmintrin.h \
+ /usr/lib/gcc/x86_64-linux-gnu/7/include/mm_malloc.h \
+ /usr/include/c++/7/stdlib.h /usr/include/c++/7/cstdlib \
+ /usr/include/c++/7/new /usr/include/c++/7/exception \
+ /usr/include/c++/7/bits/exception.h \
+ /usr/include/c++/7/bits/exception_ptr.h \
+ /usr/include/c++/7/bits/exception_defines.h \
+ /usr/include/c++/7/bits/cxxabi_init_exception.h \
+ /usr/include/c++/7/typeinfo /usr/include/c++/7/bits/hash_bytes.h \
+ /usr/include/c++/7/bits/nested_exception.h \
+ /usr/include/c++/7/bits/move.h /usr/include/c++/7/bits/concept_check.h \
+ /usr/include/c++/7/type_traits /usr/include/c++/7/complex \
+ /usr/include/c++/7/sstream /usr/include/c++/7/istream \
+ /usr/include/c++/7/ios /usr/include/c++/7/iosfwd \
+ /usr/include/c++/7/bits/stringfwd.h /usr/include/c++/7/bits/memoryfwd.h \
+ /usr/include/c++/7/bits/postypes.h /usr/include/c++/7/cwchar \
+ /usr/include/wchar.h /usr/lib/gcc/x86_64-linux-gnu/7/include/stdarg.h \
  /usr/include/x86_64-linux-gnu/bits/wchar.h \
  /usr/include/x86_64-linux-gnu/bits/types/wint_t.h \
  /usr/include/x86_64-linux-gnu/bits/types/mbstate_t.h \
  /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h \
  /usr/include/x86_64-linux-gnu/bits/types/__FILE.h \
  /usr/include/x86_64-linux-gnu/bits/types/FILE.h \
- /usr/include/x86_64-linux-gnu/bits/types/locale_t.h \
- /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h \
- /usr/include/c++/7/ext/atomicity.h \
- /usr/include/x86_64-linux-gnu/c++/7/bits/gthr.h \
- /usr/include/x86_64-linux-gnu/c++/7/bits/gthr-default.h \
- /usr/include/pthread.h /usr/include/endian.h \
- /usr/include/x86_64-linux-gnu/bits/endian.h \
- /usr/include/x86_64-linux-gnu/bits/byteswap.h \
- /usr/include/x86_64-linux-gnu/bits/types.h \
- /usr/include/x86_64-linux-gnu/bits/typesizes.h \
- /usr/include/x86_64-linux-gnu/bits/byteswap-16.h \
- /usr/include/x86_64-linux-gnu/bits/uintn-identity.h /usr/include/sched.h \
- /usr/include/x86_64-linux-gnu/bits/types/time_t.h \
- /usr/include/x86_64-linux-gnu/bits/types/struct_timespec.h \
- /usr/include/x86_64-linux-gnu/bits/sched.h \
- /usr/include/x86_64-linux-gnu/bits/cpu-set.h /usr/include/time.h \
- /usr/include/x86_64-linux-gnu/bits/time.h \
- /usr/include/x86_64-linux-gnu/bits/timex.h \
- /usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h \
- /usr/include/x86_64-linux-gnu/bits/types/clock_t.h \
- /usr/include/x86_64-linux-gnu/bits/types/struct_tm.h \
- /usr/include/x86_64-linux-gnu/bits/types/clockid_t.h \
- /usr/include/x86_64-linux-gnu/bits/types/timer_t.h \
- /usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h \
- /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h \
- /usr/include/x86_64-linux-gnu/bits/thread-shared-types.h \
- /usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h \
- /usr/include/x86_64-linux-gnu/bits/setjmp.h \
- /usr/include/x86_64-linux-gnu/c++/7/bits/atomic_word.h \
- /usr/include/c++/7/ext/concurrence.h \
- /usr/include/c++/7/bits/stl_function.h \
- /usr/include/c++/7/backward/binders.h \
- /usr/include/c++/7/bits/uses_allocator.h \
- /usr/include/c++/7/bits/unique_ptr.h /usr/include/c++/7/utility \
- /usr/include/c++/7/bits/stl_relops.h /usr/include/c++/7/initializer_list \
- /usr/include/c++/7/tuple /usr/include/c++/7/array \
- /usr/include/c++/7/stdexcept /usr/include/c++/7/string \
- /usr/include/c++/7/bits/char_traits.h /usr/include/c++/7/cstdint \
+ /usr/include/c++/7/bits/char_traits.h \
+ /usr/include/c++/7/bits/stl_algobase.h \
+ /usr/include/c++/7/bits/functexcept.h \
+ /usr/include/c++/7/ext/numeric_traits.h \
+ /usr/include/c++/7/bits/stl_pair.h \
+ /usr/include/c++/7/bits/stl_iterator_base_types.h \
+ /usr/include/c++/7/bits/stl_iterator_base_funcs.h \
+ /usr/include/c++/7/debug/assertions.h \
+ /usr/include/c++/7/bits/stl_iterator.h \
+ /usr/include/c++/7/bits/ptr_traits.h /usr/include/c++/7/debug/debug.h \
+ /usr/include/c++/7/bits/predefined_ops.h /usr/include/c++/7/cstdint \
  /usr/lib/gcc/x86_64-linux-gnu/7/include/stdint.h /usr/include/stdint.h \
- /usr/include/x86_64-linux-gnu/bits/stdint-intn.h \
  /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h \
  /usr/include/c++/7/bits/localefwd.h \
  /usr/include/x86_64-linux-gnu/c++/7/bits/c++locale.h \
  /usr/include/c++/7/clocale /usr/include/locale.h \
  /usr/include/x86_64-linux-gnu/bits/locale.h /usr/include/c++/7/cctype \
- /usr/include/ctype.h /usr/include/c++/7/bits/ostream_insert.h \
+ /usr/include/ctype.h /usr/include/c++/7/bits/ios_base.h \
+ /usr/include/c++/7/ext/atomicity.h \
+ /usr/include/x86_64-linux-gnu/c++/7/bits/gthr.h \
+ /usr/include/x86_64-linux-gnu/c++/7/bits/gthr-default.h \
+ /usr/include/pthread.h /usr/include/sched.h \
+ /usr/include/x86_64-linux-gnu/bits/sched.h \
+ /usr/include/x86_64-linux-gnu/bits/cpu-set.h /usr/include/time.h \
+ /usr/include/x86_64-linux-gnu/bits/time.h \
+ /usr/include/x86_64-linux-gnu/bits/timex.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct_tm.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h \
+ /usr/include/x86_64-linux-gnu/bits/setjmp.h \
+ /usr/include/x86_64-linux-gnu/c++/7/bits/atomic_word.h \
+ /usr/include/c++/7/bits/locale_classes.h /usr/include/c++/7/string \
+ /usr/include/c++/7/bits/allocator.h \
+ /usr/include/x86_64-linux-gnu/c++/7/bits/c++allocator.h \
+ /usr/include/c++/7/ext/new_allocator.h \
+ /usr/include/c++/7/bits/ostream_insert.h \
  /usr/include/c++/7/bits/cxxabi_forced.h \
+ /usr/include/c++/7/bits/stl_function.h \
+ /usr/include/c++/7/backward/binders.h \
  /usr/include/c++/7/bits/range_access.h \
+ /usr/include/c++/7/initializer_list \
  /usr/include/c++/7/bits/basic_string.h \
- /usr/include/c++/7/ext/string_conversions.h /usr/include/c++/7/cstdlib \
- /usr/include/stdlib.h /usr/include/x86_64-linux-gnu/bits/waitflags.h \
- /usr/include/x86_64-linux-gnu/bits/waitstatus.h \
- /usr/include/x86_64-linux-gnu/sys/types.h \
- /usr/include/x86_64-linux-gnu/sys/select.h \
- /usr/include/x86_64-linux-gnu/bits/select.h \
- /usr/include/x86_64-linux-gnu/bits/types/sigset_t.h \
- /usr/include/x86_64-linux-gnu/bits/types/__sigset_t.h \
- /usr/include/x86_64-linux-gnu/sys/sysmacros.h \
- /usr/include/x86_64-linux-gnu/bits/sysmacros.h /usr/include/alloca.h \
- /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
- /usr/include/c++/7/bits/std_abs.h /usr/include/c++/7/cstdio \
+ /usr/include/c++/7/ext/alloc_traits.h \
+ /usr/include/c++/7/bits/alloc_traits.h \
+ /usr/include/c++/7/ext/string_conversions.h /usr/include/c++/7/cstdio \
  /usr/include/stdio.h /usr/include/x86_64-linux-gnu/bits/libio.h \
  /usr/include/x86_64-linux-gnu/bits/_G_config.h \
  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
@@ -123,44 +139,11 @@ CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.o: \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
  /usr/include/c++/7/bits/functional_hash.h \
  /usr/include/c++/7/bits/basic_string.tcc \
- /usr/include/c++/7/bits/invoke.h /usr/include/c++/7/bits/shared_ptr.h \
- /usr/include/c++/7/bits/shared_ptr_base.h \
- /usr/include/c++/7/bits/allocated_ptr.h \
- /usr/include/c++/7/bits/refwrap.h \
- /usr/include/c++/7/ext/aligned_buffer.h \
- /usr/include/c++/7/bits/shared_ptr_atomic.h \
- /usr/include/c++/7/bits/atomic_base.h \
- /usr/include/c++/7/bits/atomic_lockfree_defines.h \
- /usr/include/c++/7/backward/auto_ptr.h /usr/include/c++/7/vector \
- /usr/include/c++/7/bits/stl_vector.h \
- /usr/include/c++/7/bits/stl_bvector.h /usr/include/c++/7/bits/vector.tcc \
- /usr/local/include/open3d/3rdparty/Eigen/Dense \
- /usr/local/include/open3d/3rdparty/Eigen/Core \
- /usr/local/include/open3d/3rdparty/Eigen/src/Core/util/DisableStupidWarnings.h \
- /usr/local/include/open3d/3rdparty/Eigen/src/Core/util/Macros.h \
- /usr/local/include/open3d/3rdparty/Eigen/src/Core/InternalHeaderCheck.h \
- /usr/include/c++/7/cmath /usr/include/math.h \
- /usr/include/x86_64-linux-gnu/bits/math-vector.h \
- /usr/include/x86_64-linux-gnu/bits/libm-simd-decl-stubs.h \
- /usr/include/x86_64-linux-gnu/bits/flt-eval-method.h \
- /usr/include/x86_64-linux-gnu/bits/fp-logb.h \
- /usr/include/x86_64-linux-gnu/bits/fp-fast.h \
- /usr/include/x86_64-linux-gnu/bits/mathcalls-helper-functions.h \
- /usr/include/x86_64-linux-gnu/bits/mathcalls.h \
- /usr/include/x86_64-linux-gnu/bits/iscanonical.h \
- /usr/local/include/open3d/3rdparty/Eigen/src/Core/util/ConfigureVectorization.h \
- /usr/lib/gcc/x86_64-linux-gnu/7/include/mmintrin.h \
- /usr/lib/gcc/x86_64-linux-gnu/7/include/emmintrin.h \
- /usr/lib/gcc/x86_64-linux-gnu/7/include/xmmintrin.h \
- /usr/lib/gcc/x86_64-linux-gnu/7/include/mm_malloc.h \
- /usr/include/c++/7/stdlib.h /usr/include/c++/7/complex \
- /usr/include/c++/7/sstream /usr/include/c++/7/istream \
- /usr/include/c++/7/ios /usr/include/c++/7/bits/ios_base.h \
- /usr/include/c++/7/bits/locale_classes.h \
  /usr/include/c++/7/bits/locale_classes.tcc \
  /usr/include/c++/7/system_error \
  /usr/include/x86_64-linux-gnu/c++/7/bits/error_constants.h \
- /usr/include/c++/7/streambuf /usr/include/c++/7/bits/streambuf.tcc \
+ /usr/include/c++/7/stdexcept /usr/include/c++/7/streambuf \
+ /usr/include/c++/7/bits/streambuf.tcc \
  /usr/include/c++/7/bits/basic_ios.h \
  /usr/include/c++/7/bits/locale_facets.h /usr/include/c++/7/cwctype \
  /usr/include/wctype.h /usr/include/x86_64-linux-gnu/bits/wctype-wchar.h \
@@ -174,7 +157,11 @@ CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.o: \
  /usr/local/include/open3d/3rdparty/Eigen/src/Core/util/MKL_support.h \
  /usr/include/c++/7/cstddef /usr/include/c++/7/cassert \
  /usr/include/assert.h /usr/include/c++/7/functional \
- /usr/include/c++/7/bits/std_function.h /usr/include/c++/7/cstring \
+ /usr/include/c++/7/tuple /usr/include/c++/7/utility \
+ /usr/include/c++/7/bits/stl_relops.h /usr/include/c++/7/array \
+ /usr/include/c++/7/bits/uses_allocator.h \
+ /usr/include/c++/7/bits/invoke.h /usr/include/c++/7/bits/std_function.h \
+ /usr/include/c++/7/bits/refwrap.h /usr/include/c++/7/cstring \
  /usr/include/string.h /usr/include/strings.h /usr/include/c++/7/limits \
  /usr/include/c++/7/climits \
  /usr/lib/gcc/x86_64-linux-gnu/7/include-fixed/limits.h \
@@ -187,7 +174,8 @@ CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.o: \
  /usr/include/x86_64-linux-gnu/bits/uio_lim.h \
  /usr/include/c++/7/algorithm /usr/include/c++/7/bits/stl_algo.h \
  /usr/include/c++/7/bits/algorithmfwd.h \
- /usr/include/c++/7/bits/stl_heap.h \
+ /usr/include/c++/7/bits/stl_heap.h /usr/include/c++/7/bits/stl_tempbuf.h \
+ /usr/include/c++/7/bits/stl_construct.h \
  /usr/include/c++/7/bits/uniform_int_dist.h \
  /usr/local/include/open3d/3rdparty/Eigen/src/Core/util/Constants.h \
  /usr/local/include/open3d/3rdparty/Eigen/src/Core/util/Meta.h \
@@ -291,7 +279,8 @@ CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.o: \
  /usr/local/include/open3d/3rdparty/Eigen/src/Core/products/GeneralBlockPanelKernel.h \
  /usr/local/include/open3d/3rdparty/Eigen/src/Core/InternalHeaderCheck.h \
  /usr/local/include/open3d/3rdparty/Eigen/src/Core/products/Parallelizer.h \
- /usr/include/c++/7/atomic \
+ /usr/include/c++/7/atomic /usr/include/c++/7/bits/atomic_base.h \
+ /usr/include/c++/7/bits/atomic_lockfree_defines.h \
  /usr/local/include/open3d/3rdparty/Eigen/src/Core/ProductEvaluators.h \
  /usr/local/include/open3d/3rdparty/Eigen/src/Core/products/GeneralMatrixVector.h \
  /usr/local/include/open3d/3rdparty/Eigen/src/Core/products/GeneralMatrixMatrix.h \
@@ -391,7 +380,16 @@ CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.o: \
  /usr/local/include/open3d/3rdparty/Eigen/src/Eigenvalues/GeneralizedEigenSolver.h \
  /usr/local/include/open3d/3rdparty/Eigen/src/Eigenvalues/RealQZ.h \
  /usr/local/include/open3d/3rdparty/Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h \
- /home/abdulaziz/playground/NBV-net/view_planning/include/visioncraft/model_loader.h \
+ /usr/include/c++/7/memory /usr/include/c++/7/bits/stl_uninitialized.h \
+ /usr/include/c++/7/bits/stl_raw_storage_iter.h \
+ /usr/include/c++/7/ext/concurrence.h \
+ /usr/include/c++/7/bits/unique_ptr.h \
+ /usr/include/c++/7/bits/shared_ptr.h \
+ /usr/include/c++/7/bits/shared_ptr_base.h \
+ /usr/include/c++/7/bits/allocated_ptr.h \
+ /usr/include/c++/7/ext/aligned_buffer.h \
+ /usr/include/c++/7/bits/shared_ptr_atomic.h \
+ /usr/include/c++/7/backward/auto_ptr.h \
  /usr/local/include/open3d/Open3D.h \
  /usr/local/include/open3d/Open3DConfig.h \
  /usr/local/include/open3d/camera/PinholeCameraIntrinsic.h \
@@ -416,6 +414,8 @@ CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.o: \
  /usr/include/c++/7/bits/codecvt.h /usr/include/c++/7/bits/unique_ptr.h \
  /usr/local/include/open3d/utility/Eigen.h \
  /usr/local/include/open3d/3rdparty/Eigen/StdVector \
+ /usr/include/c++/7/vector /usr/include/c++/7/bits/stl_vector.h \
+ /usr/include/c++/7/bits/stl_bvector.h /usr/include/c++/7/bits/vector.tcc \
  /usr/local/include/open3d/3rdparty/Eigen/src/StlSupport/StdVector.h \
  /usr/local/include/open3d/3rdparty/Eigen/src/StlSupport/details.h \
  /usr/local/include/open3d/camera/PinholeCameraParameters.h \
@@ -673,9 +673,8 @@ CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.o: \
  /opt/ros/melodic/include/octomap/OcTreeNode.h \
  /opt/ros/melodic/include/octomap/OccupancyOcTreeBase.hxx \
  /opt/ros/melodic/include/octomap/MCTables.h \
- /usr/local/include/open3d/t/geometry/RaycastingScene.h \
- /home/abdulaziz/playground/NBV-net/view_planning/include/visioncraft/viewpoint.h \
  /home/abdulaziz/playground/NBV-net/view_planning/include/visioncraft/model_loader.h \
+ /usr/local/include/open3d/t/geometry/RaycastingScene.h \
  /usr/local/cuda-11.4/include/cuda_runtime.h \
  /usr/local/cuda-11.4/include/crt/host_config.h \
  /usr/local/cuda-11.4/include/builtin_types.h \
@@ -692,172 +691,4 @@ CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.o: \
  /usr/local/cuda-11.4/include/driver_functions.h \
  /usr/local/cuda-11.4/include/vector_functions.h \
  /usr/local/cuda-11.4/include/vector_functions.hpp \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkSmartPointer.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkSmartPointerBase.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCommonCoreModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkObjectBase.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkFeatures.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkIndent.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkSystemIncludes.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkWin32Header.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkABI.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkBuild.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkPlatform.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkIOStream.h \
- /usr/include/c++/7/iomanip /usr/include/c++/7/bits/quoted_string.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkType.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCompiler.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkLegacy.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkOptions.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtk_kwiml.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkkwiml/abi.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkkwiml/int.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkkwiml/abi.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkWrappingHints.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkOStreamWrapper.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkOStrStreamWrapper.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkMeta.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkNew.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkActor.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkProp3D.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkProp.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkObject.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkSetGet.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkTimeStamp.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkWeakPointerBase.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkRenderingCoreModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkFiltersCoreModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkRenderer.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkViewport.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkActorCollection.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkActor.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkPropCollection.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCollection.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkVolumeCollection.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkVolume.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkRenderWindow.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDeprecation.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkVersion.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkVersionMacros.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkSmartPointer.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkWindow.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkRenderWindowInteractor.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCommand.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkAxesActor.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkRenderingAnnotationModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCamera.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkRect.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkVector.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkTuple.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkMath.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkMathPrivate.hxx \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkMatrixUtilities.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkTypeTraits.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkMathConfigure.h \
- /usr/lib/gcc/x86_64-linux-gnu/7/include/float.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkFrustumSource.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkFiltersSourcesModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkPolyDataAlgorithm.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkAlgorithm.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCommonExecutionModelModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkPolyData.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCommonDataModelModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkPointSet.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDataSet.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDataObject.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCellTypes.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCellType.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkIdTypeArray.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkAOSDataArrayTemplate.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkBuffer.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkObjectFactory.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDebugLeaksManager.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkGenericDataArray.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDataArray.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkAbstractArray.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkVariant.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkStdString.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkVariantInlineOperators.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkVTK_USE_SCALED_SOA_ARRAYS.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkGenericDataArrayLookupHelper.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkIdList.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkGenericDataArray.txx \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkVariantCast.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkIntArray.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkUnsignedCharArray.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkEmptyCell.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCell.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkBoundingBox.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkGenericCell.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkPoints.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCellArray.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDataArrayRange.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDataArrayMeta.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkAssume.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDebugRangeIterators.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDataArrayTupleRange_AOS.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDataArrayTupleRange_Generic.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDataArrayAccessor.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDataArrayValueRange_AOS.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDataArrayValueRange_Generic.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkTypeInt32Array.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkTypeInt64Array.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkLongLongArray.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkTypeList.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkTypeListMacros.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkTypeList.txx \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCellLinks.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkAbstractCellLinks.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkPolyDataInternals.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkPolyDataMapper.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkMapper.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkAbstractMapper3D.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkAbstractMapper.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkOpenGLPolyDataMapper.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkInformation.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkOpenGLHelper.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkRenderingOpenGL2Module.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkRenderingUIModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkPolyDataMapper.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkShader.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkStateStorage.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkProperty.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkOctreePointLocator.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkAbstractPointLocator.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkLocator.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkPoints.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkVertexGlyphFilter.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkFiltersGeneralModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkPointData.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDataSetAttributes.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkDataSetAttributesFieldList.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkFieldData.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkColorTransferFunction.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkScalarsToColors.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkPLYReader.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkAbstractPolyDataReader.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkIOCoreModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkIOPLYModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkSTLReader.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkIOGeometryModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCubeSource.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkAppendPolyData.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkLineSource.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkTransform.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCommonTransformsModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkLinearTransform.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkHomogeneousTransform.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkAbstractTransform.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkMatrix4x4.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCommonMathModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkMatrix4x4.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkMatrix3x3.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkLine.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkVoxel.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkCell3D.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkInteractorStyleTrackballCamera.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkInteractionStyleModule.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkInteractorStyle.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkInteractorObserver.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkInteractorStyleTrackballActor.h \
- /home/abdulaziz/programs/vtk9.1/install/include/vtk-9.1/vtkAutoInit.h
+ /usr/lib/gcc/x86_64-linux-gnu/7/include/omp.h

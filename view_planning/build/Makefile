@@ -117,6 +117,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named visioncraft_py
+
+# Build rule for target.
+visioncraft_py: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 visioncraft_py
+.PHONY : visioncraft_py
+
+# fast build rule for target.
+visioncraft_py/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visioncraft_py.dir/build.make CMakeFiles/visioncraft_py.dir/build
+.PHONY : visioncraft_py/fast
+
+#=============================================================================
 # Target rules for targets named cuda_lib
 
 # Build rule for target.
@@ -142,11 +155,36 @@ visualizer_test/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/build
 .PHONY : visualizer_test/fast
 
+src/visioncraft/bindings.o: src/visioncraft/bindings.cpp.o
+.PHONY : src/visioncraft/bindings.o
+
+# target to build an object file
+src/visioncraft/bindings.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visioncraft_py.dir/build.make CMakeFiles/visioncraft_py.dir/src/visioncraft/bindings.cpp.o
+.PHONY : src/visioncraft/bindings.cpp.o
+
+src/visioncraft/bindings.i: src/visioncraft/bindings.cpp.i
+.PHONY : src/visioncraft/bindings.i
+
+# target to preprocess a source file
+src/visioncraft/bindings.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visioncraft_py.dir/build.make CMakeFiles/visioncraft_py.dir/src/visioncraft/bindings.cpp.i
+.PHONY : src/visioncraft/bindings.cpp.i
+
+src/visioncraft/bindings.s: src/visioncraft/bindings.cpp.s
+.PHONY : src/visioncraft/bindings.s
+
+# target to generate assembly for a file
+src/visioncraft/bindings.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visioncraft_py.dir/build.make CMakeFiles/visioncraft_py.dir/src/visioncraft/bindings.cpp.s
+.PHONY : src/visioncraft/bindings.cpp.s
+
 src/visioncraft/model_loader.o: src/visioncraft/model_loader.cpp.o
 .PHONY : src/visioncraft/model_loader.o
 
 # target to build an object file
 src/visioncraft/model_loader.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visioncraft_py.dir/build.make CMakeFiles/visioncraft_py.dir/src/visioncraft/model_loader.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/model_loader.cpp.o
 .PHONY : src/visioncraft/model_loader.cpp.o
 
@@ -155,6 +193,7 @@ src/visioncraft/model_loader.i: src/visioncraft/model_loader.cpp.i
 
 # target to preprocess a source file
 src/visioncraft/model_loader.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visioncraft_py.dir/build.make CMakeFiles/visioncraft_py.dir/src/visioncraft/model_loader.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/model_loader.cpp.i
 .PHONY : src/visioncraft/model_loader.cpp.i
 
@@ -163,6 +202,7 @@ src/visioncraft/model_loader.s: src/visioncraft/model_loader.cpp.s
 
 # target to generate assembly for a file
 src/visioncraft/model_loader.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visioncraft_py.dir/build.make CMakeFiles/visioncraft_py.dir/src/visioncraft/model_loader.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/model_loader.cpp.s
 .PHONY : src/visioncraft/model_loader.cpp.s
 
@@ -195,6 +235,7 @@ src/visioncraft/viewpoint.o: src/visioncraft/viewpoint.cpp.o
 
 # target to build an object file
 src/visioncraft/viewpoint.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visioncraft_py.dir/build.make CMakeFiles/visioncraft_py.dir/src/visioncraft/viewpoint.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/viewpoint.cpp.o
 .PHONY : src/visioncraft/viewpoint.cpp.o
 
@@ -203,6 +244,7 @@ src/visioncraft/viewpoint.i: src/visioncraft/viewpoint.cpp.i
 
 # target to preprocess a source file
 src/visioncraft/viewpoint.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visioncraft_py.dir/build.make CMakeFiles/visioncraft_py.dir/src/visioncraft/viewpoint.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/viewpoint.cpp.i
 .PHONY : src/visioncraft/viewpoint.cpp.i
 
@@ -211,6 +253,7 @@ src/visioncraft/viewpoint.s: src/visioncraft/viewpoint.cpp.s
 
 # target to generate assembly for a file
 src/visioncraft/viewpoint.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visioncraft_py.dir/build.make CMakeFiles/visioncraft_py.dir/src/visioncraft/viewpoint.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/viewpoint.cpp.s
 .PHONY : src/visioncraft/viewpoint.cpp.s
 
@@ -219,6 +262,7 @@ src/visioncraft/visualizer.o: src/visioncraft/visualizer.cpp.o
 
 # target to build an object file
 src/visioncraft/visualizer.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visioncraft_py.dir/build.make CMakeFiles/visioncraft_py.dir/src/visioncraft/visualizer.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.o
 .PHONY : src/visioncraft/visualizer.cpp.o
 
@@ -227,6 +271,7 @@ src/visioncraft/visualizer.i: src/visioncraft/visualizer.cpp.i
 
 # target to preprocess a source file
 src/visioncraft/visualizer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visioncraft_py.dir/build.make CMakeFiles/visioncraft_py.dir/src/visioncraft/visualizer.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.i
 .PHONY : src/visioncraft/visualizer.cpp.i
 
@@ -235,6 +280,7 @@ src/visioncraft/visualizer.s: src/visioncraft/visualizer.cpp.s
 
 # target to generate assembly for a file
 src/visioncraft/visualizer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/visioncraft_py.dir/build.make CMakeFiles/visioncraft_py.dir/src/visioncraft/visualizer.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/visualizer_test.dir/build.make CMakeFiles/visualizer_test.dir/src/visioncraft/visualizer.cpp.s
 .PHONY : src/visioncraft/visualizer.cpp.s
 
@@ -271,7 +317,11 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... cuda_lib"
+	@echo "... visioncraft_py"
 	@echo "... visualizer_test"
+	@echo "... src/visioncraft/bindings.o"
+	@echo "... src/visioncraft/bindings.i"
+	@echo "... src/visioncraft/bindings.s"
 	@echo "... src/visioncraft/model_loader.o"
 	@echo "... src/visioncraft/model_loader.i"
 	@echo "... src/visioncraft/model_loader.s"
