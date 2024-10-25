@@ -1,2 +1,0 @@
-/usr/bin/ar qc libcuda_lib.a CMakeFiles/cuda_lib.dir/src/visioncraft/raycasting.cu.o
-/usr/bin/ranlib libcuda_lib.a
