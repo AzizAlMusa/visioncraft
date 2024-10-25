@@ -5,6 +5,9 @@
 #include <memory>
 #include <open3d/Open3D.h>
 #include <octomap/ColorOcTree.h>
+#include <model_loader.h>
+#include <cuda_runtime.h>
+
 
 namespace visioncraft {
 
@@ -274,7 +277,7 @@ public:
      * @param octomap The octomap to perform raycasting on.
      * @return A vector of booleans indicating whether each ray hit an occupied voxel (true) or not (false).
      */
-    std::vector<std::pair<bool, Eigen::Vector3d>>  performRaycasting(const std::shared_ptr<octomap::ColorOcTree>& octomap, bool parallelize = false);
+    std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash>  performRaycasting(const ModelLoader& modelLoader, bool parallelize = false) ;
 
 
     /**
@@ -282,7 +285,7 @@ public:
      * 
      * @return A vector of pairs indicating whether each ray hit an occupied voxel (true) or not (false) and the hit point.
      */
-    std::vector<std::pair<bool, Eigen::Vector3d>> getHitResults() const {return hits_;}
+    std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> getHitResults() const {return hits_;}
 
     /**
      * @brief Generate rays for each pixel in the image plane.
@@ -293,6 +296,50 @@ public:
      * @return A vector of Eigen::Vector3d representing the direction of rays from the camera's position.
      */
     std::vector<Eigen::Vector3d> generateRays();
+
+     /**
+     * @brief Get the generated rays as an octomap.
+     * 
+     * @return A octomap::ColorOcTree representing the rays.
+     */
+    std::shared_ptr<octomap::ColorOcTree> getRaysOctomap() const {return rays_octomap_;}
+
+
+    /**
+     * @brief Provide necessary data to the GPU for ray generation.
+     * This method returns the minimal set of data needed for ray generation on the GPU.
+     * 
+     * @param position Output: the viewpoint position.
+     * @param orientation Output: the orientation matrix of the viewpoint.
+     * @param hfov Output: the horizontal field of view.
+     * @param vfov Output: the vertical field of view.
+     * @param resolution Output: a pair containing the resolution width and height.
+     * @param near Output: the near plane distance.
+     * @param far Output: the far plane distance.
+     */
+    void getGPUCompatibleData(Eigen::Vector3d& position, Eigen::Matrix3d& orientation, 
+                              double& hfov, double& vfov, std::pair<int, int>& resolution,
+                              double& near, double& far) const {
+        position = position_;
+        orientation = orientation_matrix_;
+        hfov = hfov_;
+        vfov = vfov_;
+        resolution = {resolution_width_, resolution_height_};
+        near = near_;
+        far = far_;
+    }
+
+
+    /**
+     * @brief Perform raycasting using GPU.
+     * 
+     * @return A vector of Eigen::Vector3d containing the ray endpoints generated on the GPU.
+     */
+    std::set<std::tuple<int, int, int>> performRaycastingOnGPU(const ModelLoader& modelLoader);
+
+
+
+
 
 
 private:
@@ -316,9 +363,14 @@ private:
 
     // Rays
     std::vector<Eigen::Vector3d> rays_; ///< Stores the generated rays for the viewpoint.
-    std::vector<std::pair<bool, Eigen::Vector3d>> hits_; ///< Stores the hit results of the raycasting operation.
+    std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> hits_; ///< Stores the hit results of the raycasting operation.
+    std::shared_ptr<octomap::ColorOcTree> rays_octomap_; ///< Stores the rays as an octomap (typically for visualization).
 };
 
 } // namespace visioncraft
+
+
+
+
 
 #endif // VISIONCRAFT_VIEWPOINT_H

@@ -1,0 +1,188 @@
+\hypertarget{classvisioncraft_1_1Visualizer}{}\section{visioncraft\+:\+:Visualizer Class Reference}
+\label{classvisioncraft_1_1Visualizer}\index{visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}}
+
+
+Class for visualizing 3D models, point clouds, voxel grids, and other representations.  
+
+
+
+
+{\ttfamily \#include $<$visualizer.\+h$>$}
+
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classvisioncraft_1_1Visualizer_ae8779e7a8cddce5d4a864d048b0c3d2f}{Visualizer} ()
+\begin{DoxyCompactList}\small\item\em Default constructor for \hyperlink{classvisioncraft_1_1Visualizer}{Visualizer} class. \end{DoxyCompactList}\item 
+\hyperlink{classvisioncraft_1_1Visualizer_a4235c5bd54d8814a5c671803b205e702}{$\sim$\+Visualizer} ()
+\begin{DoxyCompactList}\small\item\em Destructor for \hyperlink{classvisioncraft_1_1Visualizer}{Visualizer} class. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Visualizer_adfda4bb9218cd572652b6ff3706add2b}{add\+World\+Frame} (double axis\+\_\+length=1.\+0)
+\begin{DoxyCompactList}\small\item\em Add the world coordinate frame to the visualization. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Visualizer_a422ba320557820447ddc56226279af24}{add\+Line\+Set} (const std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Line\+Set $>$ \&line\+Set)
+\begin{DoxyCompactList}\small\item\em Add a line set to the visualization. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Visualizer_a080245b7fcadd64909d789bbdf7e8197}{add\+Mesh} (const std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Triangle\+Mesh $>$ \&mesh)
+\begin{DoxyCompactList}\small\item\em Add a mesh to the visualization. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Visualizer_a7e36fb4fdc5aadc474b5163e6a53f921}{add\+Point\+Cloud} (const std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Point\+Cloud $>$ \&point\+Cloud)
+\begin{DoxyCompactList}\small\item\em Add a point cloud to the visualization. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Visualizer_ac5b2f4098c87ecad3bb14f47a8a9d6b9}{add\+Voxel\+Grid} (const std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Voxel\+Grid $>$ \&voxel\+Grid)
+\begin{DoxyCompactList}\small\item\em Add a voxel grid to the visualization. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Visualizer_a69a0d51b72b3fca0092577083557a9e6}{add\+Octomap} (const std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Voxel\+Grid $>$ \&voxel\+Grid)
+\begin{DoxyCompactList}\small\item\em Add an Octo\+Map to the visualization. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Visualizer_aa5fd7bbbb5ffb77dd69c171faaab6888}{add\+Viewpoint} (const \hyperlink{classvisioncraft_1_1Viewpoint}{Viewpoint} \&viewpoint)
+\begin{DoxyCompactList}\small\item\em Add a viewpoint to the visualization. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Visualizer_a2b6d296697a212964b2883aefbf76c49}{show} (bool show\+\_\+frustum=false)
+\begin{DoxyCompactList}\small\item\em Render the visualization. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Class for visualizing 3D models, point clouds, voxel grids, and other representations. 
+
+This class provides methods to add and visualize different geometries using Open3D. 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classvisioncraft_1_1Visualizer_ae8779e7a8cddce5d4a864d048b0c3d2f}\label{classvisioncraft_1_1Visualizer_ae8779e7a8cddce5d4a864d048b0c3d2f}} 
+\index{visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}!Visualizer@{Visualizer}}
+\index{Visualizer@{Visualizer}!visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}}
+\subsubsection{\texorpdfstring{Visualizer()}{Visualizer()}}
+{\footnotesize\ttfamily visioncraft\+::\+Visualizer\+::\+Visualizer (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Default constructor for \hyperlink{classvisioncraft_1_1Visualizer}{Visualizer} class. 
+
+\mbox{\Hypertarget{classvisioncraft_1_1Visualizer_a4235c5bd54d8814a5c671803b205e702}\label{classvisioncraft_1_1Visualizer_a4235c5bd54d8814a5c671803b205e702}} 
+\index{visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}!````~Visualizer@{$\sim$\+Visualizer}}
+\index{````~Visualizer@{$\sim$\+Visualizer}!visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}}
+\subsubsection{\texorpdfstring{$\sim$\+Visualizer()}{~Visualizer()}}
+{\footnotesize\ttfamily visioncraft\+::\+Visualizer\+::$\sim$\+Visualizer (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Destructor for \hyperlink{classvisioncraft_1_1Visualizer}{Visualizer} class. 
+
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classvisioncraft_1_1Visualizer_a422ba320557820447ddc56226279af24}\label{classvisioncraft_1_1Visualizer_a422ba320557820447ddc56226279af24}} 
+\index{visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}!add\+Line\+Set@{add\+Line\+Set}}
+\index{add\+Line\+Set@{add\+Line\+Set}!visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}}
+\subsubsection{\texorpdfstring{add\+Line\+Set()}{addLineSet()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Visualizer\+::add\+Line\+Set (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Line\+Set $>$ \&}]{line\+Set }\end{DoxyParamCaption})}
+
+
+
+Add a line set to the visualization. 
+
+This function is used to visualize sets of lines, such as rays or edges, in the scene.
+
+
+\begin{DoxyParams}{Parameters}
+{\em line\+Set} & The line set to be added. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Visualizer_a080245b7fcadd64909d789bbdf7e8197}\label{classvisioncraft_1_1Visualizer_a080245b7fcadd64909d789bbdf7e8197}} 
+\index{visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}!add\+Mesh@{add\+Mesh}}
+\index{add\+Mesh@{add\+Mesh}!visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}}
+\subsubsection{\texorpdfstring{add\+Mesh()}{addMesh()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Visualizer\+::add\+Mesh (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Triangle\+Mesh $>$ \&}]{mesh }\end{DoxyParamCaption})}
+
+
+
+Add a mesh to the visualization. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em mesh} & The mesh to be added. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Visualizer_a69a0d51b72b3fca0092577083557a9e6}\label{classvisioncraft_1_1Visualizer_a69a0d51b72b3fca0092577083557a9e6}} 
+\index{visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}!add\+Octomap@{add\+Octomap}}
+\index{add\+Octomap@{add\+Octomap}!visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}}
+\subsubsection{\texorpdfstring{add\+Octomap()}{addOctomap()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Visualizer\+::add\+Octomap (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Voxel\+Grid $>$ \&}]{voxel\+Grid }\end{DoxyParamCaption})}
+
+
+
+Add an Octo\+Map to the visualization. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em octo\+Map} & The Octo\+Map to be added. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Visualizer_a7e36fb4fdc5aadc474b5163e6a53f921}\label{classvisioncraft_1_1Visualizer_a7e36fb4fdc5aadc474b5163e6a53f921}} 
+\index{visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}!add\+Point\+Cloud@{add\+Point\+Cloud}}
+\index{add\+Point\+Cloud@{add\+Point\+Cloud}!visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}}
+\subsubsection{\texorpdfstring{add\+Point\+Cloud()}{addPointCloud()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Visualizer\+::add\+Point\+Cloud (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Point\+Cloud $>$ \&}]{point\+Cloud }\end{DoxyParamCaption})}
+
+
+
+Add a point cloud to the visualization. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em point\+Cloud} & The point cloud to be added. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Visualizer_aa5fd7bbbb5ffb77dd69c171faaab6888}\label{classvisioncraft_1_1Visualizer_aa5fd7bbbb5ffb77dd69c171faaab6888}} 
+\index{visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}!add\+Viewpoint@{add\+Viewpoint}}
+\index{add\+Viewpoint@{add\+Viewpoint}!visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}}
+\subsubsection{\texorpdfstring{add\+Viewpoint()}{addViewpoint()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Visualizer\+::add\+Viewpoint (\begin{DoxyParamCaption}\item[{const \hyperlink{classvisioncraft_1_1Viewpoint}{Viewpoint} \&}]{viewpoint }\end{DoxyParamCaption})}
+
+
+
+Add a viewpoint to the visualization. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em viewpoint} & The viewpoint to be added. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Visualizer_ac5b2f4098c87ecad3bb14f47a8a9d6b9}\label{classvisioncraft_1_1Visualizer_ac5b2f4098c87ecad3bb14f47a8a9d6b9}} 
+\index{visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}!add\+Voxel\+Grid@{add\+Voxel\+Grid}}
+\index{add\+Voxel\+Grid@{add\+Voxel\+Grid}!visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}}
+\subsubsection{\texorpdfstring{add\+Voxel\+Grid()}{addVoxelGrid()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Visualizer\+::add\+Voxel\+Grid (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Voxel\+Grid $>$ \&}]{voxel\+Grid }\end{DoxyParamCaption})}
+
+
+
+Add a voxel grid to the visualization. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em voxel\+Grid} & The voxel grid to be added. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Visualizer_adfda4bb9218cd572652b6ff3706add2b}\label{classvisioncraft_1_1Visualizer_adfda4bb9218cd572652b6ff3706add2b}} 
+\index{visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}!add\+World\+Frame@{add\+World\+Frame}}
+\index{add\+World\+Frame@{add\+World\+Frame}!visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}}
+\subsubsection{\texorpdfstring{add\+World\+Frame()}{addWorldFrame()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Visualizer\+::add\+World\+Frame (\begin{DoxyParamCaption}\item[{double}]{axis\+\_\+length = {\ttfamily 1.0} }\end{DoxyParamCaption})}
+
+
+
+Add the world coordinate frame to the visualization. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em axis\+\_\+length} & The length of the axes to be visualized. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Visualizer_a2b6d296697a212964b2883aefbf76c49}\label{classvisioncraft_1_1Visualizer_a2b6d296697a212964b2883aefbf76c49}} 
+\index{visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}!show@{show}}
+\index{show@{show}!visioncraft\+::\+Visualizer@{visioncraft\+::\+Visualizer}}
+\subsubsection{\texorpdfstring{show()}{show()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Visualizer\+::show (\begin{DoxyParamCaption}\item[{bool}]{show\+\_\+frustum = {\ttfamily false} }\end{DoxyParamCaption})}
+
+
+
+Render the visualization. 
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/visioncraft/\hyperlink{visualizer_8h}{visualizer.\+h}\item 
+src/visioncraft/\hyperlink{visualizer_8cpp}{visualizer.\+cpp}\end{DoxyCompactItemize}

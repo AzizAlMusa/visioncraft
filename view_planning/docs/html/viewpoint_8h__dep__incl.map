@@ -1,0 +1,11 @@
+<map id="include/visioncraft/viewpoint.h" name="include/visioncraft/viewpoint.h">
+<area shape="rect" id="node2" href="$exploration__simulator_8h.html" title="include/visioncraft\l/exploration_simulator.h" alt="" coords="195,95,355,136"/>
+<area shape="rect" id="node3" href="$bindings_8cpp.html" title="src/visioncraft/bindings.cpp" alt="" coords="5,191,187,218"/>
+<area shape="rect" id="node5" href="$visualizer_8h.html" title="include/visioncraft\l/visualizer.h" alt="" coords="379,95,506,136"/>
+<area shape="rect" id="node7" href="$nbv__net__data__generator_8cpp.html" title="src/visioncraft/archive\l/nbv_net_data_generator.cpp" alt="" coords="530,95,721,136"/>
+<area shape="rect" id="node8" href="$bindings_8archive_8cpp.html" title="src/visioncraft/bindings.archive.cpp" alt="" coords="745,102,972,129"/>
+<area shape="rect" id="node9" href="$exploration__map__manager_8cpp.html" title="src/visioncraft/exploration\l_map_manager.cpp" alt="" coords="996,95,1167,136"/>
+<area shape="rect" id="node10" href="$viewpoint_8cpp.html" title="src/visioncraft/viewpoint.cpp" alt="" coords="1191,102,1379,129"/>
+<area shape="rect" id="node4" href="$exploration__simulator_8cpp.html" title="src/visioncraft/exploration\l_simulator.cpp" alt="" coords="211,184,381,225"/>
+<area shape="rect" id="node6" href="$visualizer_8cpp.html" title="src/visioncraft/visualizer.cpp" alt="" coords="406,191,594,218"/>
+</map>

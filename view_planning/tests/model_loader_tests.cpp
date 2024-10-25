@@ -168,6 +168,13 @@ int main(int argc, char** argv) {
     //     return 1;
     // }
 
+    // if (modelLoader.loadExplorationModel(filePath, 10000, 32)) {
+    //     std::cout << "Model loaded successfully." << std::endl;
+    // } else {
+    //     std::cerr << "Failed to load model." << std::endl;
+    //     return 1;
+    // }
+
     
     // Load the mesh
     if (!loadMesh(modelLoader, filePath)) return 1;
@@ -184,6 +191,7 @@ int main(int argc, char** argv) {
 
     // Generate the voxel grid
     double resolution = modelLoader.getAverageSpacing();
+    std::cout << "Using default resolution: " << resolution << std::endl;
     if (!modelLoader.generateVoxelGrid(resolution)) return 1;
 
     // Generate the octomap

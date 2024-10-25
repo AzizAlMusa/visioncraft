@@ -61,6 +61,11 @@
         "cfenv": "cpp",
         "cinttypes": "cpp",
         "typeindex": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "core": "cpp",
+        "forward_list": "cpp",
+        "valarray": "cpp",
+        "*.txx": "cpp",
+        "dense": "cpp"
     }
 }

@@ -1,6 +1,13 @@
 #include "visioncraft/viewpoint.h"
 #include <cmath>
 #include <omp.h>
+#include <unordered_set>
+
+#include <set>
+#include <tuple>
+
+#include <chrono>
+#include <iostream>
 
 namespace visioncraft {
 
@@ -160,7 +167,7 @@ void Viewpoint::setResolution(int width, int height) {
     resolution_width_ = width;
     resolution_height_ = height;
 }
-
+ 
 std::pair<int, int> Viewpoint::getResolution() const {
     return {resolution_width_, resolution_height_};
 }
@@ -217,6 +224,7 @@ std::vector<Eigen::Vector3d> Viewpoint::getFrustumCorners() const {
 }
 
 
+
 std::vector<Eigen::Vector3d> Viewpoint::generateRays() {
     std::vector<Eigen::Vector3d> rays;
 
@@ -267,106 +275,220 @@ std::vector<Eigen::Vector3d> Viewpoint::generateRays() {
 }
 
 
+// void launchGenerateRaysOnGPU(const float* position, const float* orientation, 
+//                              double hfov, double vfov, int resolution_width, int resolution_height,
+//                              double near_plane, double far_plane, float* rays, int total_pixels);
+
+// void launchGenerateRaysOnGPU(const float* position, const float* forward, const float* right, const float* up, 
+//                              float hfov, float vfov, int ds_width, int ds_height,
+//                              float near_plane, float far_plane, float* rays, int total_pixels, 
+//                              const VoxelGridGPU& voxelGridGPU, int3* host_hit_voxels);
+
+void launchGenerateRaysOnGPU(const float* position, const float* forward, const float* right, const float* up,
+                             float hfov, float vfov, int ds_width, int ds_height,
+                             float near_plane, float far_plane,
+                             const VoxelGridGPU& voxelGridGPU, int3* host_hit_voxels, unsigned int& host_hit_count);
+
+std::set<std::tuple<int, int, int>> Viewpoint::performRaycastingOnGPU(const ModelLoader& modelLoader) {
+
+    // Fetch the VoxelGridGPU from the model loader
+    const VoxelGridGPU& voxelGridGPU = modelLoader.getGPUVoxelGrid();
+
+    // Start preparing GPU data
+    auto start_prepare = std::chrono::high_resolution_clock::now();
+    Eigen::Vector3d position;
+    Eigen::Matrix3d orientation;
+    double hfov, vfov, near_plane, far_plane;
+    std::pair<int, int> resolution;
+
+    // Get the data from the viewpoint
+    getGPUCompatibleData(position, orientation, hfov, vfov, resolution, near_plane, far_plane);
+
+    Eigen::Vector3d viewpointDirection = orientation.col(2);  // Forward direction
+    Eigen::Vector3d referenceVector = (std::abs(viewpointDirection.z()) == 1.0)
+                                      ? Eigen::Vector3d(1, 0, 0)
+                                      : Eigen::Vector3d(0, 0, 1);
+    Eigen::Vector3d rightVector = viewpointDirection.cross(referenceVector).normalized();
+    Eigen::Vector3d upVector = rightVector.cross(viewpointDirection).normalized();
+
+    float h_position[3] = {static_cast<float>(position.x()), static_cast<float>(position.y()), static_cast<float>(position.z())};
+    float h_forward[3] = {static_cast<float>(viewpointDirection.x()), static_cast<float>(viewpointDirection.y()), static_cast<float>(viewpointDirection.z())};
+    float h_right[3] = {static_cast<float>(rightVector.x()), static_cast<float>(rightVector.y()), static_cast<float>(rightVector.z())};
+    float h_up[3] = {static_cast<float>(upVector.x()), static_cast<float>(upVector.y()), static_cast<float>(upVector.z())};
 
 
+    // Start downsample resolution process
+    auto ds_resolution = getDownsampledResolution();
+    int ds_width = ds_resolution.first;
+    int ds_height = ds_resolution.second;
+    int total_pixels = ds_width * ds_height;
+    std::cout << "Resolution: " << ds_width << " x " << ds_height << std::endl;
+  
+
+    // Allocate memory for hit voxels on the host
+    int3* host_hit_voxels = new int3[total_pixels];
+    unsigned int host_hit_count = 0;
+
+    // Start raycasting on GPU
+    launchGenerateRaysOnGPU(h_position, h_forward, h_right, h_up, static_cast<float>(hfov), static_cast<float>(vfov),
+                            ds_width, ds_height, static_cast<float>(near_plane),
+                            static_cast<float>(far_plane),
+                            voxelGridGPU, host_hit_voxels, host_hit_count);
+
+
+    // Start processing hit voxels
+
+    std::set<std::tuple<int, int, int>> unique_hit_voxels;
+
+    for (unsigned int i = 0; i < host_hit_count; ++i) {
+        int x = host_hit_voxels[i].x;
+        int y = host_hit_voxels[i].y;
+        int z = host_hit_voxels[i].z;
+        unique_hit_voxels.insert(std::make_tuple(x, y, z));
+    }
+
+    std::cout << "Total unique hit voxels: " << unique_hit_voxels.size() << std::endl;
+
+
+
+    // Free allocated memory
+    delete[] host_hit_voxels;
+
+    // End total function timer
+   
+
+    // Since we're not transferring rays back, we can return an empty vector or regenerate rays if needed
+    std::vector<Eigen::Vector3d> rays;  // Empty vector in this case
+
+    return unique_hit_voxels;
+}
 
 /**
  * @brief Performs raycasting from the viewpoint to detect if the rays intersect with any occupied voxels in the octomap.
  * 
  * @param octomap A shared pointer to an octomap::ColorOcTree representing the 3D environment.
  * @param use_parallel If true, raycasting will be performed using multithreading for better performance.
- * @return A vector of pairs where the first element is a boolean indicating if the ray hit an occupied voxel,
- *         and the second element is the 3D coordinates of the hit point (or a zero vector if no hit).
+ * @return A map where the key is the voxel key (octomap::OcTreeKey), and the value is a boolean indicating if the voxel was hit.
  */
-std::vector<std::pair<bool, Eigen::Vector3d>> Viewpoint::performRaycasting(const std::shared_ptr<octomap::ColorOcTree>& octomap, bool use_parallel) {
+std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> Viewpoint::performRaycasting(
+    const ModelLoader& modelLoader, bool use_parallel) {
+    
+    // Get the octomap from the model loader
+    std::shared_ptr<octomap::ColorOcTree> octomap = modelLoader.getSurfaceShellOctomap();
     
     // If rays have not been generated yet, generate them.
     if (rays_.empty()) {
         rays_ = generateRays(); // Generate rays based on the current viewpoint parameters.
     }
 
-    // Prepare a vector to store the results of the raycasting.
-    // Each element in the vector will be a pair, where the first element is a boolean (hit or miss),
-    // and the second element is the 3D coordinates of the hit point (or a zero vector if no hit).
-    std::vector<std::pair<bool, Eigen::Vector3d>> hit_results(rays_.size());
+    // Clear the previous hit results
+    hits_.clear();
 
-    // If multithreading is enabled
+    int hit_count = 0;
+
+    // Check if multithreading is enabled
     if (use_parallel) {
+        // Multithreading version: split the work into multiple threads
+
         // Determine the number of available hardware threads.
         const int num_threads = std::thread::hardware_concurrency();
-        std::vector<std::thread> threads; // Vector to store the threads.
-        std::vector<std::vector<std::pair<bool, Eigen::Vector3d>>> thread_results(num_threads); // Vector to store results from each thread.
+        std::vector<std::thread> threads;  // Vector to store the threads.
+        std::vector<std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash>> thread_results(num_threads);  // Results per thread.
 
         // Determine the number of rays each thread will process.
         int batch_size = rays_.size() / num_threads;
 
         // Split the rays into batches for each thread.
         for (int i = 0; i < num_threads; ++i) {
+            // Define the start and end of the batch for this thread
             auto begin = rays_.begin() + i * batch_size;
             auto end = (i == num_threads - 1) ? rays_.end() : begin + batch_size;
 
-            // Reserve space in the result vector for each thread.
+            // Reserve space in the result vector for this thread
             thread_results[i].reserve(std::distance(begin, end));
 
-            // Launch a thread to process the assigned batch of rays.
+            // Launch a thread to process the assigned batch of rays
             threads.emplace_back([&, begin, end, i]() {
                 for (auto it = begin; it != end; ++it) {
-                    // Set up the ray origin (viewpoint position) and the ray direction.
+                    // Set up the ray origin (viewpoint position) and the ray direction
                     octomap::point3d ray_origin(position_.x(), position_.y(), position_.z());
                     octomap::point3d ray_end(it->x(), it->y(), it->z());
 
-                    // Variable to store the hit point.
+                    // Variable to store the hit point
                     octomap::point3d hit;
-                    double ray_length = (ray_end - ray_origin).norm(); // Calculate the length of the ray.
+                    double ray_length = (ray_end - ray_origin).norm();  // Calculate the length of the ray
                     
-                    // Perform the raycasting.
+                    // Perform the raycasting
                     bool is_hit = octomap->castRay(ray_origin, ray_end - ray_origin, hit, true, ray_length);
 
-                    // If the ray hits an occupied voxel, store the hit point. Otherwise, store a zero vector.
+                    // Reverse lookup of the key from the hit position in the Octomap
+                    octomap::OcTreeKey key = octomap->coordToKey(hit);  // Use the hit point, not ray_end
+
+                    // If the ray hits an occupied voxel, mark it as true
                     if (is_hit) {
-                        thread_results[i].emplace_back(true, Eigen::Vector3d(hit.x(), hit.y(), hit.z()));
+                        thread_results[i][key] = true;
+
+                        // Retrieve the hit voxel
+                        octomap::ColorOcTreeNode* hitNode = octomap->search(hit);
+                        if (hitNode) {
+                   
+                            // Optionally set color for visualization
+                            hitNode->setColor(0, 255, 0);  // Set to green
+                        }
                     } else {
-                        thread_results[i].emplace_back(false, Eigen::Vector3d::Zero());
+                        // If it doesn't hit, mark the voxel as false (miss)
+                        thread_results[i][key] = false;
                     }
                 }
             });
         }
 
-        // Wait for all threads to complete execution.
+        // Wait for all threads to complete execution
         for (auto& thread : threads) {
             thread.join();
         }
 
-        // Combine the results from all threads into the final hit_results vector.
-        hit_results.clear();
-        for (const auto& result : thread_results) {
-            hit_results.insert(hit_results.end(), result.begin(), result.end());
+        // Combine the results from all threads into the final hits_ map
+        hits_.clear();
+        for (const auto& thread_result : thread_results) {
+            hits_.insert(thread_result.begin(), thread_result.end());
         }
 
     } else {
-        // If multithreading is not enabled, perform raycasting sequentially.
-        for (int i = 0; i < rays_.size(); ++i) {
-            const auto& ray = rays_[i];
+        // Sequential version: process the rays one by one without multithreading
+        for (const auto& ray : rays_) {
             octomap::point3d ray_origin(position_.x(), position_.y(), position_.z());
             octomap::point3d ray_end(ray.x(), ray.y(), ray.z());
 
-            // Variable to store the hit point.
+            // Variable to store the hit point
             octomap::point3d hit;
-            // Perform the raycasting.
             bool is_hit = octomap->castRay(ray_origin, ray_end - ray_origin, hit, true, (ray_end - ray_origin).norm());
 
-            // If the ray hits an occupied voxel, store the hit point. Otherwise, store a zero vector.
+            // Reverse lookup of the key from the hit position in the Octomap
+            octomap::OcTreeKey key = octomap->coordToKey(hit);  // Use the hit point, not ray_end
+
+            // If the ray hits an occupied voxel, mark it as true
             if (is_hit) {
-                hit_results[i] = std::make_pair(true, Eigen::Vector3d(hit.x(), hit.y(), hit.z()));
+                hits_[key] = true;
+
+                // Retrieve the hit voxel
+                octomap::ColorOcTreeNode* hitNode = octomap->search(hit);
+                if (hitNode) {
+                
+                    // Optionally set color for visualization
+                    hitNode->setColor(0, 255, 0);  // Set to green
+                }
             } else {
-                hit_results[i] = std::make_pair(false, Eigen::Vector3d::Zero());
+                // If it doesn't hit, mark the voxel as false (miss)
+                hits_[key] = false;
             }
         }
     }
 
-    // Return the vector containing the results of the raycasting.
-    return hit_results;
+    // Return the map of hit results (both true and false)
+    return hits_;
 }
+
 
 
 

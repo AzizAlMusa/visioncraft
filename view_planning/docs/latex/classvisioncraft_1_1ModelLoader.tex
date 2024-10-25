@@ -1,0 +1,672 @@
+\hypertarget{classvisioncraft_1_1ModelLoader}{}\section{visioncraft\+:\+:Model\+Loader Class Reference}
+\label{classvisioncraft_1_1ModelLoader}\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+
+
+Class for loading and processing 3D models.  
+
+
+
+
+{\ttfamily \#include $<$model\+\_\+loader.\+h$>$}
+
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classvisioncraft_1_1ModelLoader_af5ea231cff5edd6199497c414f0bd079}{Model\+Loader} ()
+\begin{DoxyCompactList}\small\item\em Default constructor for \hyperlink{classvisioncraft_1_1ModelLoader}{Model\+Loader} class. \end{DoxyCompactList}\item 
+\hyperlink{classvisioncraft_1_1ModelLoader_a64f9d6f1d16b030b7934f8b4bbcd5ef9}{$\sim$\+Model\+Loader} ()
+\begin{DoxyCompactList}\small\item\em Destructor for \hyperlink{classvisioncraft_1_1ModelLoader}{Model\+Loader} class. \end{DoxyCompactList}\item 
+bool \hyperlink{classvisioncraft_1_1ModelLoader_a61077fd775e05a367f29ec7177c7cb6b}{load\+Mesh} (const std\+::string \&file\+\_\+path)
+\begin{DoxyCompactList}\small\item\em Load a 3D mesh from a file. \end{DoxyCompactList}\item 
+bool \hyperlink{classvisioncraft_1_1ModelLoader_a9ab4c567f98c43ba6b5312525066cb24}{generate\+Point\+Cloud} (int num\+Samples)
+\begin{DoxyCompactList}\small\item\em Generate a point cloud from the loaded mesh using Poisson disk sampling. \end{DoxyCompactList}\item 
+vtk\+Smart\+Pointer$<$ vtk\+Poly\+Data $>$ \hyperlink{classvisioncraft_1_1ModelLoader_a9d6f2a8207b0df26e5be8bd1ed16b87c}{get\+Mesh\+Data} () const
+\begin{DoxyCompactList}\small\item\em Get the mesh data. \end{DoxyCompactList}\item 
+pcl\+::\+Point\+Cloud$<$ pcl\+::\+Point\+Normal $>$\+::Ptr \hyperlink{classvisioncraft_1_1ModelLoader_a3de1482844c50ad81dfa4b979913267c}{get\+Point\+Cloud} () const
+\begin{DoxyCompactList}\small\item\em Get the point cloud data. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Point\+CloudT $>$ }\\double \hyperlink{classvisioncraft_1_1ModelLoader_a70e795be70bf958135b34740ca2bc7dd}{calculate\+Average\+Spacing} (const typename Point\+Cloud\+T\+::\+Ptr \&point\+Cloud)
+\begin{DoxyCompactList}\small\item\em Calculate the average spacing of the point cloud points and set the private variable point\+Cloud\+Spacing\+\_\+. \end{DoxyCompactList}\item 
+double \hyperlink{classvisioncraft_1_1ModelLoader_ab74391644bf2539d37c072f4bb651254}{get\+Average\+Spacing} () const
+\begin{DoxyCompactList}\small\item\em Get the average spacing of the point cloud points. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1ModelLoader_aea05858fcfeca8281df779dc8ba08acf}{correct\+Normals\+Using\+Signed\+Distance} (double epsilon)
+\item 
+\hyperlink{classvisioncraft_1_1ModelLoader_af5ea231cff5edd6199497c414f0bd079}{Model\+Loader} ()
+\begin{DoxyCompactList}\small\item\em Default constructor for \hyperlink{classvisioncraft_1_1ModelLoader}{Model\+Loader} class. \end{DoxyCompactList}\item 
+\hyperlink{classvisioncraft_1_1ModelLoader_a64f9d6f1d16b030b7934f8b4bbcd5ef9}{$\sim$\+Model\+Loader} ()
+\begin{DoxyCompactList}\small\item\em Destructor for \hyperlink{classvisioncraft_1_1ModelLoader}{Model\+Loader} class. \end{DoxyCompactList}\item 
+bool \hyperlink{classvisioncraft_1_1ModelLoader_a61077fd775e05a367f29ec7177c7cb6b}{load\+Mesh} (const std\+::string \&file\+\_\+path)
+\begin{DoxyCompactList}\small\item\em Load a 3D mesh from a file. \end{DoxyCompactList}\item 
+bool \hyperlink{classvisioncraft_1_1ModelLoader_a6aa945177c6ad62ada1b3eb4b692e5ae}{load\+Model} (const std\+::string \&file\+\_\+path, int num\+\_\+samples=10000, double resolution=-\/1)
+\begin{DoxyCompactList}\small\item\em Load a 3D model and generate all necessary structures. \end{DoxyCompactList}\item 
+bool \hyperlink{classvisioncraft_1_1ModelLoader_a807ceb7f84c212f019057a621461d7fb}{load\+Exploration\+Model} (const std\+::string \&file\+\_\+path, int num\+\_\+samples=10000, int num\+\_\+cells\+\_\+per\+\_\+side=32)
+\begin{DoxyCompactList}\small\item\em Load a 3D model and generate all necessary structures for exploration. \end{DoxyCompactList}\item 
+bool \hyperlink{classvisioncraft_1_1ModelLoader_a19e1a6ec780cc1eaee022840e72302e4}{initialize\+Raycasting\+Scene} ()
+\begin{DoxyCompactList}\small\item\em Initialize the open3d raycasting scene with the current mesh. \end{DoxyCompactList}\item 
+bool \hyperlink{classvisioncraft_1_1ModelLoader_a9ab4c567f98c43ba6b5312525066cb24}{generate\+Point\+Cloud} (int num\+Samples)
+\begin{DoxyCompactList}\small\item\em Generate a point cloud from the loaded mesh using Poisson disk sampling. \end{DoxyCompactList}\item 
+bool \hyperlink{classvisioncraft_1_1ModelLoader_ac8c840ea98ceb68cedb9d85ef93d7148}{generate\+Volumetric\+Point\+Cloud} ()
+\begin{DoxyCompactList}\small\item\em Fill the volumetric point cloud with uniformly spaced points based on the average spacing. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Point\+Cloud $>$ \hyperlink{classvisioncraft_1_1ModelLoader_a1f1dddeb3ef0d1ba500010b85098c2d0}{get\+Volumetric\+Point\+Cloud} () const
+\begin{DoxyCompactList}\small\item\em Get the volumetric point cloud data. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Triangle\+Mesh $>$ \hyperlink{classvisioncraft_1_1ModelLoader_a2aff2187dd584802b75e3e2f06a6556c}{get\+Mesh\+Data} () const
+\begin{DoxyCompactList}\small\item\em Get the mesh data. \end{DoxyCompactList}\item 
+octomap\+::point3d \hyperlink{classvisioncraft_1_1ModelLoader_a3edc3582762a0d32e4d47264db00f65a}{get\+Min\+Bound} () const
+\begin{DoxyCompactList}\small\item\em Get the minimum bound of the mesh bounding box. \end{DoxyCompactList}\item 
+octomap\+::point3d \hyperlink{classvisioncraft_1_1ModelLoader_a9b0654b6b9064477d4b8536368faddbd}{get\+Max\+Bound} () const
+\begin{DoxyCompactList}\small\item\em Get the maximum bound of the mesh bounding box. \end{DoxyCompactList}\item 
+octomap\+::point3d \hyperlink{classvisioncraft_1_1ModelLoader_a8c495bcdad1fa88a7467299de897556a}{get\+Center} () const
+\begin{DoxyCompactList}\small\item\em Get the center of the mesh bounding box. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Point\+Cloud $>$ \hyperlink{classvisioncraft_1_1ModelLoader_a7bbb30715d96a5f0528f1ea020e77fe1}{get\+Point\+Cloud} () const
+\begin{DoxyCompactList}\small\item\em Get the point cloud data. \end{DoxyCompactList}\item 
+double \hyperlink{classvisioncraft_1_1ModelLoader_ab74391644bf2539d37c072f4bb651254}{get\+Average\+Spacing} () const
+\begin{DoxyCompactList}\small\item\em Get the average spacing of the point cloud points. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Point\+Cloud $>$ \hyperlink{classvisioncraft_1_1ModelLoader_a42b8e7af7cf349fc4dce108198927372}{correct\+Normals\+Using\+Signed\+Distance} (std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Point\+Cloud $>$ pointcloud, double epsilon)
+\begin{DoxyCompactList}\small\item\em Correct normals in the point cloud using a signed distance method with an epsilon threshold. \end{DoxyCompactList}\item 
+bool \hyperlink{classvisioncraft_1_1ModelLoader_ae3d3cc69a0d2c80d50cbc125f604807c}{generate\+Voxel\+Grid} (double voxel\+Size)
+\begin{DoxyCompactList}\small\item\em Generate a voxel grid representation of the object. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Voxel\+Grid $>$ \hyperlink{classvisioncraft_1_1ModelLoader_ad13c4d532926aecf7e4247306a283531}{get\+Voxel\+Grid} () const
+\begin{DoxyCompactList}\small\item\em Get the voxel grid data. \end{DoxyCompactList}\item 
+bool \hyperlink{classvisioncraft_1_1ModelLoader_ad2529440bdadcd3a2adcd285d10c6bde}{generate\+Octo\+Map} (double resolution)
+\begin{DoxyCompactList}\small\item\em Generate an Octo\+Map representation of the object. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \hyperlink{classvisioncraft_1_1ModelLoader_ab4958a63b88acb8734245e5b1a1c13dc}{get\+Octomap} () const
+\begin{DoxyCompactList}\small\item\em Get the colored Octo\+Map data. \end{DoxyCompactList}\item 
+bool \hyperlink{classvisioncraft_1_1ModelLoader_a66caf48531a5fb73dd3d8ad17540592f}{generate\+Volumetric\+Octo\+Map} (double resolution)
+\begin{DoxyCompactList}\small\item\em Generate an Octo\+Map representation of the volumetric point cloud. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \hyperlink{classvisioncraft_1_1ModelLoader_a8cf70f9736ed88dac4761fbd698a10c6}{get\+Volumetric\+Octomap} () const
+\begin{DoxyCompactList}\small\item\em Get the volumetric Octo\+Map data. \end{DoxyCompactList}\item 
+bool \hyperlink{classvisioncraft_1_1ModelLoader_a5ccc885b3c8871366bca80aef0134a11}{generate\+Surface\+Shell\+Octomap} ()
+\begin{DoxyCompactList}\small\item\em Generate the surface shell Octo\+Map by eroding the volumetric Octo\+Map. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \hyperlink{classvisioncraft_1_1ModelLoader_ae6f4b53ca7b10ddfda1516120184da2f}{get\+Surface\+Shell\+Octomap} () const
+\begin{DoxyCompactList}\small\item\em Get the surface shell Octo\+Map data. \end{DoxyCompactList}\item 
+bool \hyperlink{classvisioncraft_1_1ModelLoader_a836161273c92de2284e0be6807517b4e}{generate\+Exploration\+Map} (double resolution, const octomap\+::point3d \&min\+\_\+bound, const octomap\+::point3d \&max\+\_\+bound)
+\begin{DoxyCompactList}\small\item\em Generate an exploration map with a given resolution. \end{DoxyCompactList}\item 
+bool \hyperlink{classvisioncraft_1_1ModelLoader_addf06bf0d81ec5380caa289a4e39b1d7}{generate\+Exploration\+Map} (int num\+\_\+cells\+\_\+per\+\_\+side, const octomap\+::point3d \&min\+\_\+bound, const octomap\+::point3d \&max\+\_\+bound)
+\begin{DoxyCompactList}\small\item\em Overloaded function to generate an exploration map with a specified number of cells per side. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \hyperlink{classvisioncraft_1_1ModelLoader_a61eca982997a4ad7ecb829079149e066}{get\+Exploration\+Map} () const
+\begin{DoxyCompactList}\small\item\em Get the exploration map data. \end{DoxyCompactList}\item 
+double \hyperlink{classvisioncraft_1_1ModelLoader_a124c5b8cb8ef25534fce513fc225c9ec}{get\+Exploration\+Map\+Resolution} () const
+\begin{DoxyCompactList}\small\item\em Get the computed resolution for the exploration octomap based on num\+\_\+cells\+\_\+per\+\_\+side. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Class for loading and processing 3D models. 
+
+Class for loading and processing 3D models using Open3D.
+
+This class provides functionality to load 3D models in various formats using V\+TK and process them for various applications.
+
+This class provides functionality to load 3D models in various formats using Open3\+D/\+Octomap and process them for various applications. It replaces previous 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_af5ea231cff5edd6199497c414f0bd079}\label{classvisioncraft_1_1ModelLoader_af5ea231cff5edd6199497c414f0bd079}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!Model\+Loader@{Model\+Loader}}
+\index{Model\+Loader@{Model\+Loader}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{Model\+Loader()}{ModelLoader()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily visioncraft\+::\+Model\+Loader\+::\+Model\+Loader (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Default constructor for \hyperlink{classvisioncraft_1_1ModelLoader}{Model\+Loader} class. 
+
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a64f9d6f1d16b030b7934f8b4bbcd5ef9}\label{classvisioncraft_1_1ModelLoader_a64f9d6f1d16b030b7934f8b4bbcd5ef9}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!````~Model\+Loader@{$\sim$\+Model\+Loader}}
+\index{````~Model\+Loader@{$\sim$\+Model\+Loader}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{$\sim$\+Model\+Loader()}{~ModelLoader()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily visioncraft\+::\+Model\+Loader\+::$\sim$\+Model\+Loader (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Destructor for \hyperlink{classvisioncraft_1_1ModelLoader}{Model\+Loader} class. 
+
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_af5ea231cff5edd6199497c414f0bd079}\label{classvisioncraft_1_1ModelLoader_af5ea231cff5edd6199497c414f0bd079}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!Model\+Loader@{Model\+Loader}}
+\index{Model\+Loader@{Model\+Loader}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{Model\+Loader()}{ModelLoader()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily visioncraft\+::\+Model\+Loader\+::\+Model\+Loader (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Default constructor for \hyperlink{classvisioncraft_1_1ModelLoader}{Model\+Loader} class. 
+
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a64f9d6f1d16b030b7934f8b4bbcd5ef9}\label{classvisioncraft_1_1ModelLoader_a64f9d6f1d16b030b7934f8b4bbcd5ef9}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!````~Model\+Loader@{$\sim$\+Model\+Loader}}
+\index{````~Model\+Loader@{$\sim$\+Model\+Loader}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{$\sim$\+Model\+Loader()}{~ModelLoader()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily visioncraft\+::\+Model\+Loader\+::$\sim$\+Model\+Loader (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Destructor for \hyperlink{classvisioncraft_1_1ModelLoader}{Model\+Loader} class. 
+
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a70e795be70bf958135b34740ca2bc7dd}\label{classvisioncraft_1_1ModelLoader_a70e795be70bf958135b34740ca2bc7dd}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!calculate\+Average\+Spacing@{calculate\+Average\+Spacing}}
+\index{calculate\+Average\+Spacing@{calculate\+Average\+Spacing}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{calculate\+Average\+Spacing()}{calculateAverageSpacing()}}
+{\footnotesize\ttfamily template$<$typename Point\+CloudT $>$ \\
+double visioncraft\+::\+Model\+Loader\+::calculate\+Average\+Spacing (\begin{DoxyParamCaption}\item[{const typename Point\+Cloud\+T\+::\+Ptr \&}]{point\+Cloud }\end{DoxyParamCaption})}
+
+
+
+Calculate the average spacing of the point cloud points and set the private variable point\+Cloud\+Spacing\+\_\+. 
+
+This function calculates the average spacing of the points in the point cloud by finding the nearest neighbor for each point and averaging the distances. The calculated average spacing is then set to the private variable point\+Cloud\+Spacing\+\_\+. \mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_aea05858fcfeca8281df779dc8ba08acf}\label{classvisioncraft_1_1ModelLoader_aea05858fcfeca8281df779dc8ba08acf}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!correct\+Normals\+Using\+Signed\+Distance@{correct\+Normals\+Using\+Signed\+Distance}}
+\index{correct\+Normals\+Using\+Signed\+Distance@{correct\+Normals\+Using\+Signed\+Distance}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{correct\+Normals\+Using\+Signed\+Distance()}{correctNormalsUsingSignedDistance()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily void visioncraft\+::\+Model\+Loader\+::correct\+Normals\+Using\+Signed\+Distance (\begin{DoxyParamCaption}\item[{double}]{epsilon }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a42b8e7af7cf349fc4dce108198927372}\label{classvisioncraft_1_1ModelLoader_a42b8e7af7cf349fc4dce108198927372}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!correct\+Normals\+Using\+Signed\+Distance@{correct\+Normals\+Using\+Signed\+Distance}}
+\index{correct\+Normals\+Using\+Signed\+Distance@{correct\+Normals\+Using\+Signed\+Distance}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{correct\+Normals\+Using\+Signed\+Distance()}{correctNormalsUsingSignedDistance()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Point\+Cloud $>$ visioncraft\+::\+Model\+Loader\+::correct\+Normals\+Using\+Signed\+Distance (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ open3d\+::geometry\+::\+Point\+Cloud $>$}]{pointcloud,  }\item[{double}]{epsilon }\end{DoxyParamCaption})}
+
+
+
+Correct normals in the point cloud using a signed distance method with an epsilon threshold. 
+
+This function corrects the normals of points in the point cloud that are close to the mesh surface, ensuring the normals are consistently oriented based on the signed distance computation.
+
+
+\begin{DoxyParams}{Parameters}
+{\em epsilon} & A threshold value to determine how close points must be to the surface to adjust normals. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a836161273c92de2284e0be6807517b4e}\label{classvisioncraft_1_1ModelLoader_a836161273c92de2284e0be6807517b4e}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!generate\+Exploration\+Map@{generate\+Exploration\+Map}}
+\index{generate\+Exploration\+Map@{generate\+Exploration\+Map}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{generate\+Exploration\+Map()}{generateExplorationMap()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Model\+Loader\+::generate\+Exploration\+Map (\begin{DoxyParamCaption}\item[{double}]{resolution,  }\item[{const octomap\+::point3d \&}]{min\+\_\+bound,  }\item[{const octomap\+::point3d \&}]{max\+\_\+bound }\end{DoxyParamCaption})}
+
+
+
+Generate an exploration map with a given resolution. 
+
+This function generates an exploration map, which is a dense map with occupancy values of 0.\+5 within the specified bounding box.
+
+
+\begin{DoxyParams}{Parameters}
+{\em resolution} & The resolution of the exploration map. \\
+\hline
+{\em min\+\_\+bound} & The minimum coordinates of the bounding box. \\
+\hline
+{\em max\+\_\+bound} & The maximum coordinates of the bounding box. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if the exploration map is generated successfully, false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_addf06bf0d81ec5380caa289a4e39b1d7}\label{classvisioncraft_1_1ModelLoader_addf06bf0d81ec5380caa289a4e39b1d7}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!generate\+Exploration\+Map@{generate\+Exploration\+Map}}
+\index{generate\+Exploration\+Map@{generate\+Exploration\+Map}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{generate\+Exploration\+Map()}{generateExplorationMap()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Model\+Loader\+::generate\+Exploration\+Map (\begin{DoxyParamCaption}\item[{int}]{num\+\_\+cells\+\_\+per\+\_\+side,  }\item[{const octomap\+::point3d \&}]{min\+\_\+bound,  }\item[{const octomap\+::point3d \&}]{max\+\_\+bound }\end{DoxyParamCaption})}
+
+
+
+Overloaded function to generate an exploration map with a specified number of cells per side. 
+
+This function generates an exploration map in the form of a cube with the specified number of cells per side.
+
+
+\begin{DoxyParams}{Parameters}
+{\em num\+\_\+cells\+\_\+per\+\_\+side} & The number of cells per side of the cube. \\
+\hline
+{\em min\+\_\+bound} & The minimum coordinates of the bounding box. \\
+\hline
+{\em max\+\_\+bound} & The maximum coordinates of the bounding box. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if the exploration map is generated successfully, false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_ad2529440bdadcd3a2adcd285d10c6bde}\label{classvisioncraft_1_1ModelLoader_ad2529440bdadcd3a2adcd285d10c6bde}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!generate\+Octo\+Map@{generate\+Octo\+Map}}
+\index{generate\+Octo\+Map@{generate\+Octo\+Map}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{generate\+Octo\+Map()}{generateOctoMap()}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Model\+Loader\+::generate\+Octo\+Map (\begin{DoxyParamCaption}\item[{double}]{resolution }\end{DoxyParamCaption})}
+
+
+
+Generate an Octo\+Map representation of the object. 
+
+This function generates an Octo\+Map representation of the object using the point cloud data.
+
+
+\begin{DoxyParams}{Parameters}
+{\em resolution} & The resolution of the Octo\+Map. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if the Octo\+Map is generated successfully, false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a9ab4c567f98c43ba6b5312525066cb24}\label{classvisioncraft_1_1ModelLoader_a9ab4c567f98c43ba6b5312525066cb24}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!generate\+Point\+Cloud@{generate\+Point\+Cloud}}
+\index{generate\+Point\+Cloud@{generate\+Point\+Cloud}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{generate\+Point\+Cloud()}{generatePointCloud()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Model\+Loader\+::generate\+Point\+Cloud (\begin{DoxyParamCaption}\item[{int}]{num\+Samples }\end{DoxyParamCaption})}
+
+
+
+Generate a point cloud from the loaded mesh using Poisson disk sampling. 
+
+This function generates a point cloud from the loaded mesh using Poisson disk sampling.
+
+
+\begin{DoxyParams}{Parameters}
+{\em num\+Samples} & The number of samples to use for Poisson disk sampling. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if the point cloud is generated successfully, false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a9ab4c567f98c43ba6b5312525066cb24}\label{classvisioncraft_1_1ModelLoader_a9ab4c567f98c43ba6b5312525066cb24}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!generate\+Point\+Cloud@{generate\+Point\+Cloud}}
+\index{generate\+Point\+Cloud@{generate\+Point\+Cloud}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{generate\+Point\+Cloud()}{generatePointCloud()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Model\+Loader\+::generate\+Point\+Cloud (\begin{DoxyParamCaption}\item[{int}]{num\+Samples }\end{DoxyParamCaption})}
+
+
+
+Generate a point cloud from the loaded mesh using Poisson disk sampling. 
+
+This function generates a point cloud from the loaded mesh using Poisson disk sampling, leveraging Open3D\textquotesingle{}s point cloud sampling functionalities.
+
+
+\begin{DoxyParams}{Parameters}
+{\em num\+Samples} & The number of samples to use for Poisson disk sampling. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if the point cloud is generated successfully, false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a5ccc885b3c8871366bca80aef0134a11}\label{classvisioncraft_1_1ModelLoader_a5ccc885b3c8871366bca80aef0134a11}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!generate\+Surface\+Shell\+Octomap@{generate\+Surface\+Shell\+Octomap}}
+\index{generate\+Surface\+Shell\+Octomap@{generate\+Surface\+Shell\+Octomap}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{generate\+Surface\+Shell\+Octomap()}{generateSurfaceShellOctomap()}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Model\+Loader\+::generate\+Surface\+Shell\+Octomap (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Generate the surface shell Octo\+Map by eroding the volumetric Octo\+Map. 
+
+This function generates the surface shell Octo\+Map by performing erosion on the volumetric Octo\+Map with a structuring element that has one center element and 6 neighbors along the principal axes.
+
+\begin{DoxyReturn}{Returns}
+True if the surface shell Octo\+Map is generated successfully, false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a66caf48531a5fb73dd3d8ad17540592f}\label{classvisioncraft_1_1ModelLoader_a66caf48531a5fb73dd3d8ad17540592f}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!generate\+Volumetric\+Octo\+Map@{generate\+Volumetric\+Octo\+Map}}
+\index{generate\+Volumetric\+Octo\+Map@{generate\+Volumetric\+Octo\+Map}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{generate\+Volumetric\+Octo\+Map()}{generateVolumetricOctoMap()}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Model\+Loader\+::generate\+Volumetric\+Octo\+Map (\begin{DoxyParamCaption}\item[{double}]{resolution }\end{DoxyParamCaption})}
+
+
+
+Generate an Octo\+Map representation of the volumetric point cloud. 
+
+This function generates an Octo\+Map representation using the volumetric point cloud data.
+
+
+\begin{DoxyParams}{Parameters}
+{\em resolution} & The resolution of the Octo\+Map. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if the Octo\+Map is generated successfully, false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_ac8c840ea98ceb68cedb9d85ef93d7148}\label{classvisioncraft_1_1ModelLoader_ac8c840ea98ceb68cedb9d85ef93d7148}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!generate\+Volumetric\+Point\+Cloud@{generate\+Volumetric\+Point\+Cloud}}
+\index{generate\+Volumetric\+Point\+Cloud@{generate\+Volumetric\+Point\+Cloud}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{generate\+Volumetric\+Point\+Cloud()}{generateVolumetricPointCloud()}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Model\+Loader\+::generate\+Volumetric\+Point\+Cloud (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Fill the volumetric point cloud with uniformly spaced points based on the average spacing. 
+
+This function generates a uniformly spaced point cloud within the bounding box of the mesh.
+
+\begin{DoxyReturn}{Returns}
+True if the volumetric point cloud is generated successfully, false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_ae3d3cc69a0d2c80d50cbc125f604807c}\label{classvisioncraft_1_1ModelLoader_ae3d3cc69a0d2c80d50cbc125f604807c}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!generate\+Voxel\+Grid@{generate\+Voxel\+Grid}}
+\index{generate\+Voxel\+Grid@{generate\+Voxel\+Grid}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{generate\+Voxel\+Grid()}{generateVoxelGrid()}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Model\+Loader\+::generate\+Voxel\+Grid (\begin{DoxyParamCaption}\item[{double}]{voxel\+Size }\end{DoxyParamCaption})}
+
+
+
+Generate a voxel grid representation of the object. 
+
+This function generates a voxel grid representation of the object using Open3D\textquotesingle{}s Voxel\+Grid functionalities. The voxel grid can be used for various applications such as collision checking and occupancy mapping.
+
+
+\begin{DoxyParams}{Parameters}
+{\em voxel\+Size} & The size of the voxels in the grid. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if the voxel grid is generated successfully, false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_ab74391644bf2539d37c072f4bb651254}\label{classvisioncraft_1_1ModelLoader_ab74391644bf2539d37c072f4bb651254}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Average\+Spacing@{get\+Average\+Spacing}}
+\index{get\+Average\+Spacing@{get\+Average\+Spacing}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Average\+Spacing()}{getAverageSpacing()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily double visioncraft\+::\+Model\+Loader\+::get\+Average\+Spacing (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the average spacing of the point cloud points. 
+
+\begin{DoxyReturn}{Returns}
+The average spacing of the point cloud points. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_ab74391644bf2539d37c072f4bb651254}\label{classvisioncraft_1_1ModelLoader_ab74391644bf2539d37c072f4bb651254}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Average\+Spacing@{get\+Average\+Spacing}}
+\index{get\+Average\+Spacing@{get\+Average\+Spacing}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Average\+Spacing()}{getAverageSpacing()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily double visioncraft\+::\+Model\+Loader\+::get\+Average\+Spacing (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the average spacing of the point cloud points. 
+
+\begin{DoxyReturn}{Returns}
+The average spacing of the point cloud points. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a8c495bcdad1fa88a7467299de897556a}\label{classvisioncraft_1_1ModelLoader_a8c495bcdad1fa88a7467299de897556a}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Center@{get\+Center}}
+\index{get\+Center@{get\+Center}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Center()}{getCenter()}}
+{\footnotesize\ttfamily octomap\+::point3d visioncraft\+::\+Model\+Loader\+::get\+Center (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the center of the mesh bounding box. 
+
+\begin{DoxyReturn}{Returns}
+The center as an octomap\+::point3d. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a61eca982997a4ad7ecb829079149e066}\label{classvisioncraft_1_1ModelLoader_a61eca982997a4ad7ecb829079149e066}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Exploration\+Map@{get\+Exploration\+Map}}
+\index{get\+Exploration\+Map@{get\+Exploration\+Map}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Exploration\+Map()}{getExplorationMap()}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$octomap\+::\+Color\+Oc\+Tree$>$ visioncraft\+::\+Model\+Loader\+::get\+Exploration\+Map (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the exploration map data. 
+
+\begin{DoxyReturn}{Returns}
+A shared pointer to the exploration map. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a124c5b8cb8ef25534fce513fc225c9ec}\label{classvisioncraft_1_1ModelLoader_a124c5b8cb8ef25534fce513fc225c9ec}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Exploration\+Map\+Resolution@{get\+Exploration\+Map\+Resolution}}
+\index{get\+Exploration\+Map\+Resolution@{get\+Exploration\+Map\+Resolution}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Exploration\+Map\+Resolution()}{getExplorationMapResolution()}}
+{\footnotesize\ttfamily double visioncraft\+::\+Model\+Loader\+::get\+Exploration\+Map\+Resolution (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the computed resolution for the exploration octomap based on num\+\_\+cells\+\_\+per\+\_\+side. 
+
+\begin{DoxyReturn}{Returns}
+resolution of the exploration map. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a9b0654b6b9064477d4b8536368faddbd}\label{classvisioncraft_1_1ModelLoader_a9b0654b6b9064477d4b8536368faddbd}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Max\+Bound@{get\+Max\+Bound}}
+\index{get\+Max\+Bound@{get\+Max\+Bound}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Max\+Bound()}{getMaxBound()}}
+{\footnotesize\ttfamily octomap\+::point3d visioncraft\+::\+Model\+Loader\+::get\+Max\+Bound (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the maximum bound of the mesh bounding box. 
+
+\begin{DoxyReturn}{Returns}
+The maximum bound as an octomap\+::point3d. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a9d6f2a8207b0df26e5be8bd1ed16b87c}\label{classvisioncraft_1_1ModelLoader_a9d6f2a8207b0df26e5be8bd1ed16b87c}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Mesh\+Data@{get\+Mesh\+Data}}
+\index{get\+Mesh\+Data@{get\+Mesh\+Data}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Mesh\+Data()}{getMeshData()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily vtk\+Smart\+Pointer$<$vtk\+Poly\+Data$>$ visioncraft\+::\+Model\+Loader\+::get\+Mesh\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the mesh data. 
+
+\begin{DoxyReturn}{Returns}
+A smart pointer to the vtk\+Poly\+Data representing the mesh. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a2aff2187dd584802b75e3e2f06a6556c}\label{classvisioncraft_1_1ModelLoader_a2aff2187dd584802b75e3e2f06a6556c}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Mesh\+Data@{get\+Mesh\+Data}}
+\index{get\+Mesh\+Data@{get\+Mesh\+Data}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Mesh\+Data()}{getMeshData()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$open3d\+::geometry\+::\+Triangle\+Mesh$>$ visioncraft\+::\+Model\+Loader\+::get\+Mesh\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the mesh data. 
+
+\begin{DoxyReturn}{Returns}
+A shared pointer to the Open3D Triangle\+Mesh representing the mesh. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a3edc3582762a0d32e4d47264db00f65a}\label{classvisioncraft_1_1ModelLoader_a3edc3582762a0d32e4d47264db00f65a}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Min\+Bound@{get\+Min\+Bound}}
+\index{get\+Min\+Bound@{get\+Min\+Bound}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Min\+Bound()}{getMinBound()}}
+{\footnotesize\ttfamily octomap\+::point3d visioncraft\+::\+Model\+Loader\+::get\+Min\+Bound (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the minimum bound of the mesh bounding box. 
+
+\begin{DoxyReturn}{Returns}
+The minimum bound as an octomap\+::point3d. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_ab4958a63b88acb8734245e5b1a1c13dc}\label{classvisioncraft_1_1ModelLoader_ab4958a63b88acb8734245e5b1a1c13dc}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Octomap@{get\+Octomap}}
+\index{get\+Octomap@{get\+Octomap}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Octomap()}{getOctomap()}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$octomap\+::\+Color\+Oc\+Tree$>$ visioncraft\+::\+Model\+Loader\+::get\+Octomap (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the colored Octo\+Map data. 
+
+\begin{DoxyReturn}{Returns}
+A shared pointer to the colored Octo\+Map representing the object. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a3de1482844c50ad81dfa4b979913267c}\label{classvisioncraft_1_1ModelLoader_a3de1482844c50ad81dfa4b979913267c}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Point\+Cloud@{get\+Point\+Cloud}}
+\index{get\+Point\+Cloud@{get\+Point\+Cloud}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Point\+Cloud()}{getPointCloud()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily pcl\+::\+Point\+Cloud$<$pcl\+::\+Point\+Normal$>$\+::Ptr visioncraft\+::\+Model\+Loader\+::get\+Point\+Cloud (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the point cloud data. 
+
+\begin{DoxyReturn}{Returns}
+A pointer to the pcl\+::\+Point\+Cloud representing the point cloud. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a7bbb30715d96a5f0528f1ea020e77fe1}\label{classvisioncraft_1_1ModelLoader_a7bbb30715d96a5f0528f1ea020e77fe1}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Point\+Cloud@{get\+Point\+Cloud}}
+\index{get\+Point\+Cloud@{get\+Point\+Cloud}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Point\+Cloud()}{getPointCloud()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$open3d\+::geometry\+::\+Point\+Cloud$>$ visioncraft\+::\+Model\+Loader\+::get\+Point\+Cloud (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the point cloud data. 
+
+\begin{DoxyReturn}{Returns}
+A shared pointer to the Open3D Point\+Cloud representing the point cloud. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_ae6f4b53ca7b10ddfda1516120184da2f}\label{classvisioncraft_1_1ModelLoader_ae6f4b53ca7b10ddfda1516120184da2f}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Surface\+Shell\+Octomap@{get\+Surface\+Shell\+Octomap}}
+\index{get\+Surface\+Shell\+Octomap@{get\+Surface\+Shell\+Octomap}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Surface\+Shell\+Octomap()}{getSurfaceShellOctomap()}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$octomap\+::\+Color\+Oc\+Tree$>$ visioncraft\+::\+Model\+Loader\+::get\+Surface\+Shell\+Octomap (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the surface shell Octo\+Map data. 
+
+\begin{DoxyReturn}{Returns}
+A shared pointer to the surface shell Octo\+Map. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a8cf70f9736ed88dac4761fbd698a10c6}\label{classvisioncraft_1_1ModelLoader_a8cf70f9736ed88dac4761fbd698a10c6}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Volumetric\+Octomap@{get\+Volumetric\+Octomap}}
+\index{get\+Volumetric\+Octomap@{get\+Volumetric\+Octomap}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Volumetric\+Octomap()}{getVolumetricOctomap()}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$octomap\+::\+Color\+Oc\+Tree$>$ visioncraft\+::\+Model\+Loader\+::get\+Volumetric\+Octomap (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the volumetric Octo\+Map data. 
+
+\begin{DoxyReturn}{Returns}
+A shared pointer to the volumetric Octo\+Map. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a1f1dddeb3ef0d1ba500010b85098c2d0}\label{classvisioncraft_1_1ModelLoader_a1f1dddeb3ef0d1ba500010b85098c2d0}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Volumetric\+Point\+Cloud@{get\+Volumetric\+Point\+Cloud}}
+\index{get\+Volumetric\+Point\+Cloud@{get\+Volumetric\+Point\+Cloud}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Volumetric\+Point\+Cloud()}{getVolumetricPointCloud()}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$open3d\+::geometry\+::\+Point\+Cloud$>$ visioncraft\+::\+Model\+Loader\+::get\+Volumetric\+Point\+Cloud (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the volumetric point cloud data. 
+
+\begin{DoxyReturn}{Returns}
+A shared pointer to the volumetric Open3D Point\+Cloud. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_ad13c4d532926aecf7e4247306a283531}\label{classvisioncraft_1_1ModelLoader_ad13c4d532926aecf7e4247306a283531}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!get\+Voxel\+Grid@{get\+Voxel\+Grid}}
+\index{get\+Voxel\+Grid@{get\+Voxel\+Grid}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{get\+Voxel\+Grid()}{getVoxelGrid()}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$open3d\+::geometry\+::\+Voxel\+Grid$>$ visioncraft\+::\+Model\+Loader\+::get\+Voxel\+Grid (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the voxel grid data. 
+
+\begin{DoxyReturn}{Returns}
+A shared pointer to the Open3D Voxel\+Grid representing the voxel grid. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a19e1a6ec780cc1eaee022840e72302e4}\label{classvisioncraft_1_1ModelLoader_a19e1a6ec780cc1eaee022840e72302e4}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!initialize\+Raycasting\+Scene@{initialize\+Raycasting\+Scene}}
+\index{initialize\+Raycasting\+Scene@{initialize\+Raycasting\+Scene}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{initialize\+Raycasting\+Scene()}{initializeRaycastingScene()}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Model\+Loader\+::initialize\+Raycasting\+Scene (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Initialize the open3d raycasting scene with the current mesh. 
+
+This function initializes the raycasting scene using the loaded mesh.
+
+\begin{DoxyReturn}{Returns}
+True if the raycasting scene is initialized successfully, false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a807ceb7f84c212f019057a621461d7fb}\label{classvisioncraft_1_1ModelLoader_a807ceb7f84c212f019057a621461d7fb}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!load\+Exploration\+Model@{load\+Exploration\+Model}}
+\index{load\+Exploration\+Model@{load\+Exploration\+Model}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{load\+Exploration\+Model()}{loadExplorationModel()}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Model\+Loader\+::load\+Exploration\+Model (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{file\+\_\+path,  }\item[{int}]{num\+\_\+samples = {\ttfamily 10000},  }\item[{int}]{num\+\_\+cells\+\_\+per\+\_\+side = {\ttfamily 32} }\end{DoxyParamCaption})}
+
+
+
+Load a 3D model and generate all necessary structures for exploration. 
+
+This function loads a 3D model and generates the mesh, point cloud, exploration map, voxel grid, and octomap. This is intended when the model is used for exploration and the exploration map is needed.
+
+
+\begin{DoxyParams}{Parameters}
+{\em file\+\_\+path} & The path to the mesh file. \\
+\hline
+{\em num\+\_\+samples} & The number of samples for point cloud generation. \\
+\hline
+{\em num\+\_\+cells\+\_\+per\+\_\+side} & The number of cells per side for the exploration octree. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if the model is loaded and all structures are generated successfully, false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a61077fd775e05a367f29ec7177c7cb6b}\label{classvisioncraft_1_1ModelLoader_a61077fd775e05a367f29ec7177c7cb6b}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!load\+Mesh@{load\+Mesh}}
+\index{load\+Mesh@{load\+Mesh}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{load\+Mesh()}{loadMesh()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Model\+Loader\+::load\+Mesh (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{file\+\_\+path }\end{DoxyParamCaption})}
+
+
+
+Load a 3D mesh from a file. 
+
+This function loads a 3D mesh from a file in S\+TL, O\+BJ, P\+LY, or other supported formats using Open3D\textquotesingle{}s mesh reading capabilities.
+
+
+\begin{DoxyParams}{Parameters}
+{\em file\+\_\+path} & The path to the mesh file. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if the mesh is loaded successfully, false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a61077fd775e05a367f29ec7177c7cb6b}\label{classvisioncraft_1_1ModelLoader_a61077fd775e05a367f29ec7177c7cb6b}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!load\+Mesh@{load\+Mesh}}
+\index{load\+Mesh@{load\+Mesh}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{load\+Mesh()}{loadMesh()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Model\+Loader\+::load\+Mesh (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{file\+\_\+path }\end{DoxyParamCaption})}
+
+
+
+Load a 3D mesh from a file. 
+
+This function loads a 3D mesh from a file in S\+TL or P\+LY format using V\+TK.
+
+
+\begin{DoxyParams}{Parameters}
+{\em file\+\_\+path} & The path to the mesh file. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if the mesh is loaded successfully, false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1ModelLoader_a6aa945177c6ad62ada1b3eb4b692e5ae}\label{classvisioncraft_1_1ModelLoader_a6aa945177c6ad62ada1b3eb4b692e5ae}} 
+\index{visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}!load\+Model@{load\+Model}}
+\index{load\+Model@{load\+Model}!visioncraft\+::\+Model\+Loader@{visioncraft\+::\+Model\+Loader}}
+\subsubsection{\texorpdfstring{load\+Model()}{loadModel()}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Model\+Loader\+::load\+Model (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{file\+\_\+path,  }\item[{int}]{num\+\_\+samples = {\ttfamily 10000},  }\item[{double}]{resolution = {\ttfamily -\/1} }\end{DoxyParamCaption})}
+
+
+
+Load a 3D model and generate all necessary structures. 
+
+This function loads a 3D model and generates the mesh, point cloud, voxel grid, and octomap.
+
+
+\begin{DoxyParams}{Parameters}
+{\em file\+\_\+path} & The path to the mesh file. \\
+\hline
+{\em num\+\_\+samples} & The number of samples for point cloud generation. \\
+\hline
+{\em resolution} & The resolution for voxel grid and octomap generation. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if the model is loaded and all structures are generated successfully, false otherwise. 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/visioncraft/archive/\hyperlink{archive_2model__loader_8h}{model\+\_\+loader.\+h}\item 
+src/visioncraft/archive/\hyperlink{archive_2model__loader_8cpp}{model\+\_\+loader.\+cpp}\end{DoxyCompactItemize}

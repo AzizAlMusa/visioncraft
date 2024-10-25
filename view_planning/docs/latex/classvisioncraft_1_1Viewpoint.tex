@@ -1,0 +1,608 @@
+\hypertarget{classvisioncraft_1_1Viewpoint}{}\section{visioncraft\+:\+:Viewpoint Class Reference}
+\label{classvisioncraft_1_1Viewpoint}\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+
+
+Class representing a viewpoint for depth camera positioning and orientation.  
+
+
+
+
+{\ttfamily \#include $<$viewpoint.\+h$>$}
+
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classvisioncraft_1_1Viewpoint_a87bab63b8b2bd6123742307bb47d3392}{Viewpoint} ()
+\begin{DoxyCompactList}\small\item\em Default constructor for \hyperlink{classvisioncraft_1_1Viewpoint}{Viewpoint} class. \end{DoxyCompactList}\item 
+\hyperlink{classvisioncraft_1_1Viewpoint_a801252e99e7abe9ec2fa90e0f453c864}{Viewpoint} (const Eigen\+::\+Vector3d \&position, const Eigen\+::\+Matrix3d \&orientation, double near=350.\+0, double far=900.\+0, int resolution\+\_\+width=2448, int resolution\+\_\+height=2048, double hfov=44.\+8, double vfov=42.\+6)
+\begin{DoxyCompactList}\small\item\em Constructor with position, orientation, and camera properties. \end{DoxyCompactList}\item 
+\hyperlink{classvisioncraft_1_1Viewpoint_a4446a40e983904390c0460c5ae9888c3}{Viewpoint} (const Eigen\+::\+Vector\+Xd \&position\+\_\+yaw\+\_\+pitch\+\_\+roll, double near=350.\+0, double far=900.\+0, int resolution\+\_\+width=2448, int resolution\+\_\+height=2048, double hfov=44.\+8, double vfov=42.\+6)
+\begin{DoxyCompactList}\small\item\em Constructor with combined position and Euler angles (yaw, pitch, roll). \end{DoxyCompactList}\item 
+\hyperlink{classvisioncraft_1_1Viewpoint_a13b3b0cb252b66b1790e8197c3c7f652}{Viewpoint} (const Eigen\+::\+Vector3d \&position, const Eigen\+::\+Vector3d \&look\+At, const Eigen\+::\+Vector3d \&up=-\/Eigen\+::\+Vector3d\+::\+UnitZ(), double near=350.\+0, double far=900.\+0, int resolution\+\_\+width=2448, int resolution\+\_\+height=2048, double hfov=44.\+8, double vfov=42.\+6)
+\begin{DoxyCompactList}\small\item\em Constructor with position and look\+At point. \end{DoxyCompactList}\item 
+\hyperlink{classvisioncraft_1_1Viewpoint_a4964be212cfb22f01f826ea9576030f6}{$\sim$\+Viewpoint} ()
+\begin{DoxyCompactList}\small\item\em Destructor for \hyperlink{classvisioncraft_1_1Viewpoint}{Viewpoint} class. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Viewpoint_acfd98e5627f6c9ca6f55aae9a473621e}{set\+Position} (const Eigen\+::\+Vector3d \&position)
+\begin{DoxyCompactList}\small\item\em Set the position of the viewpoint. \end{DoxyCompactList}\item 
+Eigen\+::\+Vector3d \hyperlink{classvisioncraft_1_1Viewpoint_a2ee8f324a3ff2f1116d6782a20c042ce}{get\+Position} () const
+\begin{DoxyCompactList}\small\item\em Get the position of the viewpoint. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Viewpoint_adbb30bbbe2e486d403b4fc616b42f58e}{set\+Orientation} (const Eigen\+::\+Matrix3d \&orientation)
+\begin{DoxyCompactList}\small\item\em Set the orientation of the viewpoint using a rotation matrix. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Viewpoint_a681ff114c9fcf0d84f848a70db673e74}{set\+Orientation} (const Eigen\+::\+Quaterniond \&quaternion)
+\begin{DoxyCompactList}\small\item\em Set the orientation of the viewpoint using quaternions. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Viewpoint_ab3245e3767522f4f88cde55bdda58965}{set\+Look\+At} (const Eigen\+::\+Vector3d \&look\+At, const Eigen\+::\+Vector3d \&up=-\/Eigen\+::\+Vector3d\+::\+UnitZ())
+\begin{DoxyCompactList}\small\item\em Set the orientation of the viewpoint using a look\+At target point. \end{DoxyCompactList}\item 
+Eigen\+::\+Matrix3d \hyperlink{classvisioncraft_1_1Viewpoint_a160da053602ad2033650b07d995da95a}{get\+Orientation\+Matrix} () const
+\begin{DoxyCompactList}\small\item\em Get the orientation of the viewpoint as a rotation matrix. \end{DoxyCompactList}\item 
+Eigen\+::\+Quaterniond \hyperlink{classvisioncraft_1_1Viewpoint_a9d594ba3c04f61b1998d1af990960648}{get\+Orientation\+Quaternion} () const
+\begin{DoxyCompactList}\small\item\em Get the orientation of the viewpoint as quaternions. \end{DoxyCompactList}\item 
+Eigen\+::\+Matrix4d \hyperlink{classvisioncraft_1_1Viewpoint_af918ce4f4c39be7d461b9f80ee442120}{get\+Transformation\+Matrix} () const
+\begin{DoxyCompactList}\small\item\em Compute the transformation matrix for the viewpoint. \end{DoxyCompactList}\item 
+Eigen\+::\+Vector3d \hyperlink{classvisioncraft_1_1Viewpoint_a893455a682229abfa11fcc8bba3af310}{get\+Orientation\+Euler} () const
+\begin{DoxyCompactList}\small\item\em Convert the orientation to Euler angles. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Viewpoint_adfb76d3eb8a11b69fd6368d20801f82e}{set\+Near\+Plane} (double near)
+\begin{DoxyCompactList}\small\item\em Set the near plane distance of the camera frustum. \end{DoxyCompactList}\item 
+double \hyperlink{classvisioncraft_1_1Viewpoint_ae33dd06cba85412548920a0dfe25a5cd}{get\+Near\+Plane} () const
+\begin{DoxyCompactList}\small\item\em Get the near plane distance of the camera frustum. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Viewpoint_a252c7746319b10a6f41bdb11c01a8487}{set\+Far\+Plane} (double far)
+\begin{DoxyCompactList}\small\item\em Set the far plane distance of the camera frustum. \end{DoxyCompactList}\item 
+double \hyperlink{classvisioncraft_1_1Viewpoint_a3ec5fe63ec14414aa864cd53518215ea}{get\+Far\+Plane} () const
+\begin{DoxyCompactList}\small\item\em Get the far plane distance of the camera frustum. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Viewpoint_a82bc5bda68c1dc61c35cfd8f5a2befa8}{set\+Resolution} (int width, int height)
+\begin{DoxyCompactList}\small\item\em Set the resolution of the camera. \end{DoxyCompactList}\item 
+std\+::pair$<$ int, int $>$ \hyperlink{classvisioncraft_1_1Viewpoint_a82c0a78cac09e12c5df31a77fe930055}{get\+Resolution} () const
+\begin{DoxyCompactList}\small\item\em Get the resolution of the camera. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Viewpoint_a07ef9c64ea32130312d1cb187320abaf}{set\+Downsample\+Factor} (double factor)
+\begin{DoxyCompactList}\small\item\em Set the downsample factor for simulation. \end{DoxyCompactList}\item 
+double \hyperlink{classvisioncraft_1_1Viewpoint_a238c7a9deef702d7b8660bb53ba4f08f}{get\+Downsample\+Factor} () const
+\begin{DoxyCompactList}\small\item\em Get the downsample factor for simulation. \end{DoxyCompactList}\item 
+std\+::pair$<$ int, int $>$ \hyperlink{classvisioncraft_1_1Viewpoint_aa6968c8ab6b7d1ee62dfee8db3a580dc}{get\+Downsampled\+Resolution} () const
+\begin{DoxyCompactList}\small\item\em Get the downsampled resolution of the camera. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Viewpoint_a578ce8d3f798e63ebfdd07407f3a6769}{set\+Horizontal\+Field\+Of\+View} (double hfov)
+\begin{DoxyCompactList}\small\item\em Set the horizontal field of view (h\+F\+OV) of the camera. \end{DoxyCompactList}\item 
+double \hyperlink{classvisioncraft_1_1Viewpoint_aa59433b34ceeb80ec93ae23ba07ead02}{get\+Horizontal\+Field\+Of\+View} () const
+\begin{DoxyCompactList}\small\item\em Get the horizontal field of view (h\+F\+OV) of the camera. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1Viewpoint_a3c2c3034d8bab1520d95baff61ed3ec0}{set\+Vertical\+Field\+Of\+View} (double vfov)
+\begin{DoxyCompactList}\small\item\em Set the vertical field of view (v\+F\+OV) of the camera. \end{DoxyCompactList}\item 
+double \hyperlink{classvisioncraft_1_1Viewpoint_a40e3661d2b20eedcefac03fb9859522f}{get\+Vertical\+Field\+Of\+View} () const
+\begin{DoxyCompactList}\small\item\em Get the vertical field of view (v\+F\+OV) of the camera. \end{DoxyCompactList}\item 
+std\+::vector$<$ Eigen\+::\+Vector3d $>$ \hyperlink{classvisioncraft_1_1Viewpoint_a132ae1cc1c72958cb1d0c44aade4da9c}{get\+Frustum\+Corners} () const
+\begin{DoxyCompactList}\small\item\em Compute and return the frustum corners of the camera. \end{DoxyCompactList}\item 
+std\+::vector$<$ Eigen\+::\+Vector3d $>$ \hyperlink{classvisioncraft_1_1Viewpoint_a92bbbaf4c8071bce5e6bc5af99500886}{get\+Rays} () const
+\begin{DoxyCompactList}\small\item\em Get the generated rays for the viewpoint. \end{DoxyCompactList}\item 
+std\+::vector$<$ std\+::pair$<$ bool, Eigen\+::\+Vector3d $>$ $>$ \hyperlink{classvisioncraft_1_1Viewpoint_a4f9f78eb518386325d8e0ade57c90fc3}{perform\+Raycasting} (const std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \&octomap, bool parallelize=false)
+\begin{DoxyCompactList}\small\item\em Perform raycasting with the generated rays on the provided octomap. \end{DoxyCompactList}\item 
+std\+::vector$<$ std\+::pair$<$ bool, Eigen\+::\+Vector3d $>$ $>$ \hyperlink{classvisioncraft_1_1Viewpoint_a06ee41338f5dbe482fd4ad7dab244b85}{get\+Hit\+Results} () const
+\begin{DoxyCompactList}\small\item\em Get the hit results of the raycasting operation. \end{DoxyCompactList}\item 
+std\+::vector$<$ Eigen\+::\+Vector3d $>$ \hyperlink{classvisioncraft_1_1Viewpoint_adeee2e5fa09522d886656848af37ff11}{generate\+Rays} ()
+\begin{DoxyCompactList}\small\item\em Generate rays for each pixel in the image plane. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Class representing a viewpoint for depth camera positioning and orientation. 
+
+This class provides functionality to define and manipulate the position and orientation of a depth camera viewpoint in a 3D space. It also includes camera properties like near and far planes, resolution, and downsampling for simulation purposes. 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a87bab63b8b2bd6123742307bb47d3392}\label{classvisioncraft_1_1Viewpoint_a87bab63b8b2bd6123742307bb47d3392}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!Viewpoint@{Viewpoint}}
+\index{Viewpoint@{Viewpoint}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{Viewpoint()}{Viewpoint()}\hspace{0.1cm}{\footnotesize\ttfamily [1/4]}}
+{\footnotesize\ttfamily visioncraft\+::\+Viewpoint\+::\+Viewpoint (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Default constructor for \hyperlink{classvisioncraft_1_1Viewpoint}{Viewpoint} class. 
+
+Initializes the viewpoint with default position, orientation, and camera properties. \mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a801252e99e7abe9ec2fa90e0f453c864}\label{classvisioncraft_1_1Viewpoint_a801252e99e7abe9ec2fa90e0f453c864}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!Viewpoint@{Viewpoint}}
+\index{Viewpoint@{Viewpoint}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{Viewpoint()}{Viewpoint()}\hspace{0.1cm}{\footnotesize\ttfamily [2/4]}}
+{\footnotesize\ttfamily visioncraft\+::\+Viewpoint\+::\+Viewpoint (\begin{DoxyParamCaption}\item[{const Eigen\+::\+Vector3d \&}]{position,  }\item[{const Eigen\+::\+Matrix3d \&}]{orientation,  }\item[{double}]{near = {\ttfamily 350.0},  }\item[{double}]{far = {\ttfamily 900.0},  }\item[{int}]{resolution\+\_\+width = {\ttfamily 2448},  }\item[{int}]{resolution\+\_\+height = {\ttfamily 2048},  }\item[{double}]{hfov = {\ttfamily 44.8},  }\item[{double}]{vfov = {\ttfamily 42.6} }\end{DoxyParamCaption})}
+
+
+
+Constructor with position, orientation, and camera properties. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em position} & The position of the viewpoint as an Eigen\+::\+Vector3d. \\
+\hline
+{\em orientation} & The orientation of the viewpoint as a rotation matrix (Eigen\+::\+Matrix3d). \\
+\hline
+{\em near} & The near plane distance of the camera frustum in millimeters (default\+: 350.\+0). \\
+\hline
+{\em far} & The far plane distance of the camera frustum in millimeters (default\+: 900.\+0). \\
+\hline
+{\em resolution\+\_\+width} & The width resolution of the camera (default\+: 2448). \\
+\hline
+{\em resolution\+\_\+height} & The height resolution of the camera (default\+: 2048). \\
+\hline
+{\em hfov} & The horizontal field of view of the camera in degrees (default\+: 44.\+8). \\
+\hline
+{\em vfov} & The vertical field of view of the camera in degrees (default\+: 42.\+6). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a4446a40e983904390c0460c5ae9888c3}\label{classvisioncraft_1_1Viewpoint_a4446a40e983904390c0460c5ae9888c3}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!Viewpoint@{Viewpoint}}
+\index{Viewpoint@{Viewpoint}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{Viewpoint()}{Viewpoint()}\hspace{0.1cm}{\footnotesize\ttfamily [3/4]}}
+{\footnotesize\ttfamily visioncraft\+::\+Viewpoint\+::\+Viewpoint (\begin{DoxyParamCaption}\item[{const Eigen\+::\+Vector\+Xd \&}]{position\+\_\+yaw\+\_\+pitch\+\_\+roll,  }\item[{double}]{near = {\ttfamily 350.0},  }\item[{double}]{far = {\ttfamily 900.0},  }\item[{int}]{resolution\+\_\+width = {\ttfamily 2448},  }\item[{int}]{resolution\+\_\+height = {\ttfamily 2048},  }\item[{double}]{hfov = {\ttfamily 44.8},  }\item[{double}]{vfov = {\ttfamily 42.6} }\end{DoxyParamCaption})}
+
+
+
+Constructor with combined position and Euler angles (yaw, pitch, roll). 
+
+This constructor initializes the viewpoint using a single Eigen\+::\+Vector3d where the first three elements represent the position (x, y, z), and the last three elements represent the Euler angles (yaw, pitch, roll).
+
+
+\begin{DoxyParams}{Parameters}
+{\em position\+\_\+yaw\+\_\+pitch\+\_\+roll} & A combined Eigen\+::\+Vector3d where\+:
+\begin{DoxyItemize}
+\item position\+\_\+yaw\+\_\+pitch\+\_\+roll\mbox{[}0\mbox{]} = x position
+\item position\+\_\+yaw\+\_\+pitch\+\_\+roll\mbox{[}1\mbox{]} = y position
+\item position\+\_\+yaw\+\_\+pitch\+\_\+roll\mbox{[}2\mbox{]} = z position
+\item position\+\_\+yaw\+\_\+pitch\+\_\+roll\mbox{[}3\mbox{]} = yaw (rotation around Z axis) in radians
+\item position\+\_\+yaw\+\_\+pitch\+\_\+roll\mbox{[}4\mbox{]} = pitch (rotation around Y axis) in radians
+\item position\+\_\+yaw\+\_\+pitch\+\_\+roll\mbox{[}5\mbox{]} = roll (rotation around X axis) in radians 
+\end{DoxyItemize}\\
+\hline
+{\em near} & The near plane distance of the camera frustum in millimeters (default\+: 350.\+0). \\
+\hline
+{\em far} & The far plane distance of the camera frustum in millimeters (default\+: 900.\+0). \\
+\hline
+{\em resolution\+\_\+width} & The width resolution of the camera (default\+: 2448). \\
+\hline
+{\em resolution\+\_\+height} & The height resolution of the camera (default\+: 2048). \\
+\hline
+{\em hfov} & The horizontal field of view of the camera in degrees (default\+: 44.\+8). \\
+\hline
+{\em vfov} & The vertical field of view of the camera in degrees (default\+: 42.\+6). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a13b3b0cb252b66b1790e8197c3c7f652}\label{classvisioncraft_1_1Viewpoint_a13b3b0cb252b66b1790e8197c3c7f652}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!Viewpoint@{Viewpoint}}
+\index{Viewpoint@{Viewpoint}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{Viewpoint()}{Viewpoint()}\hspace{0.1cm}{\footnotesize\ttfamily [4/4]}}
+{\footnotesize\ttfamily visioncraft\+::\+Viewpoint\+::\+Viewpoint (\begin{DoxyParamCaption}\item[{const Eigen\+::\+Vector3d \&}]{position,  }\item[{const Eigen\+::\+Vector3d \&}]{look\+At,  }\item[{const Eigen\+::\+Vector3d \&}]{up = {\ttfamily -\/Eigen\+:\+:Vector3d\+:\+:UnitZ()},  }\item[{double}]{near = {\ttfamily 350.0},  }\item[{double}]{far = {\ttfamily 900.0},  }\item[{int}]{resolution\+\_\+width = {\ttfamily 2448},  }\item[{int}]{resolution\+\_\+height = {\ttfamily 2048},  }\item[{double}]{hfov = {\ttfamily 44.8},  }\item[{double}]{vfov = {\ttfamily 42.6} }\end{DoxyParamCaption})}
+
+
+
+Constructor with position and look\+At point. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em position} & The position of the viewpoint as an Eigen\+::\+Vector3d. \\
+\hline
+{\em look\+At} & The target point the viewpoint is oriented towards. \\
+\hline
+{\em up} & The up direction for the viewpoint (default\+: Eigen\+::\+Vector3d\+::\+Unit\+Y()). \\
+\hline
+{\em near} & The near plane distance of the camera frustum in millimeters (default\+: 350.\+0). \\
+\hline
+{\em far} & The far plane distance of the camera frustum in millimeters (default\+: 900.\+0). \\
+\hline
+{\em resolution\+\_\+width} & The width resolution of the camera (default\+: 2448). \\
+\hline
+{\em resolution\+\_\+height} & The height resolution of the camera (default\+: 2048). \\
+\hline
+{\em hfov} & The horizontal field of view of the camera in degrees (default\+: 44.\+8). \\
+\hline
+{\em vfov} & The vertical field of view of the camera in degrees (default\+: 42.\+6). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a4964be212cfb22f01f826ea9576030f6}\label{classvisioncraft_1_1Viewpoint_a4964be212cfb22f01f826ea9576030f6}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!````~Viewpoint@{$\sim$\+Viewpoint}}
+\index{````~Viewpoint@{$\sim$\+Viewpoint}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{$\sim$\+Viewpoint()}{~Viewpoint()}}
+{\footnotesize\ttfamily visioncraft\+::\+Viewpoint\+::$\sim$\+Viewpoint (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Destructor for \hyperlink{classvisioncraft_1_1Viewpoint}{Viewpoint} class. 
+
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_adeee2e5fa09522d886656848af37ff11}\label{classvisioncraft_1_1Viewpoint_adeee2e5fa09522d886656848af37ff11}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!generate\+Rays@{generate\+Rays}}
+\index{generate\+Rays@{generate\+Rays}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{generate\+Rays()}{generateRays()}}
+{\footnotesize\ttfamily std\+::vector$<$ Eigen\+::\+Vector3d $>$ visioncraft\+::\+Viewpoint\+::generate\+Rays (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Generate rays for each pixel in the image plane. 
+
+This function calculates the direction of rays for each pixel in the image plane based on the camera\textquotesingle{}s intrinsic and extrinsic parameters.
+
+\begin{DoxyReturn}{Returns}
+A vector of Eigen\+::\+Vector3d representing the direction of rays from the camera\textquotesingle{}s position. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_aa6968c8ab6b7d1ee62dfee8db3a580dc}\label{classvisioncraft_1_1Viewpoint_aa6968c8ab6b7d1ee62dfee8db3a580dc}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Downsampled\+Resolution@{get\+Downsampled\+Resolution}}
+\index{get\+Downsampled\+Resolution@{get\+Downsampled\+Resolution}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Downsampled\+Resolution()}{getDownsampledResolution()}}
+{\footnotesize\ttfamily std\+::pair$<$ int, int $>$ visioncraft\+::\+Viewpoint\+::get\+Downsampled\+Resolution (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get the downsampled resolution of the camera. 
+
+\begin{DoxyReturn}{Returns}
+A pair representing the downsampled width and height resolution of the camera. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a238c7a9deef702d7b8660bb53ba4f08f}\label{classvisioncraft_1_1Viewpoint_a238c7a9deef702d7b8660bb53ba4f08f}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Downsample\+Factor@{get\+Downsample\+Factor}}
+\index{get\+Downsample\+Factor@{get\+Downsample\+Factor}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Downsample\+Factor()}{getDownsampleFactor()}}
+{\footnotesize\ttfamily double visioncraft\+::\+Viewpoint\+::get\+Downsample\+Factor (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get the downsample factor for simulation. 
+
+\begin{DoxyReturn}{Returns}
+The downsample factor. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a3ec5fe63ec14414aa864cd53518215ea}\label{classvisioncraft_1_1Viewpoint_a3ec5fe63ec14414aa864cd53518215ea}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Far\+Plane@{get\+Far\+Plane}}
+\index{get\+Far\+Plane@{get\+Far\+Plane}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Far\+Plane()}{getFarPlane()}}
+{\footnotesize\ttfamily double visioncraft\+::\+Viewpoint\+::get\+Far\+Plane (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get the far plane distance of the camera frustum. 
+
+\begin{DoxyReturn}{Returns}
+The far plane distance in millimeters. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a132ae1cc1c72958cb1d0c44aade4da9c}\label{classvisioncraft_1_1Viewpoint_a132ae1cc1c72958cb1d0c44aade4da9c}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Frustum\+Corners@{get\+Frustum\+Corners}}
+\index{get\+Frustum\+Corners@{get\+Frustum\+Corners}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Frustum\+Corners()}{getFrustumCorners()}}
+{\footnotesize\ttfamily std\+::vector$<$ Eigen\+::\+Vector3d $>$ visioncraft\+::\+Viewpoint\+::get\+Frustum\+Corners (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Compute and return the frustum corners of the camera. 
+
+\begin{DoxyReturn}{Returns}
+A vector of Eigen\+::\+Vector3d representing the frustum corners. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a06ee41338f5dbe482fd4ad7dab244b85}\label{classvisioncraft_1_1Viewpoint_a06ee41338f5dbe482fd4ad7dab244b85}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Hit\+Results@{get\+Hit\+Results}}
+\index{get\+Hit\+Results@{get\+Hit\+Results}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Hit\+Results()}{getHitResults()}}
+{\footnotesize\ttfamily std\+::vector$<$std\+::pair$<$bool, Eigen\+::\+Vector3d$>$ $>$ visioncraft\+::\+Viewpoint\+::get\+Hit\+Results (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the hit results of the raycasting operation. 
+
+\begin{DoxyReturn}{Returns}
+A vector of pairs indicating whether each ray hit an occupied voxel (true) or not (false) and the hit point. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_aa59433b34ceeb80ec93ae23ba07ead02}\label{classvisioncraft_1_1Viewpoint_aa59433b34ceeb80ec93ae23ba07ead02}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Horizontal\+Field\+Of\+View@{get\+Horizontal\+Field\+Of\+View}}
+\index{get\+Horizontal\+Field\+Of\+View@{get\+Horizontal\+Field\+Of\+View}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Horizontal\+Field\+Of\+View()}{getHorizontalFieldOfView()}}
+{\footnotesize\ttfamily double visioncraft\+::\+Viewpoint\+::get\+Horizontal\+Field\+Of\+View (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get the horizontal field of view (h\+F\+OV) of the camera. 
+
+\begin{DoxyReturn}{Returns}
+The horizontal field of view in degrees. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_ae33dd06cba85412548920a0dfe25a5cd}\label{classvisioncraft_1_1Viewpoint_ae33dd06cba85412548920a0dfe25a5cd}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Near\+Plane@{get\+Near\+Plane}}
+\index{get\+Near\+Plane@{get\+Near\+Plane}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Near\+Plane()}{getNearPlane()}}
+{\footnotesize\ttfamily double visioncraft\+::\+Viewpoint\+::get\+Near\+Plane (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get the near plane distance of the camera frustum. 
+
+\begin{DoxyReturn}{Returns}
+The near plane distance in millimeters. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a893455a682229abfa11fcc8bba3af310}\label{classvisioncraft_1_1Viewpoint_a893455a682229abfa11fcc8bba3af310}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Orientation\+Euler@{get\+Orientation\+Euler}}
+\index{get\+Orientation\+Euler@{get\+Orientation\+Euler}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Orientation\+Euler()}{getOrientationEuler()}}
+{\footnotesize\ttfamily Eigen\+::\+Vector3d visioncraft\+::\+Viewpoint\+::get\+Orientation\+Euler (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Convert the orientation to Euler angles. 
+
+\begin{DoxyReturn}{Returns}
+The orientation of the viewpoint as Euler angles (Eigen\+::\+Vector3d). 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a160da053602ad2033650b07d995da95a}\label{classvisioncraft_1_1Viewpoint_a160da053602ad2033650b07d995da95a}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Orientation\+Matrix@{get\+Orientation\+Matrix}}
+\index{get\+Orientation\+Matrix@{get\+Orientation\+Matrix}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Orientation\+Matrix()}{getOrientationMatrix()}}
+{\footnotesize\ttfamily Eigen\+::\+Matrix3d visioncraft\+::\+Viewpoint\+::get\+Orientation\+Matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get the orientation of the viewpoint as a rotation matrix. 
+
+\begin{DoxyReturn}{Returns}
+The orientation of the viewpoint as a rotation matrix (Eigen\+::\+Matrix3d). 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a9d594ba3c04f61b1998d1af990960648}\label{classvisioncraft_1_1Viewpoint_a9d594ba3c04f61b1998d1af990960648}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Orientation\+Quaternion@{get\+Orientation\+Quaternion}}
+\index{get\+Orientation\+Quaternion@{get\+Orientation\+Quaternion}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Orientation\+Quaternion()}{getOrientationQuaternion()}}
+{\footnotesize\ttfamily Eigen\+::\+Quaterniond visioncraft\+::\+Viewpoint\+::get\+Orientation\+Quaternion (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get the orientation of the viewpoint as quaternions. 
+
+\begin{DoxyReturn}{Returns}
+The orientation of the viewpoint as an Eigen\+::\+Quaterniond. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a2ee8f324a3ff2f1116d6782a20c042ce}\label{classvisioncraft_1_1Viewpoint_a2ee8f324a3ff2f1116d6782a20c042ce}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Position@{get\+Position}}
+\index{get\+Position@{get\+Position}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Position()}{getPosition()}}
+{\footnotesize\ttfamily Eigen\+::\+Vector3d visioncraft\+::\+Viewpoint\+::get\+Position (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get the position of the viewpoint. 
+
+\begin{DoxyReturn}{Returns}
+The position of the viewpoint as an Eigen\+::\+Vector3d. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a92bbbaf4c8071bce5e6bc5af99500886}\label{classvisioncraft_1_1Viewpoint_a92bbbaf4c8071bce5e6bc5af99500886}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Rays@{get\+Rays}}
+\index{get\+Rays@{get\+Rays}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Rays()}{getRays()}}
+{\footnotesize\ttfamily std\+::vector$<$Eigen\+::\+Vector3d$>$ visioncraft\+::\+Viewpoint\+::get\+Rays (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the generated rays for the viewpoint. 
+
+\begin{DoxyReturn}{Returns}
+A vector of Eigen\+::\+Vector3d representing the rays\textquotesingle{} end points from the viewpoint. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a82c0a78cac09e12c5df31a77fe930055}\label{classvisioncraft_1_1Viewpoint_a82c0a78cac09e12c5df31a77fe930055}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Resolution@{get\+Resolution}}
+\index{get\+Resolution@{get\+Resolution}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Resolution()}{getResolution()}}
+{\footnotesize\ttfamily std\+::pair$<$ int, int $>$ visioncraft\+::\+Viewpoint\+::get\+Resolution (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get the resolution of the camera. 
+
+\begin{DoxyReturn}{Returns}
+A pair representing the width and height resolution of the camera. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_af918ce4f4c39be7d461b9f80ee442120}\label{classvisioncraft_1_1Viewpoint_af918ce4f4c39be7d461b9f80ee442120}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Transformation\+Matrix@{get\+Transformation\+Matrix}}
+\index{get\+Transformation\+Matrix@{get\+Transformation\+Matrix}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Transformation\+Matrix()}{getTransformationMatrix()}}
+{\footnotesize\ttfamily Eigen\+::\+Matrix4d visioncraft\+::\+Viewpoint\+::get\+Transformation\+Matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Compute the transformation matrix for the viewpoint. 
+
+\begin{DoxyReturn}{Returns}
+The transformation matrix as an Eigen\+::\+Matrix4d. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a40e3661d2b20eedcefac03fb9859522f}\label{classvisioncraft_1_1Viewpoint_a40e3661d2b20eedcefac03fb9859522f}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!get\+Vertical\+Field\+Of\+View@{get\+Vertical\+Field\+Of\+View}}
+\index{get\+Vertical\+Field\+Of\+View@{get\+Vertical\+Field\+Of\+View}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{get\+Vertical\+Field\+Of\+View()}{getVerticalFieldOfView()}}
+{\footnotesize\ttfamily double visioncraft\+::\+Viewpoint\+::get\+Vertical\+Field\+Of\+View (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get the vertical field of view (v\+F\+OV) of the camera. 
+
+\begin{DoxyReturn}{Returns}
+The vertical field of view in degrees. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a4f9f78eb518386325d8e0ade57c90fc3}\label{classvisioncraft_1_1Viewpoint_a4f9f78eb518386325d8e0ade57c90fc3}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!perform\+Raycasting@{perform\+Raycasting}}
+\index{perform\+Raycasting@{perform\+Raycasting}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{perform\+Raycasting()}{performRaycasting()}}
+{\footnotesize\ttfamily std\+::vector$<$ std\+::pair$<$ bool, Eigen\+::\+Vector3d $>$ $>$ visioncraft\+::\+Viewpoint\+::perform\+Raycasting (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \&}]{octomap,  }\item[{bool}]{use\+\_\+parallel = {\ttfamily false} }\end{DoxyParamCaption})}
+
+
+
+Perform raycasting with the generated rays on the provided octomap. 
+
+Performs raycasting from the viewpoint to detect if the rays intersect with any occupied voxels in the octomap.
+
+This method checks whether the rays generated from the viewpoint hit any occupied voxel in the octomap.
+
+
+\begin{DoxyParams}{Parameters}
+{\em octomap} & The octomap to perform raycasting on. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+A vector of booleans indicating whether each ray hit an occupied voxel (true) or not (false).
+\end{DoxyReturn}
+
+\begin{DoxyParams}{Parameters}
+{\em octomap} & A shared pointer to an octomap\+::\+Color\+Oc\+Tree representing the 3D environment. \\
+\hline
+{\em use\+\_\+parallel} & If true, raycasting will be performed using multithreading for better performance. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+A vector of pairs where the first element is a boolean indicating if the ray hit an occupied voxel, and the second element is the 3D coordinates of the hit point (or a zero vector if no hit). 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a07ef9c64ea32130312d1cb187320abaf}\label{classvisioncraft_1_1Viewpoint_a07ef9c64ea32130312d1cb187320abaf}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!set\+Downsample\+Factor@{set\+Downsample\+Factor}}
+\index{set\+Downsample\+Factor@{set\+Downsample\+Factor}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{set\+Downsample\+Factor()}{setDownsampleFactor()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Viewpoint\+::set\+Downsample\+Factor (\begin{DoxyParamCaption}\item[{double}]{factor }\end{DoxyParamCaption})}
+
+
+
+Set the downsample factor for simulation. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em factor} & The factor by which to downsample the resolution. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a252c7746319b10a6f41bdb11c01a8487}\label{classvisioncraft_1_1Viewpoint_a252c7746319b10a6f41bdb11c01a8487}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!set\+Far\+Plane@{set\+Far\+Plane}}
+\index{set\+Far\+Plane@{set\+Far\+Plane}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{set\+Far\+Plane()}{setFarPlane()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Viewpoint\+::set\+Far\+Plane (\begin{DoxyParamCaption}\item[{double}]{far }\end{DoxyParamCaption})}
+
+
+
+Set the far plane distance of the camera frustum. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em far} & The far plane distance in millimeters. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a578ce8d3f798e63ebfdd07407f3a6769}\label{classvisioncraft_1_1Viewpoint_a578ce8d3f798e63ebfdd07407f3a6769}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!set\+Horizontal\+Field\+Of\+View@{set\+Horizontal\+Field\+Of\+View}}
+\index{set\+Horizontal\+Field\+Of\+View@{set\+Horizontal\+Field\+Of\+View}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{set\+Horizontal\+Field\+Of\+View()}{setHorizontalFieldOfView()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Viewpoint\+::set\+Horizontal\+Field\+Of\+View (\begin{DoxyParamCaption}\item[{double}]{hfov }\end{DoxyParamCaption})}
+
+
+
+Set the horizontal field of view (h\+F\+OV) of the camera. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em hfov} & The horizontal field of view in degrees. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_ab3245e3767522f4f88cde55bdda58965}\label{classvisioncraft_1_1Viewpoint_ab3245e3767522f4f88cde55bdda58965}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!set\+Look\+At@{set\+Look\+At}}
+\index{set\+Look\+At@{set\+Look\+At}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{set\+Look\+At()}{setLookAt()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Viewpoint\+::set\+Look\+At (\begin{DoxyParamCaption}\item[{const Eigen\+::\+Vector3d \&}]{look\+At,  }\item[{const Eigen\+::\+Vector3d \&}]{up = {\ttfamily -\/Eigen\+:\+:Vector3d\+:\+:UnitZ()} }\end{DoxyParamCaption})}
+
+
+
+Set the orientation of the viewpoint using a look\+At target point. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em look\+At} & The target point the viewpoint is oriented towards. \\
+\hline
+{\em up} & The up direction for the viewpoint (default\+: Eigen\+::\+Vector3d\+::\+Unit\+Y()). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_adfb76d3eb8a11b69fd6368d20801f82e}\label{classvisioncraft_1_1Viewpoint_adfb76d3eb8a11b69fd6368d20801f82e}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!set\+Near\+Plane@{set\+Near\+Plane}}
+\index{set\+Near\+Plane@{set\+Near\+Plane}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{set\+Near\+Plane()}{setNearPlane()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Viewpoint\+::set\+Near\+Plane (\begin{DoxyParamCaption}\item[{double}]{near }\end{DoxyParamCaption})}
+
+
+
+Set the near plane distance of the camera frustum. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em near} & The near plane distance in millimeters. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_adbb30bbbe2e486d403b4fc616b42f58e}\label{classvisioncraft_1_1Viewpoint_adbb30bbbe2e486d403b4fc616b42f58e}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!set\+Orientation@{set\+Orientation}}
+\index{set\+Orientation@{set\+Orientation}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{set\+Orientation()}{setOrientation()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily void visioncraft\+::\+Viewpoint\+::set\+Orientation (\begin{DoxyParamCaption}\item[{const Eigen\+::\+Matrix3d \&}]{orientation }\end{DoxyParamCaption})}
+
+
+
+Set the orientation of the viewpoint using a rotation matrix. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em orientation} & The orientation of the viewpoint as a rotation matrix (Eigen\+::\+Matrix3d). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a681ff114c9fcf0d84f848a70db673e74}\label{classvisioncraft_1_1Viewpoint_a681ff114c9fcf0d84f848a70db673e74}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!set\+Orientation@{set\+Orientation}}
+\index{set\+Orientation@{set\+Orientation}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{set\+Orientation()}{setOrientation()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily void visioncraft\+::\+Viewpoint\+::set\+Orientation (\begin{DoxyParamCaption}\item[{const Eigen\+::\+Quaterniond \&}]{quaternion }\end{DoxyParamCaption})}
+
+
+
+Set the orientation of the viewpoint using quaternions. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em quaternion} & The orientation of the viewpoint as an Eigen\+::\+Quaterniond. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_acfd98e5627f6c9ca6f55aae9a473621e}\label{classvisioncraft_1_1Viewpoint_acfd98e5627f6c9ca6f55aae9a473621e}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!set\+Position@{set\+Position}}
+\index{set\+Position@{set\+Position}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{set\+Position()}{setPosition()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Viewpoint\+::set\+Position (\begin{DoxyParamCaption}\item[{const Eigen\+::\+Vector3d \&}]{position }\end{DoxyParamCaption})}
+
+
+
+Set the position of the viewpoint. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em position} & The position of the viewpoint as an Eigen\+::\+Vector3d. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a82bc5bda68c1dc61c35cfd8f5a2befa8}\label{classvisioncraft_1_1Viewpoint_a82bc5bda68c1dc61c35cfd8f5a2befa8}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!set\+Resolution@{set\+Resolution}}
+\index{set\+Resolution@{set\+Resolution}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{set\+Resolution()}{setResolution()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Viewpoint\+::set\+Resolution (\begin{DoxyParamCaption}\item[{int}]{width,  }\item[{int}]{height }\end{DoxyParamCaption})}
+
+
+
+Set the resolution of the camera. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em width} & The width resolution of the camera. \\
+\hline
+{\em height} & The height resolution of the camera. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classvisioncraft_1_1Viewpoint_a3c2c3034d8bab1520d95baff61ed3ec0}\label{classvisioncraft_1_1Viewpoint_a3c2c3034d8bab1520d95baff61ed3ec0}} 
+\index{visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}!set\+Vertical\+Field\+Of\+View@{set\+Vertical\+Field\+Of\+View}}
+\index{set\+Vertical\+Field\+Of\+View@{set\+Vertical\+Field\+Of\+View}!visioncraft\+::\+Viewpoint@{visioncraft\+::\+Viewpoint}}
+\subsubsection{\texorpdfstring{set\+Vertical\+Field\+Of\+View()}{setVerticalFieldOfView()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Viewpoint\+::set\+Vertical\+Field\+Of\+View (\begin{DoxyParamCaption}\item[{double}]{vfov }\end{DoxyParamCaption})}
+
+
+
+Set the vertical field of view (v\+F\+OV) of the camera. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em vfov} & The vertical field of view in degrees. \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/visioncraft/\hyperlink{viewpoint_8h}{viewpoint.\+h}\item 
+src/visioncraft/\hyperlink{viewpoint_8cpp}{viewpoint.\+cpp}\end{DoxyCompactItemize}

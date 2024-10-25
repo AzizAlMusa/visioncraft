@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <string>
 #include <Eigen/Core>
-
+#include <chrono>
 
 
 namespace visioncraft {
@@ -16,6 +16,10 @@ ModelLoader::ModelLoader() {
 
 // Destructor for the ModelLoader class
 ModelLoader::~ModelLoader() {
+    if (gpu_voxel_grid_.voxel_data) {
+        delete[] gpu_voxel_grid_.voxel_data;
+        gpu_voxel_grid_.voxel_data = nullptr;
+    }
     std::cout << "ModelLoader destructor called." << std::endl;
 }
 
@@ -61,23 +65,38 @@ bool ModelLoader::loadExplorationModel(const std::string& file_path, int num_sam
 // Generate all necessary structures from the loaded mesh
 bool ModelLoader::generateAllStructures(int num_samples, double resolution) {
     bool success = true;
-   
-    success &= initializeRaycastingScene();
-    success &= generatePointCloud(num_samples); // Number of samples for the point cloud
+
+    // Lambda to measure the time taken by each function call
+    auto measureTime = [](auto func, const std::string& func_name) {
+        auto start = std::chrono::high_resolution_clock::now();
+        bool result = func();
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = end - start;
+        std::cout << func_name << " took " << elapsed.count() << " seconds." << std::endl;
+        return result;
+    };
+
+    success &= measureTime([this]() { return initializeRaycastingScene(); }, "initializeRaycastingScene");
+    success &= measureTime([this, num_samples]() { return generatePointCloud(num_samples); }, "generatePointCloud");
 
     if (resolution <= 0) {
-        resolution = getAverageSpacing();
+        resolution = 8.0 * getAverageSpacing();
         std::cout << "Using default resolution: " << resolution << std::endl;
     }
 
-    success &= generateVolumetricPointCloud();
-    success &= generateVoxelGrid(resolution);
-    success &= generateOctoMap(resolution);
-    success &= generateVolumetricOctoMap(resolution);
-    success &= generateSurfaceShellOctomap();
-    success &= generateExplorationMap(resolution, getMinBound(), getMaxBound());
+    // success &= measureTime([this]() { return generateVolumetricPointCloud(); }, "generateVolumetricPointCloud");
+    // success &= measureTime([this, resolution]() { return generateVoxelGrid(resolution); }, "generateVoxelGrid");
+    success &= measureTime([this, resolution]() { return generateOctoMap(resolution); }, "generateOctoMap");
+    success &= measureTime([this, resolution]() { return generateVolumetricOctoMap(resolution); }, "generateVolumetricOctoMap");
+    success &= measureTime([this]() { return generateSurfaceShellOctomap(); }, "generateSurfaceShellOctomap");
+    success &= measureTime([this, resolution]() { return convertVoxelGridToGPUFormat(resolution); }, "convertVoxelGridToGPUFormat");
+    success &= measureTime([this, resolution]() {
+        return generateExplorationMap(resolution, getMinBound(), getMaxBound());
+    }, "generateExplorationMap");
+
     return success;
 }
+
 
 bool ModelLoader::generateExplorationStructures(int num_samples, int num_cells_per_side) {
     bool success = true;
@@ -92,7 +111,7 @@ bool ModelLoader::generateExplorationStructures(int num_samples, int num_cells_p
     success &= generateVoxelGrid(resolution);
     success &= generateVolumetricOctoMap(resolution);
     success &= generateSurfaceShellOctomap();
-    
+    std::cout << "SUCCESSFULLY" << std::endl;
     return success;
 }
 
@@ -132,9 +151,10 @@ bool ModelLoader::generatePointCloud(int numSamples) {
 
   
     // Generate point cloud using Poisson disk sampling from Open3D
-    std::cout << "Generating point cloud using Poisson disk sampling with " << numSamples << " samples..."  << std::endl;
-    std::shared_ptr<open3d::geometry::PointCloud> pcd = meshData_->SamplePointsPoissonDisk(numSamples, 5.0, nullptr, true);
-
+    // std::cout << "Generating point cloud using Poisson disk sampling with " << numSamples << " samples..."  << std::endl;
+    // std::shared_ptr<open3d::geometry::PointCloud> pcd = meshData_->SamplePointsPoissonDisk(numSamples, 5.0, nullptr, true);
+    std::cout << "Generating point cloud using Uniform sampling with " << numSamples << " samples..."  << std::endl;
+    std::shared_ptr<open3d::geometry::PointCloud> pcd = meshData_->SamplePointsUniformly(numSamples, true);
     // Check if the point cloud is generated successfully
     if (!pcd->HasPoints()) {
         std::cerr << "Failed to generate point cloud from mesh." << std::endl;
@@ -275,7 +295,7 @@ bool ModelLoader::generateVoxelGrid(double voxelSize){
 
     // If voxelSize is not provided or less than or equal to zero, set it to twice the average spacing
     if (voxelSize <= 0.0) {
-        voxelSize = 2.0 * pointCloudSpacing_;
+        voxelSize = 10.0 * getAverageSpacing();
     }
 
     // Create a voxel grid representation of the object
@@ -332,7 +352,7 @@ bool ModelLoader::generateOctoMap(double resolution) {
 
     // If resolution is not provided or less than or equal to zero, set it to twice the average point cloud spacing
     if (resolution <= 0.0) {
-        resolution = 2.0 * getAverageSpacing();
+        resolution = 10.0 * getAverageSpacing();
     }
 
     // Create an octomap with the specified resolution
@@ -342,7 +362,7 @@ bool ModelLoader::generateOctoMap(double resolution) {
     for (const auto& point : pointCloud_->points_) {
         // Update the octomap node at the point's location and set its color to white (255, 255, 255)
         auto node = octoMap_->updateNode(octomap::point3d(point.x(), point.y(), point.z()), true);
-        node->setColor(227, 185, 255);
+        node->setColor(255, 255, 255);
         // node->setLogOdds(octomap::logodds(1.0)); // Set the log-odds value to 1
     }
 
@@ -356,41 +376,104 @@ bool ModelLoader::generateOctoMap(double resolution) {
 
 
 
+// bool ModelLoader::generateVolumetricOctoMap(double resolution) {
+//     // Ensure volumetric point cloud data is available
+//     if (!volumetricPointCloud_) {
+//         std::cerr << "Error: Volumetric point cloud data is not available." << std::endl;
+//         return false;
+//     }
+
+//     // If resolution is not provided or less than or equal to zero, set it to the default spacing
+//     if (resolution <= 0.0) {
+//         resolution = 10.0 * getAverageSpacing();
+//     }
+
+//     // Create an OctoMap with the specified resolution
+//     volumetricOctomap_ = std::make_shared<octomap::ColorOcTree>(resolution);
+
+//     // Iterate through each point in the volumetric point cloud
+//     for (const auto& point : volumetricPointCloud_->points_) {
+//         // Update the OctoMap node at the point's location and set its color to a specific value (e.g., white)
+//         auto node = volumetricOctomap_->updateNode(
+//             octomap::point3d(point.x(), point.y(), point.z()), true
+//         );
+//         node->setColor(128, 128, 128);
+//         node->setLogOdds(octomap::logodds(1.0)); // Ensure the node is fully occupied
+//     }
+
+//     // Expand all nodes to the specified resolution
+//     volumetricOctomap_->expand();
+
+//     // Update the inner occupancy of the OctoMap to ensure all nodes reflect occupancy changes
+//     volumetricOctomap_->updateInnerOccupancy();
+
+//     std::cout << "Volumetric OctoMap generated successfully." << std::endl;
+
+//     return true;
+// }
+
 bool ModelLoader::generateVolumetricOctoMap(double resolution) {
-    // Ensure volumetric point cloud data is available
-    if (!volumetricPointCloud_) {
-        std::cerr << "Error: Volumetric point cloud data is not available." << std::endl;
+    // Ensure raycasting scene and octoMap_ are initialized
+    if (!raycasting_scene_ || !octoMap_) {
+        std::cerr << "Error: Raycasting scene or octoMap_ is not initialized." << std::endl;
         return false;
     }
 
-    // If resolution is not provided or less than or equal to zero, set it to the default spacing
-    if (resolution <= 0.0) {
-        resolution = getAverageSpacing();
+    // Initialize volumetricOctomap_ as a copy of octoMap_
+    volumetricOctomap_ = std::make_shared<octomap::ColorOcTree>(*octoMap_);
+
+    // Get bounding box min and max bounds from octoMap_ using getMetricMin and getMetricMax
+    double min_x, min_y, min_z, max_x, max_y, max_z;
+    octoMap_->getMetricMin(min_x, min_y, min_z);
+    octoMap_->getMetricMax(max_x, max_y, max_z);
+
+    // Use octoMap_ resolution for consistent voxel spacing
+    double step = octoMap_->getResolution();
+
+    // Prepare flat vector for batched SDF query
+    std::vector<float> batch_points;
+    std::vector<octomap::point3d> voxel_positions;
+
+    // Updated loop with offset (step / 2) for centering
+    for (double x = min_x + step / 2; x <= max_x; x += step) {
+        for (double y = min_y + step / 2; y <= max_y; y += step) {
+            for (double z = min_z + step / 2; z <= max_z; z += step) {
+                // Store x, y, z as floats in the flat vector
+                batch_points.push_back(static_cast<float>(x));
+                batch_points.push_back(static_cast<float>(y));
+                batch_points.push_back(static_cast<float>(z));
+
+                // Save the voxel positions for later use
+                voxel_positions.emplace_back(x, y, z);
+            }
+        }
     }
 
-    // Create an OctoMap with the specified resolution
-    volumetricOctomap_ = std::make_shared<octomap::ColorOcTree>(resolution);
+    // Create Open3D tensor from flat data
+    open3d::core::Tensor points_tensor(
+        batch_points, {static_cast<int64_t>(batch_points.size() / 3), 3}, 
+        open3d::core::Dtype::Float32, open3d::core::Device("CPU:0"));
 
-    // Iterate through each point in the volumetric point cloud
-    for (const auto& point : volumetricPointCloud_->points_) {
-        // Update the OctoMap node at the point's location and set its color to a specific value (e.g., white)
-        auto node = volumetricOctomap_->updateNode(
-            octomap::point3d(point.x(), point.y(), point.z()), true
-        );
-        node->setColor(128, 128, 128);
-        node->setLogOdds(octomap::logodds(1.0)); // Ensure the node is fully occupied
+    // Compute signed distances for the batch of points
+    open3d::core::Tensor sdf_values = raycasting_scene_->ComputeSignedDistance(points_tensor);
+    auto sdf_values_data = sdf_values.ToFlatVector<float>();
+
+    // Populate the volumetricOctomap_ based on the signed distance values
+    for (size_t i = 0; i < sdf_values_data.size(); ++i) {
+        if (sdf_values_data[i] < 0) { // Inside the object
+            volumetricOctomap_->updateNode(voxel_positions[i], true);
+        }
     }
 
-    // Expand all nodes to the specified resolution
-    volumetricOctomap_->expand();
-
-    // Update the inner occupancy of the OctoMap to ensure all nodes reflect occupancy changes
+    // Update inner occupancy to finalize the octomap
     volumetricOctomap_->updateInnerOccupancy();
-
     std::cout << "Volumetric OctoMap generated successfully." << std::endl;
 
     return true;
 }
+
+
+
 
 bool ModelLoader::generateSurfaceShellOctomap() {
     // Ensure volumetric octomap data is available
@@ -537,6 +620,121 @@ bool ModelLoader::generateExplorationMap(int num_cells_per_side, const octomap::
     return true;
 }
 
+/**
+ * @brief Convert the voxel grid to a GPU-friendly structure for efficient raycasting.
+ * 
+ * This function converts the current voxel grid into a format that can be easily
+ * transferred to the GPU. The grid is stored as a linearized 1D array of occupancy 
+ * data (0 = free, 1 = occupied) and includes dimensions and voxel size.
+ * 
+ * @param voxelSize The size of each voxel in the grid.
+ * @return True if the conversion is successful, false otherwise.
+ */
+bool ModelLoader::convertVoxelGridToGPUFormat(double voxelSize) {
+    // Ensure surfaceShellOctomap_ data is available
+    if (!surfaceShellOctomap_) {
+        std::cerr << "Error: Surface shell OctoMap data is not available." << std::endl;
+        return false;
+    }
+
+    // Get OctoMap bounds from the surface shell OctoMap
+    double min_x, min_y, min_z, max_x, max_y, max_z;
+    surfaceShellOctomap_->getMetricMin(min_x, min_y, min_z);
+    surfaceShellOctomap_->getMetricMax(max_x, max_y, max_z);
+
+    gpu_voxel_grid_.voxel_size = voxelSize;
+
+    // Calculate dimensions of the voxel grid
+    gpu_voxel_grid_.width = static_cast<int>((max_x - min_x) / voxelSize);
+    gpu_voxel_grid_.height = static_cast<int>((max_y - min_y) / voxelSize);
+    gpu_voxel_grid_.depth = static_cast<int>((max_z - min_z) / voxelSize);
+
+    // Set min_bound in gpu_voxel_grid_
+    gpu_voxel_grid_.min_bound[0] = static_cast<float>(min_x) + voxelSize / 2;
+    gpu_voxel_grid_.min_bound[1] = static_cast<float>(min_y) + voxelSize / 2;
+    gpu_voxel_grid_.min_bound[2] = static_cast<float>(min_z) + voxelSize / 2;
+
+    // Calculate total number of voxels and allocate memory
+    int total_voxels = gpu_voxel_grid_.width * gpu_voxel_grid_.height * gpu_voxel_grid_.depth;
+    gpu_voxel_grid_.voxel_data = new int[total_voxels];
+    std::fill(gpu_voxel_grid_.voxel_data, gpu_voxel_grid_.voxel_data + total_voxels, 0);
+
+    // Populate the voxel data array directly from surfaceShellOctomap_ leaf nodes
+    for (auto it = surfaceShellOctomap_->begin_leafs(); it != surfaceShellOctomap_->end_leafs(); ++it) {
+        auto voxel_center = it.getCoordinate();
+
+        // Calculate voxel indices (x, y, z) based on the voxel center position
+        int x_idx = static_cast<int>((voxel_center.x() - min_x) / voxelSize);
+        int y_idx = static_cast<int>((voxel_center.y() - min_y) / voxelSize);
+        int z_idx = static_cast<int>((voxel_center.z() - min_z) / voxelSize);
+
+        // Calculate the linear index for the voxel in the 1D array
+        int linear_idx = z_idx * (gpu_voxel_grid_.width * gpu_voxel_grid_.height) + y_idx * gpu_voxel_grid_.width + x_idx;
+
+        if (linear_idx >= 0 && linear_idx < total_voxels) {
+            gpu_voxel_grid_.voxel_data[linear_idx] = 1;
+        }
+    }
+
+    return true;
+}
+
+
+/**
+ * @brief Update the voxel grid based on the hit voxels.
+ * 
+ * This function takes a set of 3D voxel indices (x, y, z) representing hit voxels and
+ * updates the corresponding voxels in the GPU-friendly voxel grid to occupied (value = 1).
+ * 
+ * @param unique_hit_voxels A set of 3D voxel indices (x, y, z) representing hit voxels.
+ */
+void ModelLoader::updateVoxelGridFromHits(const std::set<std::tuple<int, int, int>>& unique_hit_voxels) {
+    for (const auto& voxel_idx : unique_hit_voxels) {
+        int x = std::get<0>(voxel_idx);
+        int y = std::get<1>(voxel_idx);
+        int z = std::get<2>(voxel_idx);
+
+        // Compute the linear index from (x, y, z)
+        int linear_idx = z * (gpu_voxel_grid_.width * gpu_voxel_grid_.height) + y * gpu_voxel_grid_.width + x;
+
+        // Ensure the index is within bounds before updating the voxel data
+        if (linear_idx >= 0 && linear_idx < gpu_voxel_grid_.width * gpu_voxel_grid_.height * gpu_voxel_grid_.depth) {
+            gpu_voxel_grid_.voxel_data[linear_idx] = 1;  // Mark as occupied
+        } else {
+            std::cerr << "Error: Voxel index out of bounds!" << std::endl;
+        }
+    }
+}
+
+/**
+ * @brief Update the OctoMap based on the hit voxels.
+ * 
+ * This function takes a set of 3D voxel indices (x, y, z), converts them to world coordinates,
+ * and updates the corresponding voxels in the OctoMap to have a green color (0, 255, 0).
+ * 
+ * @param unique_hit_voxels A set of 3D voxel indices (x, y, z) representing hit voxels.
+ */
+void ModelLoader::updateOctomapWithHits(const std::set<std::tuple<int, int, int>>& unique_hit_voxels) {
+    for (const auto& voxel_idx : unique_hit_voxels) {
+        int x = std::get<0>(voxel_idx);
+        int y = std::get<1>(voxel_idx);
+        int z = std::get<2>(voxel_idx);
+
+        // Calculate the world coordinates of the voxel center
+        double x_world = gpu_voxel_grid_.min_bound[0] + x * gpu_voxel_grid_.voxel_size;
+        double y_world = gpu_voxel_grid_.min_bound[1] + y * gpu_voxel_grid_.voxel_size;
+        double z_world = gpu_voxel_grid_.min_bound[2] + z * gpu_voxel_grid_.voxel_size;
+
+        // Update the voxel in the OctoMap and set its color to green (0, 255, 0)
+        octomap::ColorOcTreeNode* node = surfaceShellOctomap_->updateNode(octomap::point3d(x_world, y_world, z_world), true);
+        if (node) {
+            // std::cout << "Updating OctoMap node at (" << x_world << ", " << y_world << ", " << z_world << ")" << std::endl;
+            node->setColor(0, 255, 0);  // Green color for hit voxels
+        } else {
+            std::cerr << "Error: Failed to update OctoMap node!" << std::endl;
+        }
+    }
+}
 
 
 

@@ -15,6 +15,12 @@
 #include <vector>                   // For using dynamic arrays
 #include <algorithm>                // For common algorithms like std::max
 
+#include <vtkAutoInit.h>
+
+VTK_MODULE_INIT(vtkRenderingOpenGL);
+VTK_MODULE_INIT(vtkInteractionStyle);
+
+
 int main(int argc, char *argv[])
 {
     // Path to the CSV file containing voxel data
@@ -32,6 +38,10 @@ int main(int argc, char *argv[])
     }
 
     std::string line;
+
+    // Skip the header line
+    std::getline(file, line);
+
     // Read the file line by line
     while (std::getline(file, line)) {
         std::stringstream ss(line);
@@ -128,21 +138,29 @@ int main(int argc, char *argv[])
     vtkSmartPointer<vtkPolyDataMapper> mapperOccupied = vtkSmartPointer<vtkPolyDataMapper>::New();
     if (appendFilterOccupied->GetNumberOfInputConnections(0) > 0) {
         mapperOccupied->SetInputConnection(appendFilterOccupied->GetOutputPort());
+    } else {
+        std::cerr << "No occupied voxels to visualize." << std::endl;
     }
 
     vtkSmartPointer<vtkActor> actorOccupied = vtkSmartPointer<vtkActor>::New();
     actorOccupied->SetMapper(mapperOccupied);
     actorOccupied->GetProperty()->SetColor(0.0, 0.0, 1.0); // Blue color for occupied voxels
+    actorOccupied->GetProperty()->SetEdgeVisibility(1);     // Enable edge visibility
+    actorOccupied->GetProperty()->SetEdgeColor(0.0, 0.0, 0.0); // Set edge color to black
 
     // Mapper and Actor for unknown voxels (voxelValue == 0.5)
     vtkSmartPointer<vtkPolyDataMapper> mapperUnknown = vtkSmartPointer<vtkPolyDataMapper>::New();
     if (appendFilterUnknown->GetNumberOfInputConnections(0) > 0) {
         mapperUnknown->SetInputConnection(appendFilterUnknown->GetOutputPort());
+    } else {
+        std::cerr << "No unknown voxels to visualize." << std::endl;
     }
 
     vtkSmartPointer<vtkActor> actorUnknown = vtkSmartPointer<vtkActor>::New();
     actorUnknown->SetMapper(mapperUnknown);
     actorUnknown->GetProperty()->SetColor(1.0, 1.0, 0.0); // Yellow color for unknown voxels
+    actorUnknown->GetProperty()->SetEdgeVisibility(1);     // Enable edge visibility
+    actorUnknown->GetProperty()->SetEdgeColor(0.0, 0.0, 0.0); // Set edge color to black
 
     // Create a renderer and add the actors for occupied and unknown voxels
     vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();

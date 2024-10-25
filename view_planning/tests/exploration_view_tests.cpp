@@ -284,7 +284,7 @@ int main(int argc, char* argv[]) {
 
     // Load the 3D model, generate a point cloud, and create the exploration map
     // std::string file_path = "/home/abdulaziz/ros_workspace/metrology/src/add_post_pro/view_planning/models/gorilla.ply";
-    if (!model_loader.loadExplorationModel(model_file, 100000, 32)) {
+    if (!model_loader.loadExplorationModel(model_file, 20000, 32)) {
         std::cerr << "Failed to load mesh." << std::endl;
         return -1;
     }
@@ -302,7 +302,7 @@ int main(int argc, char* argv[]) {
 
     // Set downsample factor for each viewpoint
     for (auto& viewpoint : viewpoints) {
-        viewpoint.setDownsampleFactor(8.0);
+        viewpoint.setDownsampleFactor(4.0);
     }
     // Perform raycasting and update the exploration map
     visioncraft::performRaycastingForViewpoints(exploration_map, octomap, viewpoints);

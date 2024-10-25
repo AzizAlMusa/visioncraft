@@ -1,0 +1,54 @@
+# Set the minimum required CMake version and define the project
+cmake_minimum_required(VERSION 3.20)
+project(view_planning)
+
+# Set a default build type if none was specified
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build: Debug Release RelWithDebInfo MinSizeRel." FORCE)
+endif()
+
+# Manually specify Python executable, include directories, and library
+# set(Python3_EXECUTABLE /home/abdulaziz/playground/open3d/env/bin/python3)
+# set(Python3_INCLUDE_DIR /home/abdulaziz/playground/open3d/env/include/python3.6m)
+# set(Python3_LIBRARY /home/abdulaziz/playground/open3d/env/lib/libpython3.6m.so)
+
+# # Find Python3
+# find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+
+# Use the specified Python paths
+include_directories(${Python3_INCLUDE_DIR})
+link_libraries(${Python3_LIBRARY})
+
+# Find external libraries like PCL, VTK, CGAL, OctoMap, Open3D, pybind11, and Threads
+find_package(CGAL REQUIRED)
+include(${CGAL_USE_FILE})
+
+find_package(octomap REQUIRED)
+find_package(Open3D REQUIRED)
+find_package(Threads REQUIRED)
+find_package(VTK REQUIRED)
+include(${VTK_USE_FILE})
+
+# Find and include pybind11 for Python bindings
+# set(pybind11_DIR /home/abdulaziz/playground/open3d/env/lib/python3.6/site-packages/pybind11/share/cmake/pybind11)
+# find_package(pybind11 REQUIRED)
+
+# Include directories for header files
+include_directories(
+  ${VTK_INCLUDE_DIRS}
+  ${OCTOMAP_INCLUDE_DIRS}
+  include
+  include/visioncraft  # Add this line to include your library headers
+)
+
+# === Executables ===
+add_executable(model_loader_tests tests/model_loader_tests.cpp src/visioncraft/model_loader.cpp)
+target_link_libraries(model_loader_tests ${OCTOMAP_LIBRARIES} Open3D::Open3D Threads::Threads)
+
+add_executable(viewpoint_tests tests/viewpoint_tests.cpp src/visioncraft/viewpoint.cpp)
+target_link_libraries(viewpoint_tests ${OCTOMAP_LIBRARIES} Open3D::Open3D Threads::Threads)
+
+# === Python Bindings ===
+# pybind11_add_module(visioncraft_py src/visioncraft/bindings.cpp src/visioncraft/model_loader.cpp src/visioncraft/viewpoint.cpp)
+# target_link_libraries(visioncraft_py PRIVATE ${OCTOMAP_LIBRARIES} Open3D::Open3D Threads::Threads)
+# set_target_properties(visioncraft_py PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/python_bindings)

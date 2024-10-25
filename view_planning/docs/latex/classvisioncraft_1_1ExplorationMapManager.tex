@@ -1,0 +1,96 @@
+\hypertarget{classvisioncraft_1_1ExplorationMapManager}{}\section{visioncraft\+:\+:Exploration\+Map\+Manager Class Reference}
+\label{classvisioncraft_1_1ExplorationMapManager}\index{visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classvisioncraft_1_1ExplorationMapManager_a4511423dad539ba2f868aad4b13806f2}{Exploration\+Map\+Manager} (const std\+::string \&model\+\_\+file, const std\+::string \&nbv\+\_\+list\+\_\+file)
+\item 
+bool \hyperlink{classvisioncraft_1_1ExplorationMapManager_a4118906997c8a7dca5eb84519725a001}{initialize} ()
+\item 
+void \hyperlink{classvisioncraft_1_1ExplorationMapManager_a7aedf7592bdd591d87717bceb076d1f8}{perform\+Raycasting} ()
+\item 
+void \hyperlink{classvisioncraft_1_1ExplorationMapManager_a9ed23d94e022dafcd5b0d2a53f640461}{save\+Exploration\+Data} () const
+\item 
+void \hyperlink{classvisioncraft_1_1ExplorationMapManager_a79996ce9708c71e71d504cecda3c75de}{calculate\+Coverage} () const
+\item 
+std\+::vector$<$ \hyperlink{classvisioncraft_1_1Viewpoint}{Viewpoint} $>$ \hyperlink{classvisioncraft_1_1ExplorationMapManager_a095e13f3f1d13bcc5f7efa2a57ac77f7}{read\+Viewpoints\+From\+File} (const std\+::string \&filename)
+\item 
+void \hyperlink{classvisioncraft_1_1ExplorationMapManager_a541f5daf89fefd5095e923f044c8ac15}{save\+Scaling\+Factor} (double scaling\+\_\+factor, const std\+::string \&file\+\_\+path) const
+\item 
+void \hyperlink{classvisioncraft_1_1ExplorationMapManager_aed32473c33a1e2eb33fd77d9ea9f42f3}{perform\+Guided\+Raycasting} (std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \&exploration\+\_\+map, std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \&octomap, \hyperlink{classvisioncraft_1_1Viewpoint}{Viewpoint} \&viewpoint) const
+\item 
+void \hyperlink{classvisioncraft_1_1ExplorationMapManager_aa57753cb552d9d7ec0cc9b1c4fb7885e}{save\+Exploration\+Map\+To\+Files} (const std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \&exploration\+\_\+map, const std\+::string \&csv\+\_\+path, const std\+::string \&txt\+\_\+path) const
+\item 
+double \hyperlink{classvisioncraft_1_1ExplorationMapManager_af9ef264b750298f630dcdd949b5f1668}{get\+Coverage\+Score} (std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \&exploration\+\_\+map, std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \&surface\+\_\+map) const
+\end{DoxyCompactItemize}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationMapManager_a4511423dad539ba2f868aad4b13806f2}\label{classvisioncraft_1_1ExplorationMapManager_a4511423dad539ba2f868aad4b13806f2}} 
+\index{visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}!Exploration\+Map\+Manager@{Exploration\+Map\+Manager}}
+\index{Exploration\+Map\+Manager@{Exploration\+Map\+Manager}!visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}}
+\subsubsection{\texorpdfstring{Exploration\+Map\+Manager()}{ExplorationMapManager()}}
+{\footnotesize\ttfamily visioncraft\+::\+Exploration\+Map\+Manager\+::\+Exploration\+Map\+Manager (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{model\+\_\+file,  }\item[{const std\+::string \&}]{nbv\+\_\+list\+\_\+file }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationMapManager_a79996ce9708c71e71d504cecda3c75de}\label{classvisioncraft_1_1ExplorationMapManager_a79996ce9708c71e71d504cecda3c75de}} 
+\index{visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}!calculate\+Coverage@{calculate\+Coverage}}
+\index{calculate\+Coverage@{calculate\+Coverage}!visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}}
+\subsubsection{\texorpdfstring{calculate\+Coverage()}{calculateCoverage()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Exploration\+Map\+Manager\+::calculate\+Coverage (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationMapManager_af9ef264b750298f630dcdd949b5f1668}\label{classvisioncraft_1_1ExplorationMapManager_af9ef264b750298f630dcdd949b5f1668}} 
+\index{visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}!get\+Coverage\+Score@{get\+Coverage\+Score}}
+\index{get\+Coverage\+Score@{get\+Coverage\+Score}!visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}}
+\subsubsection{\texorpdfstring{get\+Coverage\+Score()}{getCoverageScore()}}
+{\footnotesize\ttfamily double visioncraft\+::\+Exploration\+Map\+Manager\+::get\+Coverage\+Score (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \&}]{exploration\+\_\+map,  }\item[{std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \&}]{surface\+\_\+map }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationMapManager_a4118906997c8a7dca5eb84519725a001}\label{classvisioncraft_1_1ExplorationMapManager_a4118906997c8a7dca5eb84519725a001}} 
+\index{visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}!initialize@{initialize}}
+\index{initialize@{initialize}!visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}}
+\subsubsection{\texorpdfstring{initialize()}{initialize()}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Exploration\+Map\+Manager\+::initialize (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationMapManager_aed32473c33a1e2eb33fd77d9ea9f42f3}\label{classvisioncraft_1_1ExplorationMapManager_aed32473c33a1e2eb33fd77d9ea9f42f3}} 
+\index{visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}!perform\+Guided\+Raycasting@{perform\+Guided\+Raycasting}}
+\index{perform\+Guided\+Raycasting@{perform\+Guided\+Raycasting}!visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}}
+\subsubsection{\texorpdfstring{perform\+Guided\+Raycasting()}{performGuidedRaycasting()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Exploration\+Map\+Manager\+::perform\+Guided\+Raycasting (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \&}]{exploration\+\_\+map,  }\item[{std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \&}]{octomap,  }\item[{\hyperlink{classvisioncraft_1_1Viewpoint}{Viewpoint} \&}]{viewpoint }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationMapManager_a7aedf7592bdd591d87717bceb076d1f8}\label{classvisioncraft_1_1ExplorationMapManager_a7aedf7592bdd591d87717bceb076d1f8}} 
+\index{visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}!perform\+Raycasting@{perform\+Raycasting}}
+\index{perform\+Raycasting@{perform\+Raycasting}!visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}}
+\subsubsection{\texorpdfstring{perform\+Raycasting()}{performRaycasting()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Exploration\+Map\+Manager\+::perform\+Raycasting (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationMapManager_a095e13f3f1d13bcc5f7efa2a57ac77f7}\label{classvisioncraft_1_1ExplorationMapManager_a095e13f3f1d13bcc5f7efa2a57ac77f7}} 
+\index{visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}!read\+Viewpoints\+From\+File@{read\+Viewpoints\+From\+File}}
+\index{read\+Viewpoints\+From\+File@{read\+Viewpoints\+From\+File}!visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}}
+\subsubsection{\texorpdfstring{read\+Viewpoints\+From\+File()}{readViewpointsFromFile()}}
+{\footnotesize\ttfamily std\+::vector$<$\hyperlink{classvisioncraft_1_1Viewpoint}{Viewpoint}$>$ visioncraft\+::\+Exploration\+Map\+Manager\+::read\+Viewpoints\+From\+File (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{filename }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationMapManager_a9ed23d94e022dafcd5b0d2a53f640461}\label{classvisioncraft_1_1ExplorationMapManager_a9ed23d94e022dafcd5b0d2a53f640461}} 
+\index{visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}!save\+Exploration\+Data@{save\+Exploration\+Data}}
+\index{save\+Exploration\+Data@{save\+Exploration\+Data}!visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}}
+\subsubsection{\texorpdfstring{save\+Exploration\+Data()}{saveExplorationData()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Exploration\+Map\+Manager\+::save\+Exploration\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationMapManager_aa57753cb552d9d7ec0cc9b1c4fb7885e}\label{classvisioncraft_1_1ExplorationMapManager_aa57753cb552d9d7ec0cc9b1c4fb7885e}} 
+\index{visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}!save\+Exploration\+Map\+To\+Files@{save\+Exploration\+Map\+To\+Files}}
+\index{save\+Exploration\+Map\+To\+Files@{save\+Exploration\+Map\+To\+Files}!visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}}
+\subsubsection{\texorpdfstring{save\+Exploration\+Map\+To\+Files()}{saveExplorationMapToFiles()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Exploration\+Map\+Manager\+::save\+Exploration\+Map\+To\+Files (\begin{DoxyParamCaption}\item[{const std\+::shared\+\_\+ptr$<$ octomap\+::\+Color\+Oc\+Tree $>$ \&}]{exploration\+\_\+map,  }\item[{const std\+::string \&}]{csv\+\_\+path,  }\item[{const std\+::string \&}]{txt\+\_\+path }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationMapManager_a541f5daf89fefd5095e923f044c8ac15}\label{classvisioncraft_1_1ExplorationMapManager_a541f5daf89fefd5095e923f044c8ac15}} 
+\index{visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}!save\+Scaling\+Factor@{save\+Scaling\+Factor}}
+\index{save\+Scaling\+Factor@{save\+Scaling\+Factor}!visioncraft\+::\+Exploration\+Map\+Manager@{visioncraft\+::\+Exploration\+Map\+Manager}}
+\subsubsection{\texorpdfstring{save\+Scaling\+Factor()}{saveScalingFactor()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Exploration\+Map\+Manager\+::save\+Scaling\+Factor (\begin{DoxyParamCaption}\item[{double}]{scaling\+\_\+factor,  }\item[{const std\+::string \&}]{file\+\_\+path }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+src/visioncraft/\hyperlink{exploration__map__manager_8cpp}{exploration\+\_\+map\+\_\+manager.\+cpp}\end{DoxyCompactItemize}

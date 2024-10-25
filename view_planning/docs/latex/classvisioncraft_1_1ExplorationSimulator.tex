@@ -1,0 +1,77 @@
+\hypertarget{classvisioncraft_1_1ExplorationSimulator}{}\section{visioncraft\+:\+:Exploration\+Simulator Class Reference}
+\label{classvisioncraft_1_1ExplorationSimulator}\index{visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}}
+
+
+{\ttfamily \#include $<$exploration\+\_\+simulator.\+h$>$}
+
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classvisioncraft_1_1ExplorationSimulator_a17497ae22175b0c56da5e47e9c1b841e}{Exploration\+Simulator} ()
+\item 
+bool \hyperlink{classvisioncraft_1_1ExplorationSimulator_aff4d345d61125096d7e1bcdd69a39a20}{load\+Model} (const std\+::string \&model\+\_\+file, int num\+\_\+points=20000, int grid\+\_\+resolution=32)
+\item 
+void \hyperlink{classvisioncraft_1_1ExplorationSimulator_a9ea722d4f4f841df0daf6b3dd65229f2}{set\+Viewpoints} (const std\+::vector$<$ \hyperlink{classvisioncraft_1_1Viewpoint}{Viewpoint} $>$ \&viewpoints)
+\item 
+void \hyperlink{classvisioncraft_1_1ExplorationSimulator_af115b547cbb19fb9ba305d18b740b0a2}{perform\+Raycasting} ()
+\item 
+std\+::vector$<$ std\+::tuple$<$ double, double, double, double $>$ $>$ \hyperlink{classvisioncraft_1_1ExplorationSimulator_a2f1812483e24e0c27454e6016cd3808d}{get\+Exploration\+Map\+Data} ()
+\item 
+double \hyperlink{classvisioncraft_1_1ExplorationSimulator_a7a31a8a2ac789b2b5675c3c90bfd52c5}{get\+Coverage\+Score} ()
+\item 
+double \hyperlink{classvisioncraft_1_1ExplorationSimulator_afca04754c1e6b8a2feb9e7477fe66ce5}{get\+Scaling\+Factor} () const
+\end{DoxyCompactItemize}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationSimulator_a17497ae22175b0c56da5e47e9c1b841e}\label{classvisioncraft_1_1ExplorationSimulator_a17497ae22175b0c56da5e47e9c1b841e}} 
+\index{visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}!Exploration\+Simulator@{Exploration\+Simulator}}
+\index{Exploration\+Simulator@{Exploration\+Simulator}!visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}}
+\subsubsection{\texorpdfstring{Exploration\+Simulator()}{ExplorationSimulator()}}
+{\footnotesize\ttfamily visioncraft\+::\+Exploration\+Simulator\+::\+Exploration\+Simulator (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationSimulator_a7a31a8a2ac789b2b5675c3c90bfd52c5}\label{classvisioncraft_1_1ExplorationSimulator_a7a31a8a2ac789b2b5675c3c90bfd52c5}} 
+\index{visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}!get\+Coverage\+Score@{get\+Coverage\+Score}}
+\index{get\+Coverage\+Score@{get\+Coverage\+Score}!visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}}
+\subsubsection{\texorpdfstring{get\+Coverage\+Score()}{getCoverageScore()}}
+{\footnotesize\ttfamily double visioncraft\+::\+Exploration\+Simulator\+::get\+Coverage\+Score (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationSimulator_a2f1812483e24e0c27454e6016cd3808d}\label{classvisioncraft_1_1ExplorationSimulator_a2f1812483e24e0c27454e6016cd3808d}} 
+\index{visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}!get\+Exploration\+Map\+Data@{get\+Exploration\+Map\+Data}}
+\index{get\+Exploration\+Map\+Data@{get\+Exploration\+Map\+Data}!visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}}
+\subsubsection{\texorpdfstring{get\+Exploration\+Map\+Data()}{getExplorationMapData()}}
+{\footnotesize\ttfamily std\+::vector$<$ std\+::tuple$<$ double, double, double, double $>$ $>$ visioncraft\+::\+Exploration\+Simulator\+::get\+Exploration\+Map\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationSimulator_afca04754c1e6b8a2feb9e7477fe66ce5}\label{classvisioncraft_1_1ExplorationSimulator_afca04754c1e6b8a2feb9e7477fe66ce5}} 
+\index{visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}!get\+Scaling\+Factor@{get\+Scaling\+Factor}}
+\index{get\+Scaling\+Factor@{get\+Scaling\+Factor}!visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}}
+\subsubsection{\texorpdfstring{get\+Scaling\+Factor()}{getScalingFactor()}}
+{\footnotesize\ttfamily double visioncraft\+::\+Exploration\+Simulator\+::get\+Scaling\+Factor (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationSimulator_aff4d345d61125096d7e1bcdd69a39a20}\label{classvisioncraft_1_1ExplorationSimulator_aff4d345d61125096d7e1bcdd69a39a20}} 
+\index{visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}!load\+Model@{load\+Model}}
+\index{load\+Model@{load\+Model}!visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}}
+\subsubsection{\texorpdfstring{load\+Model()}{loadModel()}}
+{\footnotesize\ttfamily bool visioncraft\+::\+Exploration\+Simulator\+::load\+Model (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{model\+\_\+file,  }\item[{int}]{num\+\_\+points = {\ttfamily 20000},  }\item[{int}]{grid\+\_\+resolution = {\ttfamily 32} }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationSimulator_af115b547cbb19fb9ba305d18b740b0a2}\label{classvisioncraft_1_1ExplorationSimulator_af115b547cbb19fb9ba305d18b740b0a2}} 
+\index{visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}!perform\+Raycasting@{perform\+Raycasting}}
+\index{perform\+Raycasting@{perform\+Raycasting}!visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}}
+\subsubsection{\texorpdfstring{perform\+Raycasting()}{performRaycasting()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Exploration\+Simulator\+::perform\+Raycasting (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classvisioncraft_1_1ExplorationSimulator_a9ea722d4f4f841df0daf6b3dd65229f2}\label{classvisioncraft_1_1ExplorationSimulator_a9ea722d4f4f841df0daf6b3dd65229f2}} 
+\index{visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}!set\+Viewpoints@{set\+Viewpoints}}
+\index{set\+Viewpoints@{set\+Viewpoints}!visioncraft\+::\+Exploration\+Simulator@{visioncraft\+::\+Exploration\+Simulator}}
+\subsubsection{\texorpdfstring{set\+Viewpoints()}{setViewpoints()}}
+{\footnotesize\ttfamily void visioncraft\+::\+Exploration\+Simulator\+::set\+Viewpoints (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ \hyperlink{classvisioncraft_1_1Viewpoint}{Viewpoint} $>$ \&}]{viewpoints }\end{DoxyParamCaption})}
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/visioncraft/\hyperlink{exploration__simulator_8h}{exploration\+\_\+simulator.\+h}\item 
+src/visioncraft/\hyperlink{exploration__simulator_8cpp}{exploration\+\_\+simulator.\+cpp}\end{DoxyCompactItemize}

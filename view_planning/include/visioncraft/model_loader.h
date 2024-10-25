@@ -9,6 +9,27 @@
 
 namespace visioncraft {
 
+
+
+
+/**
+ * @brief Struct representing a GPU-friendly voxel grid.
+ * 
+ * This struct stores the voxel grid as a linearized 1D array for efficient access on the GPU.
+ * It includes the dimensions of the grid (width, height, depth) and the voxel size.
+ */
+struct VoxelGridGPU {
+    int* voxel_data;  ///< Linearized array for voxel data (0 = free, 1 = occupied).
+    int width, height, depth;  ///< Dimensions of the voxel grid (number of voxels along each axis).
+    double voxel_size;  ///< Size of each voxel.
+    float min_bound[3];  ///< Minimum bound of the voxel grid.
+
+    /**
+     * @brief Default constructor initializing the voxel grid with zero values.
+     */
+    VoxelGridGPU() : voxel_data(nullptr), width(0), height(0), depth(0), voxel_size(0.0) {}
+};    
+
 /**
  * @brief Class for loading and processing 3D models using Open3D.
  * 
@@ -17,6 +38,8 @@ namespace visioncraft {
  */
 class ModelLoader {
 public:
+
+
     /**
      * @brief Default constructor for ModelLoader class.
      */
@@ -272,6 +295,49 @@ public:
     double getExplorationMapResolution() const { return octomap_resolution_; }
     
 
+    /**
+     * @brief Convert the voxel grid to a GPU-friendly structure for efficient raycasting.
+     * 
+     * This function converts the current voxel grid into a format that can be easily
+     * transferred to the GPU. The grid is stored as a linearized 1D array of occupancy 
+     * data (0 = free, 1 = occupied) and includes dimensions and voxel size.
+     * 
+     * @param voxelSize The size of each voxel in the grid.
+     * @return True if the conversion is successful, false otherwise.
+     */
+    bool convertVoxelGridToGPUFormat(double voxelSize);
+
+    /**
+     * @brief Get the GPU-friendly voxel grid data.
+     * 
+     * This function provides access to the voxel grid data that has been converted
+     * for use on the GPU.
+     * 
+     * @return A reference to the VoxelGridGPU structure containing the voxel grid data.
+     */
+    const VoxelGridGPU& getGPUVoxelGrid() const { return gpu_voxel_grid_; }
+
+    /**
+     * @brief Update the voxel grid based on the hit voxels.
+     * 
+     * This function takes a set of 3D voxel indices (x, y, z) representing hit voxels and
+     * updates the corresponding voxels in the GPU-friendly voxel grid to occupied (value = 1).
+     * 
+     * @param unique_hit_voxels A set of 3D voxel indices (x, y, z) representing hit voxels.
+     */
+    void updateVoxelGridFromHits(const std::set<std::tuple<int, int, int>>& unique_hit_voxels);
+
+    /**
+     * @brief Update the OctoMap based on the hit voxels.
+     * 
+     * This function takes a set of 3D voxel indices (x, y, z), converts them to world coordinates,
+     * and updates the corresponding voxels in the OctoMap to have a green color (0, 255, 0).
+     * 
+     * @param unique_hit_voxels A set of 3D voxel indices (x, y, z) representing hit voxels.
+     */
+    void updateOctomapWithHits(const std::set<std::tuple<int, int, int>>& unique_hit_voxels);
+
+
 private:
 
     /**
@@ -317,6 +383,8 @@ private:
 
     // Voxel representation
     std::shared_ptr<open3d::geometry::VoxelGrid> voxelGrid_;  ///< Voxel grid representation of the object.
+
+    VoxelGridGPU gpu_voxel_grid_; ///< GPU-friendly voxel grid for raycasting operations.
 
 
     // Octree representation

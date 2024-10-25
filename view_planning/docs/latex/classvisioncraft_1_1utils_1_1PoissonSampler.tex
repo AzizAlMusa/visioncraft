@@ -1,0 +1,116 @@
+\hypertarget{classvisioncraft_1_1utils_1_1PoissonSampler}{}\section{visioncraft\+:\+:utils\+:\+:Poisson\+Sampler Class Reference}
+\label{classvisioncraft_1_1utils_1_1PoissonSampler}\index{visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}}
+
+
+Class for generating point cloud using Poisson disk sampling.  
+
+
+
+
+{\ttfamily \#include $<$poisson\+\_\+sampler.\+h$>$}
+
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classvisioncraft_1_1utils_1_1PoissonSampler_a7bfb01ef24d01f16e51a0c6533db300a}{Poisson\+Sampler} ()
+\begin{DoxyCompactList}\small\item\em Default constructor for \hyperlink{classvisioncraft_1_1utils_1_1PoissonSampler}{Poisson\+Sampler}. \end{DoxyCompactList}\item 
+double \hyperlink{classvisioncraft_1_1utils_1_1PoissonSampler_a483e265853d48adab5ead1ce355caa7c}{compute\+Surface\+Area} (const vtk\+Smart\+Pointer$<$ vtk\+Poly\+Data $>$ \&mesh\+Data)
+\begin{DoxyCompactList}\small\item\em Compute surface area of the mesh. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1utils_1_1PoissonSampler_ad3669a4cf2cc622f867fbd2a08eb0f1a}{generate\+Random\+Point} (const vtk\+Smart\+Pointer$<$ vtk\+Poly\+Data $>$ \&mesh\+Data)
+\item 
+int \hyperlink{classvisioncraft_1_1utils_1_1PoissonSampler_a4b68225264977cf2df185889c2a105df}{select\+Triangle\+Index} (const std\+::vector$<$ double $>$ \&areas)
+\begin{DoxyCompactList}\small\item\em Select a triangle index based on areas. \end{DoxyCompactList}\item 
+void \hyperlink{classvisioncraft_1_1utils_1_1PoissonSampler_af6bf98478b4fcf448a66cecafe68e613}{generate\+Uniform\+Sample} (const vtk\+Smart\+Pointer$<$ vtk\+Poly\+Data $>$ \&mesh\+Data, int num\+Samples)
+\item 
+void \hyperlink{classvisioncraft_1_1utils_1_1PoissonSampler_a1a888b0e8d5664c138a99f8f1c3ab4f7}{generate\+Poisson\+Disk\+Sample} (const vtk\+Smart\+Pointer$<$ vtk\+Poly\+Data $>$ \&mesh\+Data, int num\+Samples)
+\begin{DoxyCompactList}\small\item\em Generate point cloud using Poisson disk sampling. \end{DoxyCompactList}\item 
+double \hyperlink{classvisioncraft_1_1utils_1_1PoissonSampler_ac3afe76a33d3ba2f0dfb709b92c6608d}{calculate\+R\+Max} (double surface\+Area, int num\+Points)
+\begin{DoxyCompactList}\small\item\em Calculate the maximum radius for sampling. \end{DoxyCompactList}\item 
+pcl\+::\+Point\+Cloud$<$ pcl\+::\+Point\+X\+YZ $>$\+::Ptr \hyperlink{classvisioncraft_1_1utils_1_1PoissonSampler_a2c245126548a8fb5aa02b3e07edecaee}{get\+Point\+Cloud} () const
+\begin{DoxyCompactList}\small\item\em Get the generated point cloud. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Class for generating point cloud using Poisson disk sampling. 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classvisioncraft_1_1utils_1_1PoissonSampler_a7bfb01ef24d01f16e51a0c6533db300a}\label{classvisioncraft_1_1utils_1_1PoissonSampler_a7bfb01ef24d01f16e51a0c6533db300a}} 
+\index{visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}!Poisson\+Sampler@{Poisson\+Sampler}}
+\index{Poisson\+Sampler@{Poisson\+Sampler}!visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}}
+\subsubsection{\texorpdfstring{Poisson\+Sampler()}{PoissonSampler()}}
+{\footnotesize\ttfamily visioncraft\+::utils\+::\+Poisson\+Sampler\+::\+Poisson\+Sampler (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Default constructor for \hyperlink{classvisioncraft_1_1utils_1_1PoissonSampler}{Poisson\+Sampler}. 
+
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classvisioncraft_1_1utils_1_1PoissonSampler_ac3afe76a33d3ba2f0dfb709b92c6608d}\label{classvisioncraft_1_1utils_1_1PoissonSampler_ac3afe76a33d3ba2f0dfb709b92c6608d}} 
+\index{visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}!calculate\+R\+Max@{calculate\+R\+Max}}
+\index{calculate\+R\+Max@{calculate\+R\+Max}!visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}}
+\subsubsection{\texorpdfstring{calculate\+R\+Max()}{calculateRMax()}}
+{\footnotesize\ttfamily double visioncraft\+::utils\+::\+Poisson\+Sampler\+::calculate\+R\+Max (\begin{DoxyParamCaption}\item[{double}]{surface\+Area,  }\item[{int}]{num\+Points }\end{DoxyParamCaption})}
+
+
+
+Calculate the maximum radius for sampling. 
+
+\mbox{\Hypertarget{classvisioncraft_1_1utils_1_1PoissonSampler_a483e265853d48adab5ead1ce355caa7c}\label{classvisioncraft_1_1utils_1_1PoissonSampler_a483e265853d48adab5ead1ce355caa7c}} 
+\index{visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}!compute\+Surface\+Area@{compute\+Surface\+Area}}
+\index{compute\+Surface\+Area@{compute\+Surface\+Area}!visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}}
+\subsubsection{\texorpdfstring{compute\+Surface\+Area()}{computeSurfaceArea()}}
+{\footnotesize\ttfamily double visioncraft\+::utils\+::\+Poisson\+Sampler\+::compute\+Surface\+Area (\begin{DoxyParamCaption}\item[{const vtk\+Smart\+Pointer$<$ vtk\+Poly\+Data $>$ \&}]{mesh\+Data }\end{DoxyParamCaption})}
+
+
+
+Compute surface area of the mesh. 
+
+\mbox{\Hypertarget{classvisioncraft_1_1utils_1_1PoissonSampler_a1a888b0e8d5664c138a99f8f1c3ab4f7}\label{classvisioncraft_1_1utils_1_1PoissonSampler_a1a888b0e8d5664c138a99f8f1c3ab4f7}} 
+\index{visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}!generate\+Poisson\+Disk\+Sample@{generate\+Poisson\+Disk\+Sample}}
+\index{generate\+Poisson\+Disk\+Sample@{generate\+Poisson\+Disk\+Sample}!visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}}
+\subsubsection{\texorpdfstring{generate\+Poisson\+Disk\+Sample()}{generatePoissonDiskSample()}}
+{\footnotesize\ttfamily void visioncraft\+::utils\+::\+Poisson\+Sampler\+::generate\+Poisson\+Disk\+Sample (\begin{DoxyParamCaption}\item[{const vtk\+Smart\+Pointer$<$ vtk\+Poly\+Data $>$ \&}]{mesh\+Data,  }\item[{int}]{num\+Samples }\end{DoxyParamCaption})}
+
+
+
+Generate point cloud using Poisson disk sampling. 
+
+\mbox{\Hypertarget{classvisioncraft_1_1utils_1_1PoissonSampler_ad3669a4cf2cc622f867fbd2a08eb0f1a}\label{classvisioncraft_1_1utils_1_1PoissonSampler_ad3669a4cf2cc622f867fbd2a08eb0f1a}} 
+\index{visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}!generate\+Random\+Point@{generate\+Random\+Point}}
+\index{generate\+Random\+Point@{generate\+Random\+Point}!visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}}
+\subsubsection{\texorpdfstring{generate\+Random\+Point()}{generateRandomPoint()}}
+{\footnotesize\ttfamily void visioncraft\+::utils\+::\+Poisson\+Sampler\+::generate\+Random\+Point (\begin{DoxyParamCaption}\item[{const vtk\+Smart\+Pointer$<$ vtk\+Poly\+Data $>$ \&}]{mesh\+Data }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classvisioncraft_1_1utils_1_1PoissonSampler_af6bf98478b4fcf448a66cecafe68e613}\label{classvisioncraft_1_1utils_1_1PoissonSampler_af6bf98478b4fcf448a66cecafe68e613}} 
+\index{visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}!generate\+Uniform\+Sample@{generate\+Uniform\+Sample}}
+\index{generate\+Uniform\+Sample@{generate\+Uniform\+Sample}!visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}}
+\subsubsection{\texorpdfstring{generate\+Uniform\+Sample()}{generateUniformSample()}}
+{\footnotesize\ttfamily void visioncraft\+::utils\+::\+Poisson\+Sampler\+::generate\+Uniform\+Sample (\begin{DoxyParamCaption}\item[{const vtk\+Smart\+Pointer$<$ vtk\+Poly\+Data $>$ \&}]{mesh\+Data,  }\item[{int}]{num\+Samples }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classvisioncraft_1_1utils_1_1PoissonSampler_a2c245126548a8fb5aa02b3e07edecaee}\label{classvisioncraft_1_1utils_1_1PoissonSampler_a2c245126548a8fb5aa02b3e07edecaee}} 
+\index{visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}!get\+Point\+Cloud@{get\+Point\+Cloud}}
+\index{get\+Point\+Cloud@{get\+Point\+Cloud}!visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}}
+\subsubsection{\texorpdfstring{get\+Point\+Cloud()}{getPointCloud()}}
+{\footnotesize\ttfamily pcl\+::\+Point\+Cloud$<$pcl\+::\+Point\+X\+YZ$>$\+::Ptr visioncraft\+::utils\+::\+Poisson\+Sampler\+::get\+Point\+Cloud (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get the generated point cloud. 
+
+\mbox{\Hypertarget{classvisioncraft_1_1utils_1_1PoissonSampler_a4b68225264977cf2df185889c2a105df}\label{classvisioncraft_1_1utils_1_1PoissonSampler_a4b68225264977cf2df185889c2a105df}} 
+\index{visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}!select\+Triangle\+Index@{select\+Triangle\+Index}}
+\index{select\+Triangle\+Index@{select\+Triangle\+Index}!visioncraft\+::utils\+::\+Poisson\+Sampler@{visioncraft\+::utils\+::\+Poisson\+Sampler}}
+\subsubsection{\texorpdfstring{select\+Triangle\+Index()}{selectTriangleIndex()}}
+{\footnotesize\ttfamily int visioncraft\+::utils\+::\+Poisson\+Sampler\+::select\+Triangle\+Index (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ double $>$ \&}]{areas }\end{DoxyParamCaption})}
+
+
+
+Select a triangle index based on areas. 
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/visioncraft/utils/\hyperlink{poisson__sampler_8h}{poisson\+\_\+sampler.\+h}\end{DoxyCompactItemize}
