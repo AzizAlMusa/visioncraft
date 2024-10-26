@@ -21,6 +21,8 @@
 #include <vtkMatrix3x3.h>
 #include <vtkLine.h>  
 #include <vtkVoxel.h>
+#include <vtkGlyph3D.h>
+
 
 #include <vtkInteractorStyleTrackballCamera.h>
 #include <vtkInteractorStyleTrackballActor.h>
@@ -364,69 +366,71 @@ void Visualizer::addPointCloud(const visioncraft::ModelLoader& modelLoader, cons
 }
 
 void Visualizer::addOctomap(const visioncraft::ModelLoader& modelLoader, const Eigen::Vector3d& defaultColor) {
-    // auto octomap = modelLoader.getOctomap();
     auto octomap = modelLoader.getSurfaceShellOctomap();
     if (!octomap) return;
 
-    vtkSmartPointer<vtkAppendPolyData> appendFilter = vtkSmartPointer<vtkAppendPolyData>::New();
-    octomapColors_ = vtkSmartPointer<vtkUnsignedCharArray>::New();  // Store colors
-    octomapColors_->SetNumberOfComponents(3);  // RGB
-    octomapColors_->SetName("Colors");
+    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
+    colors->SetNumberOfComponents(3);  // RGB
+    colors->SetName("Colors");
 
+    int voxelCount = 0;
     for (octomap::ColorOcTree::leaf_iterator it = octomap->begin_leafs(), end = octomap->end_leafs(); it != end; ++it) {
         if (octomap->isNodeOccupied(*it)) {
-            // Create a cube for each occupied voxel
-            vtkSmartPointer<vtkCubeSource> cubeSource = vtkSmartPointer<vtkCubeSource>::New();
-            cubeSource->SetCenter(it.getX(), it.getY(), it.getZ());
-            cubeSource->SetXLength(octomap->getResolution());
-            cubeSource->SetYLength(octomap->getResolution());
-            cubeSource->SetZLength(octomap->getResolution());
+            points->InsertNextPoint(it.getX(), it.getY(), it.getZ());
+            voxelCount++;
 
-            cubeSource->Update();
-
-            // Get the color for the current voxel
+            // Assign voxel-specific color or default color
             Eigen::Vector3d color = (defaultColor(0) >= 0 && defaultColor(1) >= 0 && defaultColor(2) >= 0)
-                                      ? defaultColor
-                                      : Eigen::Vector3d(it->getColor().r / 255.0, it->getColor().g / 255.0, it->getColor().b / 255.0);
+                                    ? defaultColor
+                                    : Eigen::Vector3d(it->getColor().r / 255.0, it->getColor().g / 255.0, it->getColor().b / 255.0);
 
-            unsigned char cubeColor[3] = {
+            unsigned char voxelColor[3] = {
                 static_cast<unsigned char>(color(0) * 255),
                 static_cast<unsigned char>(color(1) * 255),
                 static_cast<unsigned char>(color(2) * 255)
             };
-
-            // Add cube points and colors to the dataset
-            vtkSmartPointer<vtkPolyData> cubePolyData = cubeSource->GetOutput();
-            vtkSmartPointer<vtkPoints> cubePoints = cubePolyData->GetPoints();
-
-            for (vtkIdType i = 0; i < cubePoints->GetNumberOfPoints(); ++i) {
-                octomapColors_->InsertNextTypedTuple(cubeColor);
-            }
-
-            appendFilter->AddInputData(cubeSource->GetOutput());
+            colors->InsertNextTypedTuple(voxelColor);
         }
     }
+    std::cout << "[INFO] Number of occupied voxels: " << voxelCount << std::endl;
 
-    appendFilter->Update();
+    vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+    polyData->SetPoints(points);
+    polyData->GetPointData()->SetScalars(colors);
 
-    // Store the combined poly data and colors
-    octomapPolyData_ = appendFilter->GetOutput();
-    octomapPolyData_->GetPointData()->SetScalars(octomapColors_);  // Apply color to the points
+    // Create a cube glyph with proper scaling
+    vtkSmartPointer<vtkCubeSource> cubeSource = vtkSmartPointer<vtkCubeSource>::New();
+    cubeSource->SetXLength(octomap->getResolution());
+    cubeSource->SetYLength(octomap->getResolution());
+    cubeSource->SetZLength(octomap->getResolution());
 
-    vtkSmartPointer<vtkPolyDataMapper> cubeMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    cubeMapper->SetInputData(octomapPolyData_);
+    // Configure the glyph filter
+    vtkSmartPointer<vtkGlyph3D> glyphFilter = vtkSmartPointer<vtkGlyph3D>::New();
+    glyphFilter->SetInputData(polyData);
+    glyphFilter->SetSourceConnection(cubeSource->GetOutputPort());
+    glyphFilter->SetColorModeToColorByScalar();  // Apply colors per voxel
+    glyphFilter->SetScaleModeToDataScalingOff();  // Avoid additional scaling
+    glyphFilter->Update();
 
-    octomapActor_ = vtkSmartPointer<vtkActor>::New();
-    octomapActor_->SetMapper(cubeMapper);
+    // Set up mapper and actor for rendering
+    vtkSmartPointer<vtkPolyDataMapper> voxelMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    voxelMapper->SetInputConnection(glyphFilter->GetOutputPort());
+    voxelMapper->SetScalarModeToUsePointData();  // Use colors from point data
 
-    // Set edge visibility and color
-    octomapActor_->GetProperty()->SetEdgeVisibility(1);   // Enable edge visibility
-    octomapActor_->GetProperty()->SetEdgeColor(0.0, 0.0, 0.0);  // Set edge color to black (neutral)
-    octomapActor_->GetProperty()->SetLineWidth(1.0);      // Set the width of the edges
+    vtkSmartPointer<vtkActor> octomapActor = vtkSmartPointer<vtkActor>::New();
+    octomapActor->SetMapper(voxelMapper);
+    octomapActor->GetProperty()->SetEdgeVisibility(1);
+    octomapActor->GetProperty()->SetEdgeColor(0.0, 0.0, 0.0);
+    octomapActor->GetProperty()->SetLineWidth(1.0);
 
-    // Add or replace the octomap actor in the renderer
-    renderer->AddActor(octomapActor_);
+    // Reset camera and add actor to renderer
+    renderer->AddActor(octomapActor);
+
+
+    std::cout << "[INFO] Octomap visualization complete." << std::endl;
 }
+
 
 
 void Visualizer::showGPUVoxelGrid(const visioncraft::ModelLoader& modelLoader, const Eigen::Vector3d& color) {
@@ -443,48 +447,47 @@ void Visualizer::showGPUVoxelGrid(const visioncraft::ModelLoader& modelLoader, c
     int depth = gpuVoxelGrid.depth;
     double voxelSize = gpuVoxelGrid.voxel_size;
 
-    // Create a vtkAppendPolyData to combine all voxel cubes into one dataset
-    vtkSmartPointer<vtkAppendPolyData> appendFilter = vtkSmartPointer<vtkAppendPolyData>::New();
+    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
 
-    int total_voxel_count = width * height * depth;
+    // Collect all occupied voxel centers
     for (int z = 0; z < depth; ++z) {
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
-                // Calculate the linear index for the voxel
                 int linear_idx = z * (width * height) + y * width + x;
 
-                // Check if the voxel is occupied
                 if (gpuVoxelGrid.voxel_data[linear_idx] == 1) {
-                    // Calculate the center position of the voxel
                     double x_center = gpuVoxelGrid.min_bound[0] + x * voxelSize;
                     double y_center = gpuVoxelGrid.min_bound[1] + y * voxelSize;
                     double z_center = gpuVoxelGrid.min_bound[2] + z * voxelSize;
 
-                    // Create a cube for the voxel
-                    vtkSmartPointer<vtkCubeSource> cubeSource = vtkSmartPointer<vtkCubeSource>::New();
-                    cubeSource->SetCenter(x_center, y_center, z_center);
-                    cubeSource->SetXLength(voxelSize);
-                    cubeSource->SetYLength(voxelSize);
-                    cubeSource->SetZLength(voxelSize);
-                    cubeSource->Update();
-
-                    // Add the cube to the append filter
-                    appendFilter->AddInputData(cubeSource->GetOutput());
+                    points->InsertNextPoint(x_center, y_center, z_center);
                 }
             }
         }
     }
 
-    // Update the combined polydata
-    appendFilter->Update();
+    vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+    polyData->SetPoints(points);
 
-    // Create a mapper and actor for the combined voxel polydata
+    // Create a cube glyph for each occupied voxel
+    vtkSmartPointer<vtkCubeSource> cubeSource = vtkSmartPointer<vtkCubeSource>::New();
+    cubeSource->SetXLength(voxelSize);
+    cubeSource->SetYLength(voxelSize);
+    cubeSource->SetZLength(voxelSize);
+
+    vtkSmartPointer<vtkGlyph3D> glyphFilter = vtkSmartPointer<vtkGlyph3D>::New();
+    glyphFilter->SetInputData(polyData);
+    glyphFilter->SetSourceConnection(cubeSource->GetOutputPort());
+    glyphFilter->SetColorModeToColorByScalar();  // Coloring will be applied uniformly in actor properties
+    glyphFilter->SetScaleModeToDataScalingOff();  // Prevents any additional scaling of the glyphs
+    glyphFilter->Update();
+
     vtkSmartPointer<vtkPolyDataMapper> voxelMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    voxelMapper->SetInputData(appendFilter->GetOutput());
+    voxelMapper->SetInputConnection(glyphFilter->GetOutputPort());
 
     vtkSmartPointer<vtkActor> voxelActor = vtkSmartPointer<vtkActor>::New();
     voxelActor->SetMapper(voxelMapper);
-    voxelActor->GetProperty()->SetColor(color(0), color(1), color(2));
+    voxelActor->GetProperty()->SetColor(color(0), color(1), color(2));  // Apply uniform color from parameter
     voxelActor->GetProperty()->SetOpacity(0.5);  // Optional transparency for visual effect
 
     // Add the voxel actor to the renderer
@@ -492,6 +495,7 @@ void Visualizer::showGPUVoxelGrid(const visioncraft::ModelLoader& modelLoader, c
 
     std::cout << "[INFO] VoxelGridGPU visualization added to renderer." << std::endl;
 }
+
 
 void Visualizer::setBackgroundColor(const Eigen::Vector3d& color) {
     renderer->SetBackground(color(0), color(1), color(2));
