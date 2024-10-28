@@ -7,6 +7,9 @@
 #include <octomap/ColorOcTree.h>
 #include "open3d/t/geometry/RaycastingScene.h"
 
+#include "visioncraft/meta_voxel.h"
+#include "visioncraft/meta_voxel_map.h"
+
 namespace visioncraft {
 
 
@@ -337,6 +340,111 @@ public:
      */
     void updateOctomapWithHits(const std::set<std::tuple<int, int, int>>& unique_hit_voxels);
 
+    /**
+     * @brief Generate a map of MetaVoxel instances by copying the structure from the surface shell octomap.
+     * 
+     * This function iterates over each leaf node in the surface shell octomap and creates a MetaVoxel
+     * object for each occupied voxel. Each MetaVoxel is stored in the meta voxel map, keyed by the 
+     * OctoMap key of the corresponding voxel.
+     * 
+     * @return True if the meta voxel map is generated successfully, false otherwise.
+     */
+    bool generateMetaVoxelMap();
+
+    /**
+     * @brief Retrieve a MetaVoxel object from the meta voxel map using the specified OctoMap key.
+     * 
+     * This function provides efficient access to the MetaVoxel object associated with the provided key.
+     * 
+     * @param key The OctoMap key of the MetaVoxel to retrieve.
+     * @return Pointer to the MetaVoxel if found, nullptr otherwise.
+     */
+    MetaVoxel* getMetaVoxel(const octomap::OcTreeKey& key);
+
+    /**
+     * @brief Retrieve a MetaVoxel object from the meta voxel map using the specified voxel position.
+     * 
+     * This overloaded function provides access to the MetaVoxel object associated with a voxel's 3D position.
+     * 
+     * @param position The 3D position of the voxel.
+     * @return Pointer to the MetaVoxel if found, nullptr otherwise.
+     */
+    MetaVoxel* getMetaVoxel(const Eigen::Vector3d& position);
+
+    /**
+     * @brief Update the occupancy value of a MetaVoxel in the meta voxel map.
+     * 
+     * This function allows modification of the occupancy value of a MetaVoxel, identified by its OctoMap key,
+     * and updates the log-odds of occupancy accordingly.
+     * 
+     * @param key The OctoMap key of the MetaVoxel to update.
+     * @param new_occupancy The new occupancy probability for the MetaVoxel.
+     * @return True if the MetaVoxel is updated successfully, false otherwise.
+     */
+    bool updateMetaVoxelOccupancy(const octomap::OcTreeKey& key, float new_occupancy);
+
+
+    /**
+     * @brief Update the occupancy value of a MetaVoxel in the meta voxel map using the specified voxel position.
+     * 
+     * This overloaded function allows modification of the occupancy value of a MetaVoxel, identified by its voxel position,
+     * and updates the log-odds of occupancy accordingly.
+     * 
+     * @param position The 3D position of the voxel.
+     * @param new_occupancy The new occupancy probability for the MetaVoxel.
+     * @return True if the MetaVoxel is updated successfully, false otherwise.
+     */
+    bool updateMetaVoxelOccupancy(const Eigen::Vector3d& position, float new_occupancy);
+
+    /**
+     * @brief Set a custom property for a MetaVoxel identified by its OctoMap key.
+     * 
+     * This function allows adding or updating a custom property for a MetaVoxel within the meta voxel map.
+     * 
+     * @param key The OctoMap key of the MetaVoxel to update.
+     * @param property_name The name of the property to set.
+     * @param value The value to assign to the property.
+     * @return True if the property is set successfully, false otherwise.
+     */
+    bool setMetaVoxelProperty(const octomap::OcTreeKey& key, const std::string& property_name, const MetaVoxel::PropertyValue& value);
+
+    /**
+     * @brief Set a custom property for a MetaVoxel identified by its voxel position.
+     * 
+     * This overloaded function allows adding or updating a custom property for a MetaVoxel within the meta voxel map.
+     * 
+     * @param position The 3D position of the voxel.
+     * @param property_name The name of the property to set.
+     * @param value The value to assign to the property.
+     * @return True if the property is set successfully, false otherwise.
+     */
+    bool setMetaVoxelProperty(const Eigen::Vector3d& position, const std::string& property_name, const MetaVoxel::PropertyValue& value);
+
+    /**
+     * @brief Retrieve a custom property from a MetaVoxel.
+     * 
+     * This function retrieves the value of a specified property from a MetaVoxel if the property exists.
+     * 
+     * @param key The OctoMap key of the MetaVoxel.
+     * @param property_name The name of the property to retrieve.
+     * @return The value of the property if found, throws runtime_error if the MetaVoxel or property is not found.
+     */
+    MetaVoxel::PropertyValue getMetaVoxelProperty(const octomap::OcTreeKey& key, const std::string& property_name) const;
+
+    /**
+     * @brief Retrieve a custom property from a MetaVoxel using its voxel position.
+     * 
+     * This function retrieves the value of a specified property from a MetaVoxel if the property exists, using the voxel position.
+     * 
+     * @param position The 3D position of the voxel.
+     * @param property_name The name of the property to retrieve.
+     * @return The value of the property if found, throws runtime_error if the MetaVoxel or property is not found.
+     */
+    MetaVoxel::PropertyValue getMetaVoxelProperty(const Eigen::Vector3d& position, const std::string& property_name) const;
+
+    // Accessor to meta voxel map, as requested
+    const MetaVoxelMap& getMetaVoxelMap() const { return meta_voxel_map_; }
+
 
 private:
 
@@ -394,6 +502,8 @@ private:
     std::shared_ptr<octomap::ColorOcTree> explorationMap_; ///< OctoMap representation of the regions that cells that were scanned.
     double octomap_resolution_; ///< Resolution of the OctoMap used to match the explorationMap that will be invoked by a number of cells per side rather than resolution.
 
+    // std::unordered_map<octomap::OcTreeKey, MetaVoxel, octomap::OcTreeKey::KeyHash> meta_voxel_map_; ///< Map of MetaVoxel objects with OctoMap keys as identifiers.
+    MetaVoxelMap meta_voxel_map_; ///< Encapsulated MetaVoxelMap to manage meta voxel properties.
     // Error and Uncertainty Margins
     // TODO: Add MMC and LMC octomaps
 

@@ -105,14 +105,19 @@ include_directories(
 add_library(cuda_lib src/visioncraft/raycasting.cu) 
 target_link_libraries(cuda_lib PRIVATE ${CUDA_LIBRARIES} Open3D_no_OpenGL)
 
-add_executable(visualizer_test tests/visualizer_test.cpp  src/visioncraft/visualizer.cpp src/visioncraft/model_loader.cpp src/visioncraft/viewpoint.cpp )
+add_executable(visualizer_test tests/visualizer_test.cpp  
+src/visioncraft/visualizer.cpp 
+src/visioncraft/model_loader.cpp 
+src/visioncraft/viewpoint.cpp 
+src/visioncraft/meta_voxel_map.cpp
+src/visioncraft/meta_voxel.cpp)
 target_link_libraries(visualizer_test PRIVATE ${VTK_LIBRARIES} Open3D_no_OpenGL ${OCTOMAP_LIBRARIES} Threads::Threads  ${CUDA_LIBRARIES} cuda_lib)
 # add_executable(visualizer_test tests/visualizer_test.cpp  )
 # target_link_libraries(visualizer_test PRIVATE ${VTK_LIBRARIES} )
 
 
 # Python bindings 
-pybind11_add_module(visioncraft_py src/visioncraft/bindings.cpp src/visioncraft/model_loader.cpp src/visioncraft/viewpoint.cpp src/visioncraft/visualizer.cpp)
+pybind11_add_module(visioncraft_py src/visioncraft/bindings.cpp src/visioncraft/model_loader.cpp src/visioncraft/viewpoint.cpp src/visioncraft/visualizer.cpp src/visioncraft/meta_voxel_map.cpp src/visioncraft/meta_voxel.cpp)
 
 # Link necessary libraries, including Python 3.6 libraries
 target_link_libraries(visioncraft_py PRIVATE ${VTK_LIBRARIES} ${OCTOMAP_LIBRARIES} Open3D_no_OpenGL Threads::Threads ${PYTHON_LIBRARIES} cuda_lib)

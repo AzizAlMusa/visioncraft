@@ -48,6 +48,7 @@ bool ModelLoader::loadMesh(const std::string& file_path) {
 
 // Load a 3D model and generate all necessary structures
 bool ModelLoader::loadModel(const std::string& file_path, int num_samples, double resolution) {
+    std::cout << "===================== MODEL LOADER ========================" << std::endl;
     if (!loadMesh(file_path)) {
         return false;
     }
@@ -93,6 +94,8 @@ bool ModelLoader::generateAllStructures(int num_samples, double resolution) {
     success &= measureTime([this, resolution]() {
         return generateExplorationMap(resolution, getMinBound(), getMaxBound());
     }, "generateExplorationMap");
+
+     std::cout << "===================== MODEL LOADER COMPLETE ========================" << std::endl;
 
     return success;
 }
@@ -737,5 +740,171 @@ void ModelLoader::updateOctomapWithHits(const std::set<std::tuple<int, int, int>
 }
 
 
+/**
+ * @brief Generate a map of MetaVoxel instances by copying the structure from the surface shell octomap.
+ * 
+ * This function iterates over each leaf node in the surface shell octomap and creates a MetaVoxel
+ * object for each occupied voxel. Each MetaVoxel is stored in the meta voxel map, keyed by the 
+ * OctoMap key of the corresponding voxel.
+ * 
+ * @return True if the meta voxel map is generated successfully, false otherwise.
+ */
+bool ModelLoader::generateMetaVoxelMap() {
+    if (!surfaceShellOctomap_) {
+        std::cerr << "Error: Surface shell OctoMap is not available." << std::endl;
+        return false;
+    }
+
+    // Clear any existing data in the meta voxel map
+    meta_voxel_map_.clear();
+
+    // Iterate through each leaf node in the surface shell octomap
+    for (auto it = surfaceShellOctomap_->begin_leafs(); it != surfaceShellOctomap_->end_leafs(); ++it) {
+        if (it->getOccupancy() > 0.5) { // Only consider occupied cells
+            octomap::OcTreeKey key = it.getKey();
+            Eigen::Vector3d position(it.getX(), it.getY(), it.getZ());
+            float occupancy = it->getOccupancy();
+            MetaVoxel meta_voxel(position, key, occupancy);
+
+            // Insert the MetaVoxel into the map
+            meta_voxel_map_.setMetaVoxel(key, meta_voxel);
+        }
+    }
+
+    std::cout << "Meta voxel map generated successfully with " << meta_voxel_map_.size() << " voxels." << std::endl;
+    return true;
+}
+
+/**
+ * @brief Retrieve a MetaVoxel object from the meta voxel map using the specified OctoMap key.
+ * 
+ * This function provides efficient access to the MetaVoxel object associated with the provided key.
+ * 
+ * @param key The OctoMap key of the MetaVoxel to retrieve.
+ * @return Pointer to the MetaVoxel if found, nullptr otherwise.
+ */
+MetaVoxel* ModelLoader::getMetaVoxel(const octomap::OcTreeKey& key) {
+    return meta_voxel_map_.getMetaVoxel(key);
+}
+
+/**
+ * @brief Retrieve a MetaVoxel object from the meta voxel map using the specified voxel position.
+ * 
+ * This function converts the 3D voxel position to an OctoMap key and then retrieves the corresponding MetaVoxel.
+ * 
+ * @param position The 3D position of the voxel.
+ * @return Pointer to the MetaVoxel if found, nullptr otherwise.
+ */
+MetaVoxel* ModelLoader::getMetaVoxel(const Eigen::Vector3d& position) {
+    octomap::OcTreeKey key;
+    if (surfaceShellOctomap_ && surfaceShellOctomap_->coordToKeyChecked(octomap::point3d(position.x(), position.y(), position.z()), key)) {
+        return meta_voxel_map_.getMetaVoxel(key);
+    }
+    std::cerr << "Failed to convert position to OctoMap key." << std::endl;
+    return nullptr;
+}
+
+/**
+ * @brief Update the occupancy value of a MetaVoxel in the meta voxel map.
+ * 
+ * This function allows modification of the occupancy value of a MetaVoxel, identified by its OctoMap key,
+ * and updates the log-odds of occupancy accordingly.
+ * 
+ * @param key The OctoMap key of the MetaVoxel to update.
+ * @param new_occupancy The new occupancy probability for the MetaVoxel.
+ * @return True if the MetaVoxel is updated successfully, false otherwise.
+ */
+bool ModelLoader::updateMetaVoxelOccupancy(const octomap::OcTreeKey& key, float new_occupancy) {
+    MetaVoxel* voxel = getMetaVoxel(key);
+    if (voxel) {
+        voxel->setOccupancy(new_occupancy);
+        return true;
+    }
+    return false;
+}
+
+/**
+ * @brief Update the occupancy value of a MetaVoxel in the meta voxel map using the specified voxel position.
+ * 
+ * This function converts the 3D voxel position to an OctoMap key and then updates the occupancy of the corresponding MetaVoxel.
+ * 
+ * @param position The 3D position of the voxel.
+ * @param new_occupancy The new occupancy probability for the MetaVoxel.
+ * @return True if the MetaVoxel is updated successfully, false otherwise.
+ */
+bool ModelLoader::updateMetaVoxelOccupancy(const Eigen::Vector3d& position, float new_occupancy) {
+    MetaVoxel* voxel = getMetaVoxel(position);
+    if (voxel) {
+        voxel->setOccupancy(new_occupancy);
+        return true;
+    }
+    std::cerr << "MetaVoxel at the specified position not found." << std::endl;
+    return false;
+}
+
+/**
+ * @brief Set a custom property for a MetaVoxel identified by its OctoMap key.
+ * 
+ * This function allows adding or updating a custom property for a MetaVoxel within the meta voxel map.
+ * 
+ * @param key The OctoMap key of the MetaVoxel to update.
+ * @param property_name The name of the property to set.
+ * @param value The value to assign to the property.
+ * @return True if the property is set successfully, false otherwise.
+ */
+bool ModelLoader::setMetaVoxelProperty(const octomap::OcTreeKey& key, const std::string& property_name, const MetaVoxel::PropertyValue& value) {
+    return meta_voxel_map_.setMetaVoxelProperty(key, property_name, value);
+}
+
+
+/**
+ * @brief Set a custom property for a MetaVoxel identified by its voxel position.
+ * 
+ * This function converts the 3D voxel position to an OctoMap key and then sets the specified property in the corresponding MetaVoxel.
+ * 
+ * @param position The 3D position of the voxel.
+ * @param property_name The name of the property to set.
+ * @param value The value to assign to the property.
+ * @return True if the property is set successfully, false otherwise.
+ */
+bool ModelLoader::setMetaVoxelProperty(const Eigen::Vector3d& position, const std::string& property_name, const MetaVoxel::PropertyValue& value) {
+    MetaVoxel* voxel = getMetaVoxel(position);
+    if (voxel) {
+        voxel->setProperty(property_name, value);
+        return true;
+    }
+    std::cerr << "Failed to set property for MetaVoxel at the specified position." << std::endl;
+    return false;
+}
+
+/**
+ * @brief Retrieve a custom property from a MetaVoxel.
+ * 
+ * This function retrieves the value of a specified property from a MetaVoxel if the property exists.
+ * 
+ * @param key The OctoMap key of the MetaVoxel.
+ * @param property_name The name of the property to retrieve.
+ * @return The value of the property if found, throws runtime_error if the MetaVoxel or property is not found.
+ */
+MetaVoxel::PropertyValue ModelLoader::getMetaVoxelProperty(const octomap::OcTreeKey& key, const std::string& property_name) const {
+    return meta_voxel_map_.getMetaVoxelProperty(key, property_name);
+}
+
+/**
+ * @brief Retrieve a custom property from a MetaVoxel using its voxel position.
+ * 
+ * This function converts the 3D voxel position to an OctoMap key and then retrieves the specified property from the corresponding MetaVoxel.
+ * 
+ * @param position The 3D position of the voxel.
+ * @param property_name The name of the property to retrieve.
+ * @return The value of the property if found, throws runtime_error if the MetaVoxel or property is not found.
+ */
+MetaVoxel::PropertyValue ModelLoader::getMetaVoxelProperty(const Eigen::Vector3d& position, const std::string& property_name) const {
+    octomap::OcTreeKey key;
+    if (surfaceShellOctomap_ && surfaceShellOctomap_->coordToKeyChecked(octomap::point3d(position.x(), position.y(), position.z()), key)) {
+        return meta_voxel_map_.getMetaVoxelProperty(key, property_name);
+    }
+    throw std::runtime_error("Failed to retrieve property for MetaVoxel at the specified position.");
+}
 
 } // namespace visioncraft

@@ -66,6 +66,7 @@
         "forward_list": "cpp",
         "valarray": "cpp",
         "*.txx": "cpp",
-        "dense": "cpp"
+        "dense": "cpp",
+        "variant": "cpp"
     }
 }

@@ -1,6 +1,7 @@
 #include "visioncraft/visualizer.h"
 #include "visioncraft/model_loader.h"
 #include "visioncraft/viewpoint.h"
+#include "visioncraft/meta_voxel.h"
 #include <vtkActor.h>
 #include <vtkCamera.h>
 #include <vtkRenderer.h>
@@ -22,10 +23,68 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2);
 VTK_MODULE_INIT(vtkInteractionStyle);
 
 
+void runModelLoaderMetaVoxelMapTests() {
+    visioncraft::ModelLoader model_loader;
+
+    // Load a test mesh and generate the surface shell octomap (mocking actual data for this test)
+    std::string test_file_path = "../models/cube.ply"; // Replace with a valid test path
+    bool loaded = model_loader.loadModel(test_file_path, 50000);
+
+    if (!loaded) {
+        std::cerr << "Failed to load test model and initialize structures." << std::endl;
+        return;
+    }
+
+    // Generate the meta voxel map from the surface shell octomap
+    if (!model_loader.generateMetaVoxelMap()) {
+        std::cerr << "Failed to generate meta voxel map." << std::endl;
+        return;
+    }
+
+    // Select a sample key (this assumes the map has been populated)
+    auto sample_key = model_loader.getSurfaceShellOctomap()->begin_leafs().getKey();
+    visioncraft::MetaVoxel* meta_voxel = model_loader.getMetaVoxel(sample_key);
+
+    if (meta_voxel) {
+        // Output initial state of the MetaVoxel
+        std::cout << "Initial MetaVoxel at key (" << sample_key.k[0] << ", " << sample_key.k[1] << ", " << sample_key.k[2] << ")" << std::endl;
+        std::cout << "  Position: " << meta_voxel->getPosition().transpose() << std::endl;
+        std::cout << "  Occupancy: " << meta_voxel->getOccupancy() << std::endl;
+
+        // Update occupancy and check result
+        model_loader.updateMetaVoxelOccupancy(sample_key, 0.8f);
+        std::cout << "Updated occupancy to 0.8 for MetaVoxel." << std::endl;
+        std::cout << "  New Occupancy: " << meta_voxel->getOccupancy() << std::endl;
+
+        // Set the "temperature" property and then retrieve it
+        model_loader.setMetaVoxelProperty(sample_key, "temperature", 22.5f);
+        float temperature = boost::get<float>(model_loader.getMetaVoxelProperty(sample_key, "temperature"));
+        std::cout << "Set custom property 'temperature' to 22.5." << std::endl;
+        std::cout << "  Retrieved Temperature: " << temperature << std::endl;
+
+        // Set another custom property (e.g., "pressure") and retrieve it
+        model_loader.setMetaVoxelProperty(sample_key, "pressure", 101.3f);
+        float pressure = boost::get<float>(model_loader.getMetaVoxelProperty(sample_key, "pressure"));
+        std::cout << "Set custom property 'pressure' to 101.3." << std::endl;
+        std::cout << "  Retrieved Pressure: " << pressure << std::endl;
+
+        // Attempt to retrieve a non-existing property to test error handling
+        try {
+            auto nonexistent = model_loader.getMetaVoxelProperty(sample_key, "nonexistent_property");
+        } catch (const std::runtime_error& e) {
+            std::cerr << "Expected error for non-existing property: " << e.what() << std::endl;
+        }
+    } else {
+        std::cerr << "Failed to retrieve MetaVoxel for the provided key." << std::endl;
+    }
+}
+
 
 int main() {
 
-    // Query and print CUDA device properties
+    runModelLoaderMetaVoxelMapTests();
+
+
 
     // Initialize Visualizer
     visioncraft::Visualizer visualizer;
@@ -38,6 +97,7 @@ int main() {
     visioncraft::ModelLoader modelLoader;
     modelLoader.loadModel("../models/gorilla.ply", 50000);  // Replace with actual file path
 
+    
     // // Add the octomap to the visualizer
     // visualizer.addOctomap(modelLoader, Eigen::Vector3d(1.0, 1.0, 1.0));
 
@@ -69,7 +129,8 @@ int main() {
 
     // // To store hit voxels across all viewpoints
     // std::unordered_set<octomap::OcTreeKey, octomap::OcTreeKey::KeyHash> unique_hits;
-
+    
+   
     // Perform raycasting for each viewpoint
     for (const auto& position : positions) {
         visioncraft::Viewpoint viewpoint(position, lookAt);
