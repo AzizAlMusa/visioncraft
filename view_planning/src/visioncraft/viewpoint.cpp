@@ -289,10 +289,10 @@ void launchGenerateRaysOnGPU(const float* position, const float* forward, const 
                              float near_plane, float far_plane,
                              const VoxelGridGPU& voxelGridGPU, int3* host_hit_voxels, unsigned int& host_hit_count);
 
-std::set<std::tuple<int, int, int>> Viewpoint::performRaycastingOnGPU(const ModelLoader& modelLoader) {
+std::set<std::tuple<int, int, int>> Viewpoint::performRaycastingOnGPU(const Model& model) {
 
     // Fetch the VoxelGridGPU from the model loader
-    const VoxelGridGPU& voxelGridGPU = modelLoader.getGPUVoxelGrid();
+    const VoxelGridGPU& voxelGridGPU = model.getGPUVoxelGrid();
 
     // Start preparing GPU data
     auto start_prepare = std::chrono::high_resolution_clock::now();
@@ -373,10 +373,10 @@ std::set<std::tuple<int, int, int>> Viewpoint::performRaycastingOnGPU(const Mode
  * @return A map where the key is the voxel key (octomap::OcTreeKey), and the value is a boolean indicating if the voxel was hit.
  */
 std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> Viewpoint::performRaycasting(
-    const ModelLoader& modelLoader, bool use_parallel) {
+    const Model& model, bool use_parallel) {
     
     // Get the octomap from the model loader
-    std::shared_ptr<octomap::ColorOcTree> octomap = modelLoader.getSurfaceShellOctomap();
+    std::shared_ptr<octomap::ColorOcTree> octomap = model.getSurfaceShellOctomap();
     
     // If rays have not been generated yet, generate them.
     if (rays_.empty()) {

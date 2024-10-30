@@ -48,7 +48,7 @@ public:
      * @param key The OctoMap key for spatial indexing.
      * @return Pointer to the MetaVoxel if found, nullptr otherwise.
      */
-    MetaVoxel* getMetaVoxel(const octomap::OcTreeKey& key);
+    MetaVoxel* getMetaVoxel(const octomap::OcTreeKey& key) const;
 
 
     /**
@@ -109,6 +109,18 @@ public:
      * @return A const reference to the unordered map of MetaVoxel objects.
      */
     const std::unordered_map<octomap::OcTreeKey, MetaVoxel, octomap::OcTreeKey::KeyHash>& getMap() const {
+        return meta_voxel_map_;
+    }
+
+
+    /**
+     * @brief Retrieve the internal meta voxel map (non-const version).
+     *
+     * This function allows modifications to the map and its contents.
+     * 
+     * @return A non-const reference to the unordered map of MetaVoxel objects.
+     */
+    std::unordered_map<octomap::OcTreeKey, MetaVoxel, octomap::OcTreeKey::KeyHash>& getMap() {
         return meta_voxel_map_;
     }
 

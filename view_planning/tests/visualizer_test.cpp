@@ -1,5 +1,5 @@
 #include "visioncraft/visualizer.h"
-#include "visioncraft/model_loader.h"
+#include "visioncraft/model.h"
 #include "visioncraft/viewpoint.h"
 #include "visioncraft/meta_voxel.h"
 #include <vtkActor.h>
@@ -22,88 +22,82 @@
 VTK_MODULE_INIT(vtkRenderingOpenGL2);
 VTK_MODULE_INIT(vtkInteractionStyle);
 
+#include <random>
 
-void runModelLoaderMetaVoxelMapTests() {
-    visioncraft::ModelLoader model_loader;
+/**
+ * @brief Update the visibility property for each hit voxel in the MetaVoxelMap.
+ *
+ * This function takes a set of 3D voxel indices (x, y, z) from raycasting and increments
+ * the visibility property for each corresponding voxel in the MetaVoxelMap.
+ *
+ * @param unique_hit_voxels A set of 3D voxel indices (x, y, z) representing hit voxels.
+ * @param model The model instance containing the MetaVoxelMap.
+ */
+void updateVoxelMapVisibility(const std::set<std::tuple<int, int, int>>& unique_hit_voxels, visioncraft::Model& model) {
+    auto& meta_voxel_map = model.getVoxelMap();
+    double voxel_size = model.getVoxelSize();
+    Eigen::Vector3d min_bound(model.getMinBound().x(), model.getMinBound().y(), model.getMinBound().z());
 
-    // Load a test mesh and generate the surface shell octomap (mocking actual data for this test)
-    std::string test_file_path = "../models/cube.ply"; // Replace with a valid test path
-    bool loaded = model_loader.loadModel(test_file_path, 50000);
 
-    if (!loaded) {
-        std::cerr << "Failed to load test model and initialize structures." << std::endl;
-        return;
-    }
+    for (const auto& voxel_idx : unique_hit_voxels) {
+        int x = std::get<0>(voxel_idx);
+        int y = std::get<1>(voxel_idx);
+        int z = std::get<2>(voxel_idx);
 
-    // Generate the meta voxel map from the surface shell octomap
-    if (!model_loader.generateVoxelMap()) {
-        std::cerr << "Failed to generate meta voxel map." << std::endl;
-        return;
-    }
+        // Calculate the voxel position in world coordinates
+        Eigen::Vector3d voxel_position = min_bound + Eigen::Vector3d(x * voxel_size, y * voxel_size, z * voxel_size);
 
-    // Select a sample key (this assumes the map has been populated)
-    auto sample_key = model_loader.getSurfaceShellOctomap()->begin_leafs().getKey();
-    visioncraft::MetaVoxel* meta_voxel = model_loader.getVoxel(sample_key);
 
-    if (meta_voxel) {
-        // Output initial state of the MetaVoxel
-        std::cout << "Initial MetaVoxel at key (" << sample_key.k[0] << ", " << sample_key.k[1] << ", " << sample_key.k[2] << ")" << std::endl;
-        std::cout << "  Position: " << meta_voxel->getPosition().transpose() << std::endl;
-        std::cout << "  Occupancy: " << meta_voxel->getOccupancy() << std::endl;
+        // Convert position to OctoMap key
+        auto octomap = model.getOctomap();
+        octomap::OcTreeKey key = octomap->coordToKey(octomap::point3d(voxel_position.x(), voxel_position.y(), voxel_position.z()));
 
-        // Update occupancy and check result
-        model_loader.updateVoxelOccupancy(sample_key, 0.8f);
-        std::cout << "Updated occupancy to 0.8 for MetaVoxel." << std::endl;
-        std::cout << "  New Occupancy: " << meta_voxel->getOccupancy() << std::endl;
-
-        // Set the "temperature" property and then retrieve it
-        model_loader.setVoxelProperty(sample_key, "temperature", 22.5f);
-        float temperature = boost::get<float>(model_loader.getVoxelProperty(sample_key, "temperature"));
-        std::cout << "Set custom property 'temperature' to 22.5." << std::endl;
-        std::cout << "  Retrieved Temperature: " << temperature << std::endl;
-
-        // Set another custom property (e.g., "pressure") and retrieve it
-        model_loader.setVoxelProperty(sample_key, "pressure", 101.3f);
-        float pressure = boost::get<float>(model_loader.getVoxelProperty(sample_key, "pressure"));
-        std::cout << "Set custom property 'pressure' to 101.3." << std::endl;
-        std::cout << "  Retrieved Pressure: " << pressure << std::endl;
-
-        // Attempt to retrieve a non-existing property to test error handling
-        try {
-            auto nonexistent = model_loader.getVoxelProperty(sample_key, "nonexistent_property");
-        } catch (const std::runtime_error& e) {
-            std::cerr << "Expected error for non-existing property: " << e.what() << std::endl;
-        }
-
-        // Set a property for all voxels and check initialization
-        std::string property_name = "initialized_property";
-        float initial_value = 1.0f;
-        model_loader.addVoxelProperty(property_name, initial_value); // Initialize property for all voxels
-
-        bool all_initialized = true;
-        const auto& voxel_map = model_loader.getVoxelMap().getMap();
-
-        for (const auto& item : voxel_map) {
-            const visioncraft::MetaVoxel& voxel = item.second;
-            if (!voxel.hasProperty(property_name)) {
-                all_initialized = false;
-                std::cerr << "Voxel at position " << voxel.getPosition().transpose() 
-                          << " is missing the '" << property_name << "' property." << std::endl;
+        // Use the key to access the MetaVoxel in MetaVoxelMap
+        visioncraft::MetaVoxel* meta_voxel = model.getVoxel(key);
+        
+        if (meta_voxel) {
+   
+            // Verify and update the visibility property
+            if (meta_voxel->hasProperty("visibility") && meta_voxel->getProperty("visibility").type() == typeid(int)) {
+                int visibility = boost::get<int>(meta_voxel->getProperty("visibility")) + 1;
+                meta_voxel->setProperty("visibility", visibility);
+                // std::cout << "Visibility updated to " << visibility << " for voxel at position: " 
+                        //   << voxel_position.transpose() << std::endl;
+            } else {
+                std::cerr << "Warning: 'visibility' property not found or incorrect type for voxel at position " 
+                          << voxel_position.transpose() << std::endl;
             }
+        } else {
+            std::cerr << "No MetaVoxel found for position: " << voxel_position.transpose() << " with key (" 
+                      << key.k[0] << ", " << key.k[1] << ", " << key.k[2] << ")" << std::endl;
         }
-
-        if (all_initialized) {
-            std::cout << "All voxels have the '" << property_name << "' property initialized to " << initial_value << "." << std::endl;
-        }
-    } else {
-        std::cerr << "Failed to retrieve MetaVoxel for the provided key." << std::endl;
     }
+}
+
+// Function to generate random positions at a given radius
+std::vector<Eigen::Vector3d> generateRandomPositions(int n, double radius) {
+    std::vector<Eigen::Vector3d> positions;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> azimuth_dist(0, 2 * M_PI); // Full circle for azimuth
+    std::uniform_real_distribution<> elevation_dist(0, M_PI);   // Half-circle for elevation
+
+    for (int i = 0; i < n; ++i) {
+        double azimuth = azimuth_dist(gen);
+        double elevation = elevation_dist(gen);
+
+        // Convert spherical to Cartesian coordinates
+        double x = radius * std::sin(elevation) * std::cos(azimuth);
+        double y = radius * std::sin(elevation) * std::sin(azimuth);
+        double z = radius * std::cos(elevation);
+
+        positions.emplace_back(x, y, z);
+    }
+    return positions;
 }
 
 
 int main() {
-
-    runModelLoaderMetaVoxelMapTests();
 
 
 
@@ -114,23 +108,30 @@ int main() {
     visualizer.initializeWindow("3D View");
     visualizer.setBackgroundColor(Eigen::Vector3d(0.0, 0.0, 0.0));
 
-    // // Load model (you can customize this part according to your ModelLoader implementation)
-    visioncraft::ModelLoader modelLoader;
-    modelLoader.loadModel("../models/gorilla.ply", 50000);  // Replace with actual file path
+    // // Load model (you can customize this part according to your Model implementation)
+    visioncraft::Model model;
+    model.loadModel("../models/cube.ply", 50000);  // Replace with actual file path
 
-    
+    // cast the 0 as int 
+    model.addVoxelProperty("visibility", 0);  // Initialize visibility property for all voxels
+
     // // Add the octomap to the visualizer
-    // visualizer.addOctomap(modelLoader, Eigen::Vector3d(1.0, 1.0, 1.0));
+    // visualizer.addOctomap(model, Eigen::Vector3d(1.0, 1.0, 1.0));
 
     // Create multiple viewpoints
     std::vector<Eigen::Vector3d> positions = {
         Eigen::Vector3d(400, 0, 0),  // +X axis
         Eigen::Vector3d(-400, 0, 0), // -X axis
-        // Eigen::Vector3d(0, 400, 0),  // +Y axis
+        Eigen::Vector3d(400, 100, 0),  // +Y axis
         // Eigen::Vector3d(0, -400, 0), // -Y axis
         // Eigen::Vector3d(0, 0, 400),  // +Z axis
         // Eigen::Vector3d(0, 0, -400)  // -Z axis
     };
+
+    // Generate n random positions at radius 400
+    int n = 1; // Number of random positions
+    double radius = 400.0;
+    // std::vector<Eigen::Vector3d> positions = generateRandomPositions(n, radius);
 
     Eigen::Vector3d lookAt(0.0, 0.0, 0.0); // All viewpoints will look at the origin
 
@@ -138,7 +139,7 @@ int main() {
     // unsigned int total_voxels = 0;
 
     // // Get the octomap from the model loader
-    // auto octomap = modelLoader.getOctomap();
+    // auto octomap = model.getOctomap();
 
     // // Iterate through all the leaf nodes in the octomap to get the total voxel count
     // for (octomap::ColorOcTree::leaf_iterator it = octomap->begin_leafs(), end = octomap->end_leafs(); it != end; ++it) {
@@ -160,14 +161,16 @@ int main() {
   
         auto start = std::chrono::high_resolution_clock::now();
  
-        auto hit_results = viewpoint.performRaycastingOnGPU(modelLoader);
-        // auto hit_results = viewpoint.performRaycasting(modelLoader, true);
+        auto hit_results = viewpoint.performRaycastingOnGPU(model);
+        // auto hit_results = viewpoint.performRaycasting(model, true);
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> elapsed = end - start;
         std::cout << "Raycasting for viewpoint at position (" << position.x() << ", " << position.y() << ", " << position.z() << ") took: " << elapsed.count() << " ms" << std::endl;
         
-        // modelLoader.updateVoxelGridFromHits(hit_results);
-        modelLoader.updateOctomapWithHits(hit_results);
+        // model.updateVoxelGridFromHits(hit_results);
+        model.updateOctomapWithHits(hit_results);
+        // Update visibility in the MetaVoxelMap for each hit voxel
+        updateVoxelMapVisibility(hit_results, model);
 
         // Compare the results
         // for (int i = 0; i < cpu_rays.size(); ++i) {
@@ -184,7 +187,7 @@ int main() {
 
         // // Perform raycasting for this viewpoint
         // auto start = std::chrono::high_resolution_clock::now();
-        // auto hit_results = viewpoint.performRaycasting(modelLoader.getOctomap(), true);
+        // auto hit_results = viewpoint.performRaycasting(model.getOctomap(), true);
        
         // auto gpu_rays = viewpoint.performRaycastingOnGPU();  // GPU raycasting
         // auto end = std::chrono::high_resolution_clock::now();
@@ -206,7 +209,7 @@ int main() {
         // std::cout << "Viewpoint at position (" << position.x() << ", " << position.y() << ", " << position.z() << ") hit " << hit_count << " voxels.\n";
         
         // Show the rays as voxels
-        // visualizer.showRayVoxels(viewpoint, modelLoader.getOctomap(), Eigen::Vector3d(1.0, 0.0, 0.0));  // Red voxels
+        // visualizer.showRayVoxels(viewpoint, model.getOctomap(), Eigen::Vector3d(1.0, 0.0, 0.0));  // Red voxels
 
 
     }
@@ -214,12 +217,18 @@ int main() {
     // Get the total voxels hit by all viewpoints and print it
     // std::cout << "Total unique voxels hit by all viewpoints: " << unique_hits.size() << std::endl;
 
-    
+
+
+
     // Visualize raycasting results
-    // visualizer.showViewpointHits(modelLoader.getOctomap());
-    visualizer.addOctomap(modelLoader);
-    Eigen::Vector3d voxelColor(1.0, 0.0, 0.0);  // Example: Red color for the voxels
-    visualizer.showGPUVoxelGrid(modelLoader, voxelColor);
+    // visualizer.showViewpointHits(model.getOctomap());
+    // visualizer.addOctomap(model);
+    Eigen::Vector3d baseColor(1.0, 1.0, 1.0);  // Example: Red color for the voxels
+    Eigen::Vector3d propertyColor(0.0, 1.0, 0.0);  // Example: Green color for the voxels
+    // visualizer.addVoxelMap(model, voxelColor);
+    visualizer.addVoxelMapProperty(model, "visibility", baseColor, propertyColor, 0, 2); // Scale 0 to 10 as example
+
+    // visualizer.showGPUVoxelGrid(model, voxelColor);
     // Start the rendering loop
     visualizer.render();
 

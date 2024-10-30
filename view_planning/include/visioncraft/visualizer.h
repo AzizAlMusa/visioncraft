@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 #include <Eigen/Dense>
-#include "visioncraft/model_loader.h" // Include model loader for accessing meshes, point clouds, and octomaps
+#include "visioncraft/model.h" // Include model loader for accessing meshes, point clouds, and octomaps
 #include "visioncraft/viewpoint.h"    // Include viewpoint for managing viewpoint data
 #include <vtkSmartPointer.h>
 #include <vtkActor.h>
@@ -25,7 +25,7 @@ namespace visioncraft {
  * @brief A class for visualizing 3D data including viewpoints, point clouds, meshes, and octomaps.
  *
  * This class provides an interface for visualizing various 3D structures using VTK.
- * It integrates with ModelLoader and Viewpoint classes for seamless visualization.
+ * It integrates with Model and Viewpoint classes for seamless visualization.
  */
 class Visualizer {
 public:
@@ -88,33 +88,66 @@ public:
     void showViewpointHits(const std::shared_ptr<octomap::ColorOcTree>& octomap);
 
    /**
-     * @brief Add a mesh to the visualization from the ModelLoader, with an optional color.
-     * @param modelLoader The model loader containing the mesh to be visualized.
+     * @brief Add a mesh to the visualization from the Model, with an optional color.
+     * @param model The model loader containing the mesh to be visualized.
      * @param color Optional color (RGB values) for the mesh (default: gray).
      */
-    void addMesh(const visioncraft::ModelLoader& modelLoader, const Eigen::Vector3d& color = Eigen::Vector3d(0.8, 0.8, 0.8));
+    void addMesh(const visioncraft::Model& model, const Eigen::Vector3d& color = Eigen::Vector3d(0.8, 0.8, 0.8));
 
     /**
-     * @brief Add a point cloud to the visualization from the ModelLoader, with an optional color.
-     * @param modelLoader The model loader containing the point cloud to be visualized.
+     * @brief Add a point cloud to the visualization from the Model, with an optional color.
+     * @param model The model loader containing the point cloud to be visualized.
      * @param color Optional color (RGB values) for the point cloud (default: green).
      */
-    void addPointCloud(const visioncraft::ModelLoader& modelLoader, const Eigen::Vector3d& color = Eigen::Vector3d(0.0, 1.0, 0.0));
+    void addPointCloud(const visioncraft::Model& model, const Eigen::Vector3d& color = Eigen::Vector3d(0.0, 1.0, 0.0));
 
     /**
-     * @brief Add an octomap to the visualization from the ModelLoader, with an optional color.
-     * @param modelLoader The model loader containing the octomap to be visualized.
+     * @brief Add an octomap to the visualization from the Model, with an optional color.
+     * @param model The model loader containing the octomap to be visualized.
      * @param color Optional color (RGB values) for the cubes in the octomap (default: node color).
      */
-    void addOctomap(const visioncraft::ModelLoader& modelLoader, const Eigen::Vector3d& color = Eigen::Vector3d(-1, -1, -1));
+    void addOctomap(const visioncraft::Model& model, const Eigen::Vector3d& color = Eigen::Vector3d(-1, -1, -1));
 
     /**
      * @brief Show the VoxelGridGPU data on the visualizer.
      *
-     * @param modelLoader The ModelLoader object containing the VoxelGridGPU.
+     * @param model The Model object containing the VoxelGridGPU.
      * @param color The color of the voxels for visualization.
      */
-    void showGPUVoxelGrid(const visioncraft::ModelLoader& modelLoader, const Eigen::Vector3d& color);
+    void showGPUVoxelGrid(const visioncraft::Model& model, const Eigen::Vector3d& color);
+
+    /**
+     * @brief Visualize the MetaVoxelMap in the 3D space.
+     * 
+     * This function iterates through the MetaVoxelMap and visualizes each voxel as a cube.
+     * Each voxel can be colored based on properties in the MetaVoxel or a default color.
+     * 
+     * @param model The model loader containing the MetaVoxelMap.
+     * @param defaultColor Optional color (RGB values) for voxels without specific properties.
+     */
+    void addVoxelMap(const visioncraft::Model& model, const Eigen::Vector3d& defaultColor = Eigen::Vector3d(0.0, 0.0, 1.0));
+
+    /**
+     * @brief Visualize the MetaVoxelMap with color variation based on a specified property.
+     * 
+     * This function iterates through the MetaVoxelMap and visualizes each voxel as a cube,
+     * adjusting the voxel color intensity based on the specified property value. The color 
+     * darkens or lightens according to the property's value, either in a specified range 
+     * or automatically normalized to the minimum and maximum property values found.
+     * 
+     * @param model The model loader containing the MetaVoxelMap.
+     * @param property_name The name of the property in MetaVoxel to base the color intensity on.
+     * @param baseColor The base RGB color to adjust for intensity; defaults to green.
+     * @param minScale Optional minimum scale value for the property, defining the lightest color. 
+     *                 If set to -1.0, the function calculates this from the property values.
+     * @param maxScale Optional maximum scale value for the property, defining the darkest color. 
+     *                 If set to -1.0, the function calculates this from the property values.
+     */
+    void addVoxelMapProperty(const visioncraft::Model& model, const std::string& property_name,
+                                    const Eigen::Vector3d& baseColor = Eigen::Vector3d(0.0, 1.0, 0.0),
+                                    const Eigen::Vector3d& propertyColor = Eigen::Vector3d(1.0, 1.0, 1.0), 
+                                    float minScale = -1.0, float maxScale = -1.0);
+
 
     /**
      * @brief Set the background color of the visualization.

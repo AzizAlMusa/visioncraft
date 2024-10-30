@@ -5,7 +5,7 @@
 #include <memory>
 #include <open3d/Open3D.h>
 #include <octomap/ColorOcTree.h>
-#include <model_loader.h>
+#include <model.h>
 #include <cuda_runtime.h>
 
 
@@ -277,7 +277,7 @@ public:
      * @param octomap The octomap to perform raycasting on.
      * @return A vector of booleans indicating whether each ray hit an occupied voxel (true) or not (false).
      */
-    std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash>  performRaycasting(const ModelLoader& modelLoader, bool parallelize = false) ;
+    std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash>  performRaycasting(const Model& model, bool parallelize = false) ;
 
 
     /**
@@ -335,7 +335,7 @@ public:
      * 
      * @return A vector of Eigen::Vector3d containing the ray endpoints generated on the GPU.
      */
-    std::set<std::tuple<int, int, int>> performRaycastingOnGPU(const ModelLoader& modelLoader);
+    std::set<std::tuple<int, int, int>> performRaycastingOnGPU(const Model& model);
 
 
     /**

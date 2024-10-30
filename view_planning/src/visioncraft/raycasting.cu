@@ -5,7 +5,7 @@
 #include <cmath>
 #include <float.h>  // For FLT_MAX
 #include <stdio.h>  // For debugging
-#include "visioncraft/model_loader.h"  // Ensure this header is included to define VoxelGridGPU
+#include "visioncraft/model.h"  // Ensure this header is included to define VoxelGridGPU
 
 namespace visioncraft {
 

@@ -3,7 +3,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
 
-#include "visioncraft/model_loader.h"
+#include "visioncraft/model.h"
 #include "visioncraft/viewpoint.h"
 #include "visioncraft/visualizer.h"
 #include "visioncraft/meta_voxel.h"
@@ -33,72 +33,72 @@ py::tuple keyToTuple(const octomap::OcTreeKey& key) {
 PYBIND11_MODULE(visioncraft_py, m) {
 
 
-    // Expose the ModelLoader class to Python
-    py::class_<visioncraft::ModelLoader>(m, "ModelLoader")
+    // Expose the Model class to Python
+    py::class_<visioncraft::Model>(m, "Model")
         .def(py::init<>())
         // Load functions
-        .def("loadMesh", &visioncraft::ModelLoader::loadMesh)
-        .def("loadModel", &visioncraft::ModelLoader::loadModel, py::arg("file_path"), py::arg("num_samples") = 10000, py::arg("resolution") = -1)
-        .def("loadExplorationModel", &visioncraft::ModelLoader::loadExplorationModel, py::arg("file_path"), py::arg("num_samples") = 10000, py::arg("num_cells_per_side") = 32)
-        .def("initializeRaycastingScene", &visioncraft::ModelLoader::initializeRaycastingScene)
+        .def("loadMesh", &visioncraft::Model::loadMesh)
+        .def("loadModel", &visioncraft::Model::loadModel, py::arg("file_path"), py::arg("num_samples") = 10000, py::arg("resolution") = -1)
+        .def("loadExplorationModel", &visioncraft::Model::loadExplorationModel, py::arg("file_path"), py::arg("num_samples") = 10000, py::arg("num_cells_per_side") = 32)
+        .def("initializeRaycastingScene", &visioncraft::Model::initializeRaycastingScene)
 
         // Point cloud functions
-        .def("generatePointCloud", &visioncraft::ModelLoader::generatePointCloud)
-        .def("getPointCloud", &visioncraft::ModelLoader::getPointCloud, py::return_value_policy::reference)
-        .def("getAverageSpacing", &visioncraft::ModelLoader::getAverageSpacing)
+        .def("generatePointCloud", &visioncraft::Model::generatePointCloud)
+        .def("getPointCloud", &visioncraft::Model::getPointCloud, py::return_value_policy::reference)
+        .def("getAverageSpacing", &visioncraft::Model::getAverageSpacing)
 
         // Bounding box functions
-        .def("getMinBound", [](const visioncraft::ModelLoader& self) {
+        .def("getMinBound", [](const visioncraft::Model& self) {
             const octomap::point3d& min_bound = self.getMinBound();
             return Eigen::Vector3d(min_bound.x(), min_bound.y(), min_bound.z());
         })
-        .def("getMaxBound", [](const visioncraft::ModelLoader& self) {
+        .def("getMaxBound", [](const visioncraft::Model& self) {
             const octomap::point3d& max_bound = self.getMaxBound();
             return Eigen::Vector3d(max_bound.x(), max_bound.y(), max_bound.z());
         })
-        .def("getCenter", [](const visioncraft::ModelLoader& self) {
+        .def("getCenter", [](const visioncraft::Model& self) {
             const octomap::point3d& center = self.getCenter();
             return Eigen::Vector3d(center.x(), center.y(), center.z());
         })
 
         // Mesh data functions
-        .def("getMeshData", &visioncraft::ModelLoader::getMeshData, py::return_value_policy::reference)
-        .def("correctNormalsUsingSignedDistance", &visioncraft::ModelLoader::correctNormalsUsingSignedDistance)
+        .def("getMeshData", &visioncraft::Model::getMeshData, py::return_value_policy::reference)
+        .def("correctNormalsUsingSignedDistance", &visioncraft::Model::correctNormalsUsingSignedDistance)
 
         // Voxel grid functions
-        .def("generateVoxelGrid", &visioncraft::ModelLoader::generateVoxelGrid)
-        .def("getVoxelGrid", &visioncraft::ModelLoader::getVoxelGrid, py::return_value_policy::reference)
+        .def("generateVoxelGrid", &visioncraft::Model::generateVoxelGrid)
+        .def("getVoxelGrid", &visioncraft::Model::getVoxelGrid, py::return_value_policy::reference)
 
         // Octomap functions
-        .def("generateOctoMap", &visioncraft::ModelLoader::generateOctoMap)
-        .def("getOctomap", &visioncraft::ModelLoader::getOctomap, py::return_value_policy::reference)
-        .def("generateVolumetricOctoMap", &visioncraft::ModelLoader::generateVolumetricOctoMap)
-        .def("getVolumetricOctomap", &visioncraft::ModelLoader::getVolumetricOctomap, py::return_value_policy::reference)
-        .def("generateSurfaceShellOctomap", &visioncraft::ModelLoader::generateSurfaceShellOctomap)
-        .def("getSurfaceShellOctomap", &visioncraft::ModelLoader::getSurfaceShellOctomap, py::return_value_policy::reference)
+        .def("generateOctoMap", &visioncraft::Model::generateOctoMap)
+        .def("getOctomap", &visioncraft::Model::getOctomap, py::return_value_policy::reference)
+        .def("generateVolumetricOctoMap", &visioncraft::Model::generateVolumetricOctoMap)
+        .def("getVolumetricOctomap", &visioncraft::Model::getVolumetricOctomap, py::return_value_policy::reference)
+        .def("generateSurfaceShellOctomap", &visioncraft::Model::generateSurfaceShellOctomap)
+        .def("getSurfaceShellOctomap", &visioncraft::Model::getSurfaceShellOctomap, py::return_value_policy::reference)
 
         // Exploration map functions
-        .def("generateExplorationMap", py::overload_cast<double, const octomap::point3d&, const octomap::point3d&>(&visioncraft::ModelLoader::generateExplorationMap))
-        .def("generateExplorationMap", py::overload_cast<int, const octomap::point3d&, const octomap::point3d&>(&visioncraft::ModelLoader::generateExplorationMap))
-        .def("getExplorationMap", &visioncraft::ModelLoader::getExplorationMap, py::return_value_policy::reference)
+        .def("generateExplorationMap", py::overload_cast<double, const octomap::point3d&, const octomap::point3d&>(&visioncraft::Model::generateExplorationMap))
+        .def("generateExplorationMap", py::overload_cast<int, const octomap::point3d&, const octomap::point3d&>(&visioncraft::Model::generateExplorationMap))
+        .def("getExplorationMap", &visioncraft::Model::getExplorationMap, py::return_value_policy::reference)
 
         // GPU voxel grid functions
-        .def("convertVoxelGridToGPUFormat", &visioncraft::ModelLoader::convertVoxelGridToGPUFormat)
-        .def("getGPUVoxelGrid", &visioncraft::ModelLoader::getGPUVoxelGrid)
-        .def("updateVoxelGridFromHits", &visioncraft::ModelLoader::updateVoxelGridFromHits)
-        .def("updateOctomapWithHits", &visioncraft::ModelLoader::updateOctomapWithHits)
+        .def("convertVoxelGridToGPUFormat", &visioncraft::Model::convertVoxelGridToGPUFormat)
+        .def("getGPUVoxelGrid", &visioncraft::Model::getGPUVoxelGrid)
+        .def("updateVoxelGridFromHits", &visioncraft::Model::updateVoxelGridFromHits)
+        .def("updateOctomapWithHits", &visioncraft::Model::updateOctomapWithHits)
 
         // MetaVoxel Map Functions
-        .def("generateVoxelMap", &visioncraft::ModelLoader::generateVoxelMap)
+        .def("generateVoxelMap", &visioncraft::Model::generateVoxelMap)
 
         // MetaVoxel property functions
-        .def("getVoxel", [](visioncraft::ModelLoader& self, const py::tuple& key_tuple) {
+        .def("getVoxel", [](visioncraft::Model& self, const py::tuple& key_tuple) {
             return self.getVoxel(tupleToKey(key_tuple));
         }, py::return_value_policy::reference)
-        .def("getVoxel", [](visioncraft::ModelLoader& self, const Eigen::Vector3d& position) {
+        .def("getVoxel", [](visioncraft::Model& self, const Eigen::Vector3d& position) {
             return self.getVoxel(position);
         }, py::return_value_policy::reference)
-        .def("getVoxelMap", [](const visioncraft::ModelLoader& self) {
+        .def("getVoxelMap", [](const visioncraft::Model& self) {
             py::dict meta_voxel_dict;
             const auto& meta_voxel_map = self.getVoxelMap().getMap();
 
@@ -110,14 +110,14 @@ PYBIND11_MODULE(visioncraft_py, m) {
             return meta_voxel_dict;
         })
         .def("updateVoxelOccupancy", 
-            [](visioncraft::ModelLoader& self, const py::tuple& key_tuple, float new_occupancy) {
+            [](visioncraft::Model& self, const py::tuple& key_tuple, float new_occupancy) {
                 return self.updateVoxelOccupancy(tupleToKey(key_tuple), new_occupancy);
             }, py::arg("key"), py::arg("new_occupancy"))
         .def("updateVoxelOccupancy", 
-            [](visioncraft::ModelLoader& self, const Eigen::Vector3d& position, float new_occupancy) {
+            [](visioncraft::Model& self, const Eigen::Vector3d& position, float new_occupancy) {
                 return self.updateVoxelOccupancy(position, new_occupancy);
             }, py::arg("position"), py::arg("new_occupancy"))
-        .def("addVoxelProperty", [](visioncraft::ModelLoader& self, const std::string& property_name, py::object value) {
+        .def("addVoxelProperty", [](visioncraft::Model& self, const std::string& property_name, py::object value) {
             visioncraft::MetaVoxel::PropertyValue prop_value;
 
             // Determine the type of the Python object and cast to the appropriate variant type
@@ -139,7 +139,7 @@ PYBIND11_MODULE(visioncraft_py, m) {
             return self.addVoxelProperty(property_name, prop_value);
             }, py::arg("property_name"), py::arg("value"))
         .def("setVoxelProperty", 
-            [](visioncraft::ModelLoader& self, const py::tuple& key_tuple, const std::string& property_name, py::object value) {
+            [](visioncraft::Model& self, const py::tuple& key_tuple, const std::string& property_name, py::object value) {
                 visioncraft::MetaVoxel::PropertyValue prop_value;
 
                 // Check the type of the Python object and assign to the variant accordingly
@@ -160,7 +160,7 @@ PYBIND11_MODULE(visioncraft_py, m) {
                 return self.setVoxelProperty(tupleToKey(key_tuple), property_name, prop_value);
             }, py::arg("key"), py::arg("property_name"), py::arg("value"))
         .def("setMetaVoxelProperty", 
-            [](visioncraft::ModelLoader& self, const Eigen::Vector3d& position, const std::string& property_name, py::object value) {
+            [](visioncraft::Model& self, const Eigen::Vector3d& position, const std::string& property_name, py::object value) {
                 visioncraft::MetaVoxel::PropertyValue prop_value;
 
                 // Check the type of the Python object and assign to the variant accordingly
@@ -180,7 +180,7 @@ PYBIND11_MODULE(visioncraft_py, m) {
 
                 return self.setVoxelProperty(position, property_name, prop_value);
             }, py::arg("position"), py::arg("property_name"), py::arg("value"))
-        .def("getMetaVoxelProperty", [](const visioncraft::ModelLoader& self, const py::tuple& key_tuple, const std::string& property_name) -> py::object {
+        .def("getMetaVoxelProperty", [](const visioncraft::Model& self, const py::tuple& key_tuple, const std::string& property_name) -> py::object {
             auto prop = self.getVoxelProperty(tupleToKey(key_tuple), property_name);
             if (auto int_ptr = boost::get<int>(&prop)) {
                 return py::int_(*int_ptr);
@@ -194,7 +194,7 @@ PYBIND11_MODULE(visioncraft_py, m) {
                 throw std::runtime_error("Unsupported property type.");
             }
         }, py::arg("key"), py::arg("property_name"))
-        .def("getVoxelProperty", [](const visioncraft::ModelLoader& self, const Eigen::Vector3d& position, const std::string& property_name) -> py::object {
+        .def("getVoxelProperty", [](const visioncraft::Model& self, const Eigen::Vector3d& position, const std::string& property_name) -> py::object {
             auto prop = self.getVoxelProperty(position, property_name);
             if (auto int_ptr = boost::get<int>(&prop)) {
                 return py::int_(*int_ptr);
@@ -282,9 +282,9 @@ PYBIND11_MODULE(visioncraft_py, m) {
         .def("getVerticalFieldOfView", &visioncraft::Viewpoint::getVerticalFieldOfView) 
         .def("getFrustumCorners", &visioncraft::Viewpoint::getFrustumCorners)
         .def("generateRays", &visioncraft::Viewpoint::generateRays)
-        .def("performRaycasting", [](visioncraft::Viewpoint &self, const visioncraft::ModelLoader& modelLoader, bool use_parallel) {
+        .def("performRaycasting", [](visioncraft::Viewpoint &self, const visioncraft::Model& model, bool use_parallel) {
             // Call the original performRaycasting method
-            auto result = self.performRaycasting(modelLoader, use_parallel);
+            auto result = self.performRaycasting(model, use_parallel);
 
             // Create a Python dictionary to hold the result
             py::dict py_result;
@@ -317,8 +317,8 @@ PYBIND11_MODULE(visioncraft_py, m) {
             .def("showViewpointHits", &visioncraft::Visualizer::showViewpointHits)
             .def("addMesh", &visioncraft::Visualizer::addMesh)
             .def("addPointCloud", &visioncraft::Visualizer::addPointCloud)
-            .def("addOctomap", &visioncraft::Visualizer::addOctomap, py::arg("modelLoader"), py::arg("color") = Eigen::Vector3d(-1, -1, -1))
-            .def("showGPUVoxelGrid", &visioncraft::Visualizer::showGPUVoxelGrid, py::arg("modelLoader"), py::arg("color") = Eigen::Vector3d(1, 0, 0))
+            .def("addOctomap", &visioncraft::Visualizer::addOctomap, py::arg("model"), py::arg("color") = Eigen::Vector3d(-1, -1, -1))
+            .def("showGPUVoxelGrid", &visioncraft::Visualizer::showGPUVoxelGrid, py::arg("model"), py::arg("color") = Eigen::Vector3d(1, 0, 0))
             .def("setBackgroundColor", &visioncraft::Visualizer::setBackgroundColor)
             .def("setViewpointFrustumColor", &visioncraft::Visualizer::setViewpointFrustumColor)
             .def("render", &visioncraft::Visualizer::render);

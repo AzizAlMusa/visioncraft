@@ -40,10 +40,10 @@ bool MetaVoxelMap::setMetaVoxel(const octomap::OcTreeKey& key, const MetaVoxel& 
  * @param key The OctoMap key for spatial indexing.
  * @return Pointer to the MetaVoxel if found, nullptr otherwise.
  */
-MetaVoxel* MetaVoxelMap::getMetaVoxel(const octomap::OcTreeKey& key) {
+MetaVoxel* MetaVoxelMap::getMetaVoxel(const octomap::OcTreeKey& key) const{
     auto it = meta_voxel_map_.find(key);
     if (it != meta_voxel_map_.end()) {
-        return &(it->second);
+        return const_cast<MetaVoxel*>(&it->second);
     } else {
         std::cerr << "MetaVoxel not found for the provided key." << std::endl;
         return nullptr;

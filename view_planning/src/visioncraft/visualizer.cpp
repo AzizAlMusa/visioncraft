@@ -310,8 +310,8 @@ void Visualizer::showViewpointHits(const std::shared_ptr<octomap::ColorOcTree>& 
 }
 
 
-void Visualizer::addMesh(const visioncraft::ModelLoader& modelLoader, const Eigen::Vector3d& color ) {
-    auto mesh = modelLoader.getMeshData();
+void Visualizer::addMesh(const visioncraft::Model& model, const Eigen::Vector3d& color ) {
+    auto mesh = model.getMeshData();
     if (!mesh) return;
 
     vtkSmartPointer<vtkPoints> vtkPointsData = vtkSmartPointer<vtkPoints>::New();
@@ -340,8 +340,8 @@ void Visualizer::addMesh(const visioncraft::ModelLoader& modelLoader, const Eige
 
 
 
-void Visualizer::addPointCloud(const visioncraft::ModelLoader& modelLoader, const Eigen::Vector3d& color ) {
-    auto pointCloud = modelLoader.getPointCloud();
+void Visualizer::addPointCloud(const visioncraft::Model& model, const Eigen::Vector3d& color ) {
+    auto pointCloud = model.getPointCloud();
     if (!pointCloud) return;
 
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
@@ -365,8 +365,8 @@ void Visualizer::addPointCloud(const visioncraft::ModelLoader& modelLoader, cons
     renderer->AddActor(actor);
 }
 
-void Visualizer::addOctomap(const visioncraft::ModelLoader& modelLoader, const Eigen::Vector3d& defaultColor) {
-    auto octomap = modelLoader.getSurfaceShellOctomap();
+void Visualizer::addOctomap(const visioncraft::Model& model, const Eigen::Vector3d& defaultColor) {
+    auto octomap = model.getSurfaceShellOctomap();
     if (!octomap) return;
 
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
@@ -433,8 +433,8 @@ void Visualizer::addOctomap(const visioncraft::ModelLoader& modelLoader, const E
 
 
 
-void Visualizer::showGPUVoxelGrid(const visioncraft::ModelLoader& modelLoader, const Eigen::Vector3d& color) {
-    const auto& gpuVoxelGrid = modelLoader.getGPUVoxelGrid();
+void Visualizer::showGPUVoxelGrid(const visioncraft::Model& model, const Eigen::Vector3d& color) {
+    const auto& gpuVoxelGrid = model.getGPUVoxelGrid();
 
     if (!gpuVoxelGrid.voxel_data) {
         std::cerr << "[ERROR] Voxel data in GPU format is not available." << std::endl;
@@ -495,6 +495,169 @@ void Visualizer::showGPUVoxelGrid(const visioncraft::ModelLoader& modelLoader, c
 
     // std::cout << "[INFO] VoxelGridGPU visualization added to renderer." << std::endl;
 }
+
+
+void Visualizer::addVoxelMap(const visioncraft::Model& model, const Eigen::Vector3d& defaultColor) {
+    const auto& metaVoxelMap = model.getVoxelMap().getMap(); // Access the internal map with getMap
+    if (metaVoxelMap.empty()) return;
+
+    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
+    colors->SetNumberOfComponents(3);  // RGB
+    colors->SetName("Colors");
+
+    int voxelCount = 0;
+    for (const auto& kv : metaVoxelMap) {
+        const auto& metaVoxel = kv.second;
+        const auto& voxelPos = metaVoxel.getPosition();  // Use MetaVoxel's stored position
+        points->InsertNextPoint(voxelPos.x(), voxelPos.y(), voxelPos.z());
+        voxelCount++;
+
+        // Use defaultColor if specified, otherwise color based on occupancy property if available
+        Eigen::Vector3d color = (defaultColor(0) >= 0 && defaultColor(1) >= 0 && defaultColor(2) >= 0)
+                                ? defaultColor
+                                : Eigen::Vector3d(metaVoxel.getOccupancy(), 0.0, 1.0 - metaVoxel.getOccupancy());
+
+        unsigned char voxelColor[3] = {
+            static_cast<unsigned char>(color(0) * 255),
+            static_cast<unsigned char>(color(1) * 255),
+            static_cast<unsigned char>(color(2) * 255)
+        };
+        colors->InsertNextTypedTuple(voxelColor);
+    }
+
+    vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+    polyData->SetPoints(points);
+    polyData->GetPointData()->SetScalars(colors);
+
+    vtkSmartPointer<vtkCubeSource> cubeSource = vtkSmartPointer<vtkCubeSource>::New();
+    cubeSource->SetXLength(model.getOctomap()->getResolution());
+    cubeSource->SetYLength(model.getOctomap()->getResolution());
+    cubeSource->SetZLength(model.getOctomap()->getResolution());
+
+    vtkSmartPointer<vtkGlyph3D> glyphFilter = vtkSmartPointer<vtkGlyph3D>::New();
+    glyphFilter->SetInputData(polyData);
+    glyphFilter->SetSourceConnection(cubeSource->GetOutputPort());
+    glyphFilter->SetColorModeToColorByScalar();
+    glyphFilter->SetScaleModeToDataScalingOff();
+    glyphFilter->Update();
+
+    vtkSmartPointer<vtkPolyDataMapper> voxelMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    voxelMapper->SetInputConnection(glyphFilter->GetOutputPort());
+    voxelMapper->SetScalarModeToUsePointData();
+
+    vtkSmartPointer<vtkActor> voxelActor = vtkSmartPointer<vtkActor>::New();
+    voxelActor->SetMapper(voxelMapper);
+    voxelActor->GetProperty()->SetEdgeVisibility(1);
+    voxelActor->GetProperty()->SetEdgeColor(0.0, 0.0, 0.0);
+    voxelActor->GetProperty()->SetLineWidth(1.0);
+
+    renderer->AddActor(voxelActor);
+}
+
+
+void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std::string& property_name, 
+                                     const Eigen::Vector3d& baseColor, const Eigen::Vector3d& propertyColor, 
+                                     float minScale, float maxScale) {
+    const auto& metaVoxelMap = model.getVoxelMap().getMap();
+    if (metaVoxelMap.empty()) return;
+
+    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
+    colors->SetNumberOfComponents(3);  // RGB
+    colors->SetName("Colors");
+
+    // If minScale and maxScale are not provided, calculate them from the property values
+    if (minScale == -1.0f || maxScale == -1.0f) {
+        minScale = std::numeric_limits<float>::max();
+        maxScale = std::numeric_limits<float>::lowest();
+        for (const auto& kv : metaVoxelMap) {
+            const auto& metaVoxel = kv.second;
+            if (metaVoxel.hasProperty(property_name)) {
+                try {
+                    float value = (metaVoxel.getProperty(property_name).type() == typeid(int))
+                        ? static_cast<float>(boost::get<int>(metaVoxel.getProperty(property_name)))
+                        : boost::get<float>(metaVoxel.getProperty(property_name));
+                    minScale = std::min(minScale, value);
+                    maxScale = std::max(maxScale, value);
+                } catch (const boost::bad_get& e) {
+                    std::cerr << "Warning: Property " << property_name 
+                              << " has an unexpected type for voxel at position " 
+                              << metaVoxel.getPosition().transpose() << ": " << e.what() << std::endl;
+                    continue;
+                }
+            }
+        }
+    }
+
+    for (const auto& kv : metaVoxelMap) {
+        const auto& metaVoxel = kv.second;
+        const auto& voxelPos = metaVoxel.getPosition();  // Use MetaVoxel's stored position
+        points->InsertNextPoint(voxelPos.x(), voxelPos.y(), voxelPos.z());
+
+        // Default to base color if property is missing
+        Eigen::Vector3d color = baseColor;
+
+        // Adjust color intensity based on the property value
+        if (metaVoxel.hasProperty(property_name)) {
+            try {
+                float propertyValue = (metaVoxel.getProperty(property_name).type() == typeid(int))
+                    ? static_cast<float>(boost::get<int>(metaVoxel.getProperty(property_name)))
+                    : boost::get<float>(metaVoxel.getProperty(property_name));
+
+                // Normalize property value to [0,1]
+                float normalizedValue = (propertyValue - minScale) / (maxScale - minScale);
+                normalizedValue = std::max(0.0f, std::min(normalizedValue, 1.0f));
+
+
+                // Interpolate between baseColor and propertyColor
+                color = baseColor * (1.0f - normalizedValue) + propertyColor * normalizedValue;
+                color = color.cwiseMin(1.0).cwiseMax(0.0); // Ensure color stays within [0,1] range
+            } catch (const boost::bad_get& e) {
+                std::cerr << "Error: Failed to retrieve property " << property_name 
+                          << " for voxel at position " << voxelPos.transpose() 
+                          << ": " << e.what() << std::endl;
+                continue;
+            }
+        }
+
+        unsigned char voxelColor[3] = {
+            static_cast<unsigned char>(color(0) * 255),
+            static_cast<unsigned char>(color(1) * 255),
+            static_cast<unsigned char>(color(2) * 255)
+        };
+        colors->InsertNextTypedTuple(voxelColor);
+    }
+
+    vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+    polyData->SetPoints(points);
+    polyData->GetPointData()->SetScalars(colors);
+
+    vtkSmartPointer<vtkCubeSource> cubeSource = vtkSmartPointer<vtkCubeSource>::New();
+    cubeSource->SetXLength(model.getOctomap()->getResolution());
+    cubeSource->SetYLength(model.getOctomap()->getResolution());
+    cubeSource->SetZLength(model.getOctomap()->getResolution());
+
+    vtkSmartPointer<vtkGlyph3D> glyphFilter = vtkSmartPointer<vtkGlyph3D>::New();
+    glyphFilter->SetInputData(polyData);
+    glyphFilter->SetSourceConnection(cubeSource->GetOutputPort());
+    glyphFilter->SetColorModeToColorByScalar();
+    glyphFilter->SetScaleModeToDataScalingOff();
+    glyphFilter->Update();
+
+    vtkSmartPointer<vtkPolyDataMapper> voxelMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    voxelMapper->SetInputConnection(glyphFilter->GetOutputPort());
+    voxelMapper->SetScalarModeToUsePointData();
+
+    vtkSmartPointer<vtkActor> voxelActor = vtkSmartPointer<vtkActor>::New();
+    voxelActor->SetMapper(voxelMapper);
+    voxelActor->GetProperty()->SetEdgeVisibility(1);
+    voxelActor->GetProperty()->SetEdgeColor(0.0, 0.0, 0.0);
+    voxelActor->GetProperty()->SetLineWidth(1.0);
+
+    renderer->AddActor(voxelActor);
+}
+
 
 
 void Visualizer::setBackgroundColor(const Eigen::Vector3d& color) {

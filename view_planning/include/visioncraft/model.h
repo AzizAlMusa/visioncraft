@@ -1,5 +1,5 @@
-#ifndef VISIONCRAFT_MODEL_LOADER_H
-#define VISIONCRAFT_MODEL_LOADER_H
+#ifndef VISIONCRAFT_MODEL_H
+#define VISIONCRAFT_MODEL_H
 
 #include <string>
 #include <memory>
@@ -39,19 +39,19 @@ struct VoxelGridGPU {
  * This class provides functionality to load 3D models in various formats
  * using Open3D/Octomap and process them for various applications. It replaces previous
  */
-class ModelLoader {
+class Model {
 public:
 
 
     /**
-     * @brief Default constructor for ModelLoader class.
+     * @brief Default constructor for Model class.
      */
-    ModelLoader();
+    Model();
 
     /**
-     * @brief Destructor for ModelLoader class.
+     * @brief Destructor for Model class.
      */
-    ~ModelLoader();
+    ~Model();
 
     /**
      * @brief Load a 3D mesh from a file.
@@ -156,6 +156,13 @@ public:
      */
     double getAverageSpacing() const { return pointCloudSpacing_; }
 
+    /**
+     * @brief Get the voxel size of the voxel grid.
+     * 
+     * @return The voxel size of the voxel grid.
+     */
+    double getVoxelSize() const { return voxel_size_;}
+    
     /**
      * @brief Correct normals in the point cloud using a signed distance method with an epsilon threshold.
      * 
@@ -445,6 +452,29 @@ public:
     const MetaVoxelMap& getVoxelMap() const { return meta_voxel_map_; }
 
 
+    /**
+     * @brief Reset all internal data structures of the Model class.
+     * 
+     * This function clears and resets all internal members of the Model class, including mesh data, 
+     * point cloud data, voxel grid data, and OctoMap representations. The `clear` function ensures
+     * that the Model instance returns to its initial state, releasing any dynamically allocated resources 
+     * and resetting shared pointers. This is particularly useful to prepare the Model for a fresh load 
+     * without retaining previous data.
+     * 
+     * - Mesh data and bounds: Resets the loaded mesh data, bounding box values, and center.
+     * - Point cloud and voxel data: Resets point cloud, volumetric point cloud, voxel grid, 
+     *   and spacing between points. If GPU-friendly voxel data was allocated, it releases the memory.
+     * - Octree representations: Resets OctoMap representations, including octoMap_, volumetricOctomap_, 
+     *   surfaceShellOctomap_, and explorationMap_, and clears meta voxel map data.
+     * - Meta voxel map: Empties the map containing meta voxel instances.
+     * 
+     * @post After calling `clear`, all data structures return to their default states, freeing up any
+     * resources held by the Model instance.
+     */
+    void clear();
+
+
+
 
 
 private:
@@ -505,6 +535,8 @@ private:
 
     // std::unordered_map<octomap::OcTreeKey, MetaVoxel, octomap::OcTreeKey::KeyHash> meta_voxel_map_; ///< Map of MetaVoxel objects with OctoMap keys as identifiers.
     MetaVoxelMap meta_voxel_map_; ///< Encapsulated MetaVoxelMap to manage meta voxel properties.
+    double voxel_size_; ///< Size of each voxel in the voxel grid.
+
     // Error and Uncertainty Margins
     // TODO: Add MMC and LMC octomaps
 
@@ -519,4 +551,4 @@ private:
 
 } // namespace visioncraft
 
-#endif // VISIONCRAFT_MODEL_LOADER_H
+#endif // VISIONCRAFT_MODEL_H

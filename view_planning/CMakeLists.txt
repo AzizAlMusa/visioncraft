@@ -76,7 +76,7 @@ target_link_libraries(project_dependencies INTERFACE cuda_lib)
 # Define source files as a reusable library with -fPIC
 add_library(visioncraft_lib STATIC
   src/visioncraft/visualizer.cpp 
-  src/visioncraft/model_loader.cpp 
+  src/visioncraft/model.cpp 
   src/visioncraft/viewpoint.cpp 
   src/visioncraft/meta_voxel_map.cpp
   src/visioncraft/meta_voxel.cpp
@@ -99,7 +99,7 @@ set_target_properties(visioncraft_py PROPERTIES
 )
 
 # Optional: Enable unit tests
-option(ENABLE_UNIT_TESTS "Enable unit tests" ON)
+option(ENABLE_UNIT_TESTS "Enable unit tests" OFF)
 if (ENABLE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()

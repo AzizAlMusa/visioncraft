@@ -26,7 +26,7 @@ public:
      * including integer, float, Eigen::Vector3d, and string types. This flexibility enables users 
      * to extend each voxel's metadata with various attributes as needed.
      */
-    using PropertyValue = boost::variant<int, float, Eigen::Vector3d, std::string>;
+    using PropertyValue = boost::variant<int, float, double, Eigen::Vector3d, std::string>;
 
     // Default constructor
     MetaVoxel() : position_(0.0, 0.0, 0.0), occupancy_(0.5) {}
