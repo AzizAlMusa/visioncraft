@@ -44,8 +44,6 @@ PYBIND11_MODULE(visioncraft_py, m) {
 
         // Point cloud functions
         .def("generatePointCloud", &visioncraft::ModelLoader::generatePointCloud)
-        .def("generateVolumetricPointCloud", &visioncraft::ModelLoader::generateVolumetricPointCloud)
-        .def("getVolumetricPointCloud", &visioncraft::ModelLoader::getVolumetricPointCloud, py::return_value_policy::reference)
         .def("getPointCloud", &visioncraft::ModelLoader::getPointCloud, py::return_value_policy::reference)
         .def("getAverageSpacing", &visioncraft::ModelLoader::getAverageSpacing)
 
@@ -91,18 +89,18 @@ PYBIND11_MODULE(visioncraft_py, m) {
         .def("updateOctomapWithHits", &visioncraft::ModelLoader::updateOctomapWithHits)
 
         // MetaVoxel Map Functions
-        .def("generateMetaVoxelMap", &visioncraft::ModelLoader::generateMetaVoxelMap)
+        .def("generateVoxelMap", &visioncraft::ModelLoader::generateVoxelMap)
 
         // MetaVoxel property functions
-        .def("getMetaVoxel", [](visioncraft::ModelLoader& self, const py::tuple& key_tuple) {
-            return self.getMetaVoxel(tupleToKey(key_tuple));
+        .def("getVoxel", [](visioncraft::ModelLoader& self, const py::tuple& key_tuple) {
+            return self.getVoxel(tupleToKey(key_tuple));
         }, py::return_value_policy::reference)
-        .def("getMetaVoxel", [](visioncraft::ModelLoader& self, const Eigen::Vector3d& position) {
-            return self.getMetaVoxel(position);
+        .def("getVoxel", [](visioncraft::ModelLoader& self, const Eigen::Vector3d& position) {
+            return self.getVoxel(position);
         }, py::return_value_policy::reference)
-        .def("getMetaVoxelMap", [](const visioncraft::ModelLoader& self) {
+        .def("getVoxelMap", [](const visioncraft::ModelLoader& self) {
             py::dict meta_voxel_dict;
-            const auto& meta_voxel_map = self.getMetaVoxelMap().getMap();
+            const auto& meta_voxel_map = self.getVoxelMap().getMap();
 
             for (const auto& item : meta_voxel_map) {
                 const auto& key = item.first;
@@ -111,15 +109,36 @@ PYBIND11_MODULE(visioncraft_py, m) {
             }
             return meta_voxel_dict;
         })
-        .def("updateMetaVoxelOccupancy", 
+        .def("updateVoxelOccupancy", 
             [](visioncraft::ModelLoader& self, const py::tuple& key_tuple, float new_occupancy) {
-                return self.updateMetaVoxelOccupancy(tupleToKey(key_tuple), new_occupancy);
+                return self.updateVoxelOccupancy(tupleToKey(key_tuple), new_occupancy);
             }, py::arg("key"), py::arg("new_occupancy"))
-        .def("updateMetaVoxelOccupancy", 
+        .def("updateVoxelOccupancy", 
             [](visioncraft::ModelLoader& self, const Eigen::Vector3d& position, float new_occupancy) {
-                return self.updateMetaVoxelOccupancy(position, new_occupancy);
+                return self.updateVoxelOccupancy(position, new_occupancy);
             }, py::arg("position"), py::arg("new_occupancy"))
-        .def("setMetaVoxelProperty", 
+        .def("addVoxelProperty", [](visioncraft::ModelLoader& self, const std::string& property_name, py::object value) {
+            visioncraft::MetaVoxel::PropertyValue prop_value;
+
+            // Determine the type of the Python object and cast to the appropriate variant type
+            if (py::isinstance<py::int_>(value)) {
+                prop_value = value.cast<int>();
+            } else if (py::isinstance<py::float_>(value)) {
+                prop_value = value.cast<float>();
+            } else if (py::isinstance<py::str>(value)) {
+                prop_value = value.cast<std::string>();
+            } else if (py::isinstance<py::array>(value)) {
+                // Handle Eigen::Vector3d explicitly if value is a numpy array
+                Eigen::Vector3d vec = value.cast<Eigen::Vector3d>();
+                prop_value = vec;
+            } else {
+                throw std::runtime_error("Unsupported property type for addVoxelProperty.");
+            }
+
+            // Call the C++ function with the converted property value
+            return self.addVoxelProperty(property_name, prop_value);
+            }, py::arg("property_name"), py::arg("value"))
+        .def("setVoxelProperty", 
             [](visioncraft::ModelLoader& self, const py::tuple& key_tuple, const std::string& property_name, py::object value) {
                 visioncraft::MetaVoxel::PropertyValue prop_value;
 
@@ -138,7 +157,7 @@ PYBIND11_MODULE(visioncraft_py, m) {
                     throw std::runtime_error("Unsupported property type for setMetaVoxelProperty.");
                 }
 
-                return self.setMetaVoxelProperty(tupleToKey(key_tuple), property_name, prop_value);
+                return self.setVoxelProperty(tupleToKey(key_tuple), property_name, prop_value);
             }, py::arg("key"), py::arg("property_name"), py::arg("value"))
         .def("setMetaVoxelProperty", 
             [](visioncraft::ModelLoader& self, const Eigen::Vector3d& position, const std::string& property_name, py::object value) {
@@ -159,10 +178,10 @@ PYBIND11_MODULE(visioncraft_py, m) {
                     throw std::runtime_error("Unsupported property type for setMetaVoxelProperty.");
                 }
 
-                return self.setMetaVoxelProperty(position, property_name, prop_value);
+                return self.setVoxelProperty(position, property_name, prop_value);
             }, py::arg("position"), py::arg("property_name"), py::arg("value"))
         .def("getMetaVoxelProperty", [](const visioncraft::ModelLoader& self, const py::tuple& key_tuple, const std::string& property_name) -> py::object {
-            auto prop = self.getMetaVoxelProperty(tupleToKey(key_tuple), property_name);
+            auto prop = self.getVoxelProperty(tupleToKey(key_tuple), property_name);
             if (auto int_ptr = boost::get<int>(&prop)) {
                 return py::int_(*int_ptr);
             } else if (auto float_ptr = boost::get<float>(&prop)) {
@@ -175,8 +194,8 @@ PYBIND11_MODULE(visioncraft_py, m) {
                 throw std::runtime_error("Unsupported property type.");
             }
         }, py::arg("key"), py::arg("property_name"))
-        .def("getMetaVoxelProperty", [](const visioncraft::ModelLoader& self, const Eigen::Vector3d& position, const std::string& property_name) -> py::object {
-            auto prop = self.getMetaVoxelProperty(position, property_name);
+        .def("getVoxelProperty", [](const visioncraft::ModelLoader& self, const Eigen::Vector3d& position, const std::string& property_name) -> py::object {
+            auto prop = self.getVoxelProperty(position, property_name);
             if (auto int_ptr = boost::get<int>(&prop)) {
                 return py::int_(*int_ptr);
             } else if (auto float_ptr = boost::get<float>(&prop)) {
@@ -394,7 +413,27 @@ PYBIND11_MODULE(visioncraft_py, m) {
                 );
                 return self.getMetaVoxel(octomap_key);
             }, py::return_value_policy::reference, "Retrieve a MetaVoxel instance using an OctoMap key.")
-            
+            .def("setPropertyForAllVoxels", [](visioncraft::MetaVoxelMap &self, const std::string& property_name, py::object value) {
+                visioncraft::MetaVoxel::PropertyValue prop_value;
+
+                // Determine the type of the Python object and cast it to the appropriate variant type
+                if (py::isinstance<py::int_>(value)) {
+                    prop_value = value.cast<int>();
+                } else if (py::isinstance<py::float_>(value)) {
+                    prop_value = value.cast<float>();
+                } else if (py::isinstance<py::str>(value)) {
+                    prop_value = value.cast<std::string>();
+                } else if (py::isinstance<py::array>(value)) {
+                    // Handle Eigen::Vector3d explicitly if value is a numpy array
+                    Eigen::Vector3d vec = value.cast<Eigen::Vector3d>();
+                    prop_value = vec;
+                } else {
+                    throw std::runtime_error("Unsupported property type for setPropertyForAllVoxels.");
+                }
+
+                // Call the C++ function with the converted property value
+                return self.setPropertyForAllVoxels(property_name, prop_value);
+            }, py::arg("property_name"), py::arg("value"), "Set a specified property with a given value for all MetaVoxel instances in the map.")
             .def("setMetaVoxelProperty", [](visioncraft::MetaVoxelMap &self, py::tuple key, const std::string& property_name, py::object value) {
                 if (key.size() != 3) throw std::runtime_error("Key tuple must have exactly 3 elements.");
                 octomap::OcTreeKey octomap_key(

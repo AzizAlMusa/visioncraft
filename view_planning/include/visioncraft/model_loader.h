@@ -110,23 +110,7 @@ public:
      */
     bool generatePointCloud(int numSamples);
 
-    /**
-     * @brief Fill the volumetric point cloud with uniformly spaced points based on the average spacing.
-     * 
-     * This function generates a uniformly spaced point cloud within the bounding box of the mesh.
-     * 
-     * @return True if the volumetric point cloud is generated successfully, false otherwise.
-     */
-    bool generateVolumetricPointCloud();
-
-     /**
-     * @brief Get the volumetric point cloud data.
-     * 
-     * @return A shared pointer to the volumetric Open3D PointCloud.
-     */
-    std::shared_ptr<open3d::geometry::PointCloud> getVolumetricPointCloud() const { return volumetricPointCloud_; }
-
-
+   
     /**
      * @brief Get the mesh data.
      * 
@@ -211,6 +195,9 @@ public:
      * @return True if the OctoMap is generated successfully, false otherwise.
      */
     bool generateOctoMap(double resolution);
+
+    // Test
+    bool generateOctoMapFromMesh(double resolution);
 
     /**
      * @brief Get the colored OctoMap data.
@@ -349,7 +336,7 @@ public:
      * 
      * @return True if the meta voxel map is generated successfully, false otherwise.
      */
-    bool generateMetaVoxelMap();
+    bool generateVoxelMap();
 
     /**
      * @brief Retrieve a MetaVoxel object from the meta voxel map using the specified OctoMap key.
@@ -359,7 +346,7 @@ public:
      * @param key The OctoMap key of the MetaVoxel to retrieve.
      * @return Pointer to the MetaVoxel if found, nullptr otherwise.
      */
-    MetaVoxel* getMetaVoxel(const octomap::OcTreeKey& key);
+    MetaVoxel* getVoxel(const octomap::OcTreeKey& key);
 
     /**
      * @brief Retrieve a MetaVoxel object from the meta voxel map using the specified voxel position.
@@ -369,7 +356,7 @@ public:
      * @param position The 3D position of the voxel.
      * @return Pointer to the MetaVoxel if found, nullptr otherwise.
      */
-    MetaVoxel* getMetaVoxel(const Eigen::Vector3d& position);
+    MetaVoxel* getVoxel(const Eigen::Vector3d& position);
 
     /**
      * @brief Update the occupancy value of a MetaVoxel in the meta voxel map.
@@ -381,7 +368,7 @@ public:
      * @param new_occupancy The new occupancy probability for the MetaVoxel.
      * @return True if the MetaVoxel is updated successfully, false otherwise.
      */
-    bool updateMetaVoxelOccupancy(const octomap::OcTreeKey& key, float new_occupancy);
+    bool updateVoxelOccupancy(const octomap::OcTreeKey& key, float new_occupancy);
 
 
     /**
@@ -394,7 +381,19 @@ public:
      * @param new_occupancy The new occupancy probability for the MetaVoxel.
      * @return True if the MetaVoxel is updated successfully, false otherwise.
      */
-    bool updateMetaVoxelOccupancy(const Eigen::Vector3d& position, float new_occupancy);
+    bool updateVoxelOccupancy(const Eigen::Vector3d& position, float new_occupancy);
+
+    /**
+     * @brief Add a specified property with an initial value to all MetaVoxel instances in the meta voxel map.
+     * 
+     * This function iterates over each MetaVoxel in the meta voxel map and adds the specified property
+     * with the provided initial value.
+     * 
+     * @param property_name The name of the property to add (e.g., "temperature").
+     * @param initial_value The initial value to assign to the property for all MetaVoxels.
+     */
+    bool addVoxelProperty(const std::string& property_name, const MetaVoxel::PropertyValue& initial_value);
+
 
     /**
      * @brief Set a custom property for a MetaVoxel identified by its OctoMap key.
@@ -406,7 +405,7 @@ public:
      * @param value The value to assign to the property.
      * @return True if the property is set successfully, false otherwise.
      */
-    bool setMetaVoxelProperty(const octomap::OcTreeKey& key, const std::string& property_name, const MetaVoxel::PropertyValue& value);
+    bool setVoxelProperty(const octomap::OcTreeKey& key, const std::string& property_name, const MetaVoxel::PropertyValue& value);
 
     /**
      * @brief Set a custom property for a MetaVoxel identified by its voxel position.
@@ -418,7 +417,7 @@ public:
      * @param value The value to assign to the property.
      * @return True if the property is set successfully, false otherwise.
      */
-    bool setMetaVoxelProperty(const Eigen::Vector3d& position, const std::string& property_name, const MetaVoxel::PropertyValue& value);
+    bool setVoxelProperty(const Eigen::Vector3d& position, const std::string& property_name, const MetaVoxel::PropertyValue& value);
 
     /**
      * @brief Retrieve a custom property from a MetaVoxel.
@@ -429,7 +428,7 @@ public:
      * @param property_name The name of the property to retrieve.
      * @return The value of the property if found, throws runtime_error if the MetaVoxel or property is not found.
      */
-    MetaVoxel::PropertyValue getMetaVoxelProperty(const octomap::OcTreeKey& key, const std::string& property_name) const;
+    MetaVoxel::PropertyValue getVoxelProperty(const octomap::OcTreeKey& key, const std::string& property_name) const;
 
     /**
      * @brief Retrieve a custom property from a MetaVoxel using its voxel position.
@@ -440,10 +439,12 @@ public:
      * @param property_name The name of the property to retrieve.
      * @return The value of the property if found, throws runtime_error if the MetaVoxel or property is not found.
      */
-    MetaVoxel::PropertyValue getMetaVoxelProperty(const Eigen::Vector3d& position, const std::string& property_name) const;
+    MetaVoxel::PropertyValue getVoxelProperty(const Eigen::Vector3d& position, const std::string& property_name) const;
 
     // Accessor to meta voxel map, as requested
-    const MetaVoxelMap& getMetaVoxelMap() const { return meta_voxel_map_; }
+    const MetaVoxelMap& getVoxelMap() const { return meta_voxel_map_; }
+
+
 
 
 private:

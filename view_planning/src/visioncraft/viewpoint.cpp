@@ -322,7 +322,7 @@ std::set<std::tuple<int, int, int>> Viewpoint::performRaycastingOnGPU(const Mode
     int ds_width = ds_resolution.first;
     int ds_height = ds_resolution.second;
     int total_pixels = ds_width * ds_height;
-    std::cout << "Resolution: " << ds_width << " x " << ds_height << std::endl;
+    // std::cout << "Resolution: " << ds_width << " x " << ds_height << std::endl;
   
 
     // Allocate memory for hit voxels on the host
@@ -347,7 +347,7 @@ std::set<std::tuple<int, int, int>> Viewpoint::performRaycastingOnGPU(const Mode
         unique_hit_voxels.insert(std::make_tuple(x, y, z));
     }
 
-    std::cout << "Total unique hit voxels: " << unique_hit_voxels.size() << std::endl;
+    // std::cout << "Total unique hit voxels: " << unique_hit_voxels.size() << std::endl;
 
 
 
@@ -359,6 +359,8 @@ std::set<std::tuple<int, int, int>> Viewpoint::performRaycastingOnGPU(const Mode
 
     // Since we're not transferring rays back, we can return an empty vector or regenerate rays if needed
     std::vector<Eigen::Vector3d> rays;  // Empty vector in this case
+
+    GPU_hits_ = unique_hit_voxels;  // Store the hit voxels in the member variable
 
     return unique_hit_voxels;
 }

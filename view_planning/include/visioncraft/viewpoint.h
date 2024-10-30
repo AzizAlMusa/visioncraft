@@ -338,7 +338,12 @@ public:
     std::set<std::tuple<int, int, int>> performRaycastingOnGPU(const ModelLoader& modelLoader);
 
 
-
+    /**
+     * @brief Get the hit results of the raycasting operation performed on the GPU.
+     * 
+     * @return TODO
+     */
+    std::set<std::tuple<int, int, int>> getGPUHitResults() const {return GPU_hits_;}
 
 
 
@@ -364,6 +369,7 @@ private:
     // Rays
     std::vector<Eigen::Vector3d> rays_; ///< Stores the generated rays for the viewpoint.
     std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> hits_; ///< Stores the hit results of the raycasting operation.
+    std::set<std::tuple<int, int, int>> GPU_hits_; ///< Stores the hit results of the raycasting operation performed on the GPU.
     std::shared_ptr<octomap::ColorOcTree> rays_octomap_; ///< Stores the rays as an octomap (typically for visualization).
 };
 

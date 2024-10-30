@@ -83,6 +83,17 @@ include_directories(
 )
 
 
+## Unit tests
+# Option to enable unit tests
+option(ENABLE_UNIT_TESTS "Enable unit tests" ON)
+
+if (ENABLE_UNIT_TESTS)
+    # Add the tests subdirectory
+    add_subdirectory(tests)
+endif()
+
+
+
 # Executable for testing model_loader (C++ only)
 # add_executable(exploration_simulator src/visioncraft/exploration_simulator.cpp src/visioncraft/model_loader.cpp src/visioncraft/viewpoint.cpp)
 # target_link_libraries(exploration_simulator ${OCTOMAP_LIBRARIES} Open3D::Open3D Threads::Threads)
@@ -104,6 +115,7 @@ include_directories(
 
 add_library(cuda_lib src/visioncraft/raycasting.cu) 
 target_link_libraries(cuda_lib PRIVATE ${CUDA_LIBRARIES} Open3D_no_OpenGL)
+
 
 add_executable(visualizer_test tests/visualizer_test.cpp  
 src/visioncraft/visualizer.cpp 

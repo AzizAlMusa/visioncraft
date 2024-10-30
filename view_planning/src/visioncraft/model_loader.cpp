@@ -11,7 +11,7 @@ namespace visioncraft {
 
 // Constructor for the ModelLoader class
 ModelLoader::ModelLoader() {
-    std::cout << "ModelLoader constructor called." << std::endl;
+
 }
 
 // Destructor for the ModelLoader class
@@ -20,7 +20,7 @@ ModelLoader::~ModelLoader() {
         delete[] gpu_voxel_grid_.voxel_data;
         gpu_voxel_grid_.voxel_data = nullptr;
     }
-    std::cout << "ModelLoader destructor called." << std::endl;
+
 }
 
 // Load a mesh from a file
@@ -32,10 +32,10 @@ bool ModelLoader::loadMesh(const std::string& file_path) {
         return false;
     } else {
         meshData_ = std::make_shared<open3d::geometry::TriangleMesh>(*mesh);
-        std::cout << "Mesh loaded successfully with " << meshData_->vertices_.size() << " vertices." << std::endl;
+        // std::cout << "Mesh loaded successfully with " << meshData_->vertices_.size() << " vertices." << std::endl;
     
         auto aabb = meshData_->GetAxisAlignedBoundingBox();
-        std::cout << "Bounding box: min = " << aabb.min_bound_.transpose() << ", max = " << aabb.max_bound_.transpose() << ", center = " << aabb.GetCenter().transpose() << ", extent = " << aabb.GetExtent().transpose() << std::endl;
+        // std::cout << "Bounding box: min = " << aabb.min_bound_.transpose() << ", max = " << aabb.max_bound_.transpose() << ", center = " << aabb.GetCenter().transpose() << ", extent = " << aabb.GetExtent().transpose() << std::endl;
 
          // Assign the bounding box information to the member variables
         minBound_ = octomap::point3d(aabb.min_bound_.x(), aabb.min_bound_.y(), aabb.min_bound_.z());
@@ -48,7 +48,7 @@ bool ModelLoader::loadMesh(const std::string& file_path) {
 
 // Load a 3D model and generate all necessary structures
 bool ModelLoader::loadModel(const std::string& file_path, int num_samples, double resolution) {
-    std::cout << "===================== MODEL LOADER ========================" << std::endl;
+    // std::cout << "===================== MODEL LOADER ========================" << std::endl;
     if (!loadMesh(file_path)) {
         return false;
     }
@@ -77,44 +77,48 @@ bool ModelLoader::generateAllStructures(int num_samples, double resolution) {
         return result;
     };
 
+    // Measure each function call
     success &= measureTime([this]() { return initializeRaycastingScene(); }, "initializeRaycastingScene");
-    success &= measureTime([this, num_samples]() { return generatePointCloud(num_samples); }, "generatePointCloud");
+    // success &= measureTime([this, num_samples]() { return generatePointCloud(num_samples); }, "generatePointCloud");
 
     if (resolution <= 0) {
-        resolution = 8.0 * getAverageSpacing();
-        std::cout << "Using default resolution: " << resolution << std::endl;
+        // resolution = 8.0 * getAverageSpacing();
+
+        // // Get bounding box of the mesh
+        auto aabb = meshData_->GetAxisAlignedBoundingBox();
+        double extent_max = aabb.GetExtent().maxCoeff();  // Get the longest side of the bounding box
+        int voxel_count_target = 24;  // Target number of voxels per side for reasonable detail
+
+        // Estimate resolution based on the longest side and target voxel count
+        resolution = extent_max / voxel_count_target;
+        pointCloudSpacing_ = resolution;
+        // std::cout << "Using default resolution: " << resolution << std::endl;
     }
 
-    // success &= measureTime([this]() { return generateVolumetricPointCloud(); }, "generateVolumetricPointCloud");
-    // success &= measureTime([this, resolution]() { return generateVoxelGrid(resolution); }, "generateVoxelGrid");
-    success &= measureTime([this, resolution]() { return generateOctoMap(resolution); }, "generateOctoMap");
+    success &= measureTime([this, resolution]() { return generateOctoMapFromMesh(resolution); }, "generateOctoMapFromMesh");
+    // success &= measureTime([this, resolution]() { return generateOctoMap(resolution); }, "generateOctoMap");
     success &= measureTime([this, resolution]() { return generateVolumetricOctoMap(resolution); }, "generateVolumetricOctoMap");
     success &= measureTime([this]() { return generateSurfaceShellOctomap(); }, "generateSurfaceShellOctomap");
     success &= measureTime([this, resolution]() { return convertVoxelGridToGPUFormat(resolution); }, "convertVoxelGridToGPUFormat");
-    success &= measureTime([this, resolution]() {
-        return generateExplorationMap(resolution, getMinBound(), getMaxBound());
-    }, "generateExplorationMap");
+    success &= measureTime([this, resolution]() { return generateExplorationMap(resolution, getMinBound(), getMaxBound()); }, "generateExplorationMap");
 
-     std::cout << "===================== MODEL LOADER COMPLETE ========================" << std::endl;
+    // std::cout << "===================== MODEL LOADER COMPLETE ========================" << std::endl;
 
     return success;
 }
-
 
 bool ModelLoader::generateExplorationStructures(int num_samples, int num_cells_per_side) {
     bool success = true;
 
     success &= initializeRaycastingScene();
     success &= generatePointCloud(num_samples); // Number of samples for the point cloud
-    success &= generateVolumetricPointCloud();
     success &= generateExplorationMap(num_cells_per_side, getMinBound(), getMaxBound());
 
     double resolution = getExplorationMapResolution();
     success &= generateOctoMap(resolution);
-    success &= generateVoxelGrid(resolution);
     success &= generateVolumetricOctoMap(resolution);
     success &= generateSurfaceShellOctomap();
-    std::cout << "SUCCESSFULLY" << std::endl;
+
     return success;
 }
 
@@ -147,16 +151,16 @@ bool ModelLoader::generatePointCloud(int numSamples) {
     }
 
     // Print some mesh data before running the Poisson sampler
-    std::cout << "Mesh Data Information:" << std::endl;
-    std::cout << "Number of Vertices: " << meshData_->vertices_.size() << std::endl;
-    std::cout << "Number of Triangles: " << meshData_->triangles_.size() << std::endl;
+    // std::cout << "Mesh Data Information:" << std::endl;
+    // std::cout << "Number of Vertices: " << meshData_->vertices_.size() << std::endl;
+    // std::cout << "Number of Triangles: " << meshData_->triangles_.size() << std::endl;
 
 
   
     // Generate point cloud using Poisson disk sampling from Open3D
     // std::cout << "Generating point cloud using Poisson disk sampling with " << numSamples << " samples..."  << std::endl;
     // std::shared_ptr<open3d::geometry::PointCloud> pcd = meshData_->SamplePointsPoissonDisk(numSamples, 5.0, nullptr, true);
-    std::cout << "Generating point cloud using Uniform sampling with " << numSamples << " samples..."  << std::endl;
+    // std::cout << "Generating point cloud using Uniform sampling with " << numSamples << " samples..."  << std::endl;
     std::shared_ptr<open3d::geometry::PointCloud> pcd = meshData_->SamplePointsUniformly(numSamples, true);
     // Check if the point cloud is generated successfully
     if (!pcd->HasPoints()) {
@@ -172,18 +176,18 @@ bool ModelLoader::generatePointCloud(int numSamples) {
 
 
     // Estimate normals for the point cloud
-    std::cout << "Generating normals..."  << std::endl ;
+    // std::cout << "Generating normals..."  << std::endl ;
     pcd->EstimateNormals(open3d::geometry::KDTreeSearchParamHybrid(averageSpacing * 5, 30));  // Adjust these parameters as needed
 
     // Correct oppositely oriented normals using signed distance
-    std::cout << "Correcting misaligned normals..."  << std::endl ;
+    // std::cout << "Correcting misaligned normals..."  << std::endl ;
     pcd = correctNormalsUsingSignedDistance(pcd, averageSpacing * 0.01);
 
 
     // Store the generated point cloud
     pointCloud_ = pcd;
 
-    std::cout << "Point cloud created successfully."  << std::endl ;
+    // std::cout << "Point cloud created successfully."  << std::endl ;
     
     return true;
 }
@@ -230,62 +234,6 @@ std::shared_ptr<open3d::geometry::PointCloud> ModelLoader::correctNormalsUsingSi
     return pointcloud;
 }
 
-bool ModelLoader::generateVolumetricPointCloud() {
-    // Ensure point cloud data is available
-    if (!pointCloud_) {
-        std::cerr << "Error: Point cloud data is not available." << std::endl;
-        return false;
-    }
-
-    // Ensure raycasting scene is initialized
-    if (!raycasting_scene_) {
-        std::cerr << "Error: Raycasting scene is not initialized." << std::endl;
-        return false;
-    }
-
-    // Get the average spacing from the existing point cloud
-    double spacing = getAverageSpacing();
-
-    // Get the bounding box of the mesh
-    octomap::point3d min_bound = getMinBound();
-    octomap::point3d max_bound = getMaxBound();
-
-    // Create a new point cloud
-    volumetricPointCloud_ = std::make_shared<open3d::geometry::PointCloud>();
-
-    // Prepare a vector to store the points to be evaluated
-    std::vector<float> points;
-
-    // Iterate through each point in the bounding box
-    for (double x = min_bound.x(); x <= max_bound.x(); x += spacing) {
-        for (double y = min_bound.y(); y <= max_bound.y(); y += spacing) {
-            for (double z = min_bound.z(); z <= max_bound.z(); z += spacing) {
-                points.push_back(static_cast<float>(x));
-                points.push_back(static_cast<float>(y));
-                points.push_back(static_cast<float>(z));
-            }
-        }
-    }
-
-    // Convert the points to a tensor
-    open3d::core::Tensor points_tensor(points, {static_cast<int64_t>(points.size() / 3), 3}, open3d::core::Dtype::Float32, open3d::core::Device("CPU:0"));
-
-    // Compute the signed distances for all points
-    open3d::core::Tensor sdf_values = raycasting_scene_->ComputeSignedDistance(points_tensor);
-
-    // Filter points with negative signed distance values
-    auto sdf_values_data = sdf_values.ToFlatVector<float>();
-    for (size_t i = 0; i < sdf_values_data.size(); ++i) {
-        if (sdf_values_data[i] < 0) {
-            volumetricPointCloud_->points_.emplace_back(points[3 * i], points[3 * i + 1], points[3 * i + 2]);
-        }
-    }
-
-    std::cout << "Volumetric point cloud created with " << volumetricPointCloud_->points_.size() << " points." << std::endl;
-
-    return true;
-}
-
 
 
 bool ModelLoader::generateVoxelGrid(double voxelSize){
@@ -302,7 +250,7 @@ bool ModelLoader::generateVoxelGrid(double voxelSize){
     }
 
     // Create a voxel grid representation of the object
-    std::cout << "Generating voxel grid with voxel size: " << voxelSize << "..." << std::endl;
+    // std::cout << "Generating voxel grid with voxel size: " << voxelSize << "..." << std::endl;
     voxelGrid_ = open3d::geometry::VoxelGrid::CreateFromPointCloud(*pointCloud_, voxelSize);
     // voxelGrid_ = open3d::geometry::VoxelGrid::CreateFromTriangleMesh(*meshData_, voxelSize);
     //number of vertices in the mesh
@@ -315,7 +263,7 @@ bool ModelLoader::generateVoxelGrid(double voxelSize){
         return false;
     }
 
-    std::cout << "Voxel grid generated successfully." << std::endl;
+    // std::cout << "Voxel grid generated successfully." << std::endl;
      
 
      // Print voxel grid details
@@ -323,20 +271,20 @@ bool ModelLoader::generateVoxelGrid(double voxelSize){
     auto maxBound = voxelGrid_->GetMaxBound();
     auto center = voxelGrid_->GetCenter();
     auto voxelCount = voxelGrid_->voxels_.size();
-    // Table header
-    std::cout << std::setw(40) << std::setfill('=') << "" << std::endl;
-    std::cout << std::setfill(' ') << std::left << std::setw(30) << "Voxel Grid Properties" << std::endl;
-    std::cout << std::setw(40) << std::setfill('=') << "" << std::setfill(' ') << std::endl;
+    // // Table header
+    // std::cout << std::setw(40) << std::setfill('=') << "" << std::endl;
+    // std::cout << std::setfill(' ') << std::left << std::setw(30) << "Voxel Grid Properties" << std::endl;
+    // std::cout << std::setw(40) << std::setfill('=') << "" << std::setfill(' ') << std::endl;
 
-    // Table content
-    std::cout << std::left << std::setw(25) << "Property" << std::setw(15) << "Value" << std::endl;
-    std::cout << std::setw(40) << std::setfill('-') << "" << std::setfill(' ') << std::endl;
-    std::cout << std::left << std::setw(25) << "Voxel Size:" << std::setw(15) << voxelSize << std::endl;
-    std::cout << std::left << std::setw(25) << "Voxel Count:" << std::setw(15) << voxelCount << std::endl;
-    std::cout << std::left << std::setw(25) << "Bounding Box Min:" << std::setw(15) << minBound.transpose() << std::endl;
-    std::cout << std::left << std::setw(25) << "Bounding Box Max:" << std::setw(15) << maxBound.transpose() << std::endl;
-    std::cout << std::left << std::setw(25) << "Bounding Box Center:" << std::setw(15) << center.transpose() << std::endl;
-    std::cout << std::setw(40) << std::setfill('=') << "" << std::setfill(' ') << std::endl;
+    // // Table content
+    // std::cout << std::left << std::setw(25) << "Property" << std::setw(15) << "Value" << std::endl;
+    // std::cout << std::setw(40) << std::setfill('-') << "" << std::setfill(' ') << std::endl;
+    // std::cout << std::left << std::setw(25) << "Voxel Size:" << std::setw(15) << voxelSize << std::endl;
+    // std::cout << std::left << std::setw(25) << "Voxel Count:" << std::setw(15) << voxelCount << std::endl;
+    // std::cout << std::left << std::setw(25) << "Bounding Box Min:" << std::setw(15) << minBound.transpose() << std::endl;
+    // std::cout << std::left << std::setw(25) << "Bounding Box Max:" << std::setw(15) << maxBound.transpose() << std::endl;
+    // std::cout << std::left << std::setw(25) << "Bounding Box Center:" << std::setw(15) << center.transpose() << std::endl;
+    // std::cout << std::setw(40) << std::setfill('=') << "" << std::setfill(' ') << std::endl;
 
     // Color the voxel grid in red
     for (auto& voxel_pair : voxelGrid_->voxels_) {
@@ -372,48 +320,64 @@ bool ModelLoader::generateOctoMap(double resolution) {
     // Update the inner occupancy of the octomap to ensure all nodes reflect occupancy changes
     octoMap_->updateInnerOccupancy();
 
-    std::cout << "Object octomap generated successfully." << std::endl;
+    // std::cout << "Object octomap generated successfully." << std::endl;
 
     return true;
 }
 
 
+bool ModelLoader::generateOctoMapFromMesh(double resolution) {
+    // Ensure mesh data is loaded
+    if (!meshData_) {
+        std::cerr << "Error: Mesh data is not loaded." << std::endl;
+        return false;
+    }
 
-// bool ModelLoader::generateVolumetricOctoMap(double resolution) {
-//     // Ensure volumetric point cloud data is available
-//     if (!volumetricPointCloud_) {
-//         std::cerr << "Error: Volumetric point cloud data is not available." << std::endl;
-//         return false;
-//     }
+    // Set resolution for the octomap if not specified
+    if (resolution <= 0.0) {
+       
 
-//     // If resolution is not provided or less than or equal to zero, set it to the default spacing
-//     if (resolution <= 0.0) {
-//         resolution = 10.0 * getAverageSpacing();
-//     }
+        // Get bounding box of the mesh
+        auto aabb = meshData_->GetAxisAlignedBoundingBox();
+        double extent_max = aabb.GetExtent().maxCoeff();  // Get the longest side of the bounding box
+        int voxel_count_target = 100;  // Target number of voxels per side for reasonable detail
 
-//     // Create an OctoMap with the specified resolution
-//     volumetricOctomap_ = std::make_shared<octomap::ColorOcTree>(resolution);
+        // Estimate resolution based on the longest side and target voxel count
+        resolution = extent_max / voxel_count_target;
+        
+        pointCloudSpacing_ = resolution;
 
-//     // Iterate through each point in the volumetric point cloud
-//     for (const auto& point : volumetricPointCloud_->points_) {
-//         // Update the OctoMap node at the point's location and set its color to a specific value (e.g., white)
-//         auto node = volumetricOctomap_->updateNode(
-//             octomap::point3d(point.x(), point.y(), point.z()), true
-//         );
-//         node->setColor(128, 128, 128);
-//         node->setLogOdds(octomap::logodds(1.0)); // Ensure the node is fully occupied
-//     }
+    }
 
-//     // Expand all nodes to the specified resolution
-//     volumetricOctomap_->expand();
+    // Create a voxel grid from the mesh
+    auto voxel_grid = open3d::geometry::VoxelGrid::CreateFromTriangleMesh(*meshData_, resolution);
+    if (!voxel_grid->HasVoxels()) {
+        std::cerr << "Error: Failed to generate voxel grid from mesh." << std::endl;
+        return false;
+    }
 
-//     // Update the inner occupancy of the OctoMap to ensure all nodes reflect occupancy changes
-//     volumetricOctomap_->updateInnerOccupancy();
+    // Initialize the octomap with the same resolution
+    octoMap_ = std::make_shared<octomap::ColorOcTree>(resolution);
 
-//     std::cout << "Volumetric OctoMap generated successfully." << std::endl;
+    // Iterate over each voxel in the voxel grid and add it to the octomap
+    for (const auto& voxel : voxel_grid->voxels_) {
+        // Get the voxel center as the insertion point in octomap
+        const auto& center = voxel_grid->GetVoxelCenterCoordinate(voxel.first);
+        octomap::point3d point(center.x(), center.y(), center.z());
 
-//     return true;
-// }
+        // Update node in octomap at voxel center and set it as occupied
+        auto node = octoMap_->updateNode(point, true);
+        node->setColor(255, 255, 255);  // Set color to white for visualization
+    }
+
+    // Update inner occupancy of the octomap for accurate occupancy reflections
+    octoMap_->updateInnerOccupancy();
+
+    // Optional: Log octomap generation
+    // std::cout << "Octomap generated from mesh with resolution: " << resolution << std::endl;
+
+    return true;
+}
 
 bool ModelLoader::generateVolumetricOctoMap(double resolution) {
     // Ensure raycasting scene and octoMap_ are initialized
@@ -470,7 +434,7 @@ bool ModelLoader::generateVolumetricOctoMap(double resolution) {
 
     // Update inner occupancy to finalize the octomap
     volumetricOctomap_->updateInnerOccupancy();
-    std::cout << "Volumetric OctoMap generated successfully." << std::endl;
+    // std::cout << "Volumetric OctoMap generated successfully." << std::endl;
 
     return true;
 }
@@ -529,8 +493,8 @@ bool ModelLoader::generateSurfaceShellOctomap() {
     // Store the surface shell octomap for further processing
     surfaceShellOctomap_ = surfaceShellOctomap;
 
-    std::cout << "Surface shell octomap (eroded voxels) generated successfully." << std::endl;
-    std::cout << "Number of voxels removed: " << removedVoxelCount << std::endl;
+    // std::cout << "Surface shell octomap (eroded voxels) generated successfully." << std::endl;
+    // std::cout << "Number of voxels removed: " << removedVoxelCount << std::endl;
 
     return true;
 }
@@ -573,7 +537,7 @@ bool ModelLoader::generateExplorationMap(double resolution, const octomap::point
     explorationMap_->updateInnerOccupancy();
 
 
-    std::cout << "Exploration map generated successfully." << std::endl;
+    // std::cout << "Exploration map generated successfully." << std::endl;
     
     return true;
 }
@@ -618,7 +582,7 @@ bool ModelLoader::generateExplorationMap(int num_cells_per_side, const octomap::
     // Update the inner occupancy of the exploration map to ensure all nodes reflect occupancy changes
     explorationMap_->updateInnerOccupancy();
 
-    std::cout << "Exploration map generated successfully." << std::endl;
+    // std::cout << "Exploration map generated successfully." << std::endl;
 
     return true;
 }
@@ -749,7 +713,7 @@ void ModelLoader::updateOctomapWithHits(const std::set<std::tuple<int, int, int>
  * 
  * @return True if the meta voxel map is generated successfully, false otherwise.
  */
-bool ModelLoader::generateMetaVoxelMap() {
+bool ModelLoader::generateVoxelMap() {
     if (!surfaceShellOctomap_) {
         std::cerr << "Error: Surface shell OctoMap is not available." << std::endl;
         return false;
@@ -771,7 +735,7 @@ bool ModelLoader::generateMetaVoxelMap() {
         }
     }
 
-    std::cout << "Meta voxel map generated successfully with " << meta_voxel_map_.size() << " voxels." << std::endl;
+    // std::cout << "Meta voxel map generated successfully with " << meta_voxel_map_.size() << " voxels." << std::endl;
     return true;
 }
 
@@ -783,7 +747,7 @@ bool ModelLoader::generateMetaVoxelMap() {
  * @param key The OctoMap key of the MetaVoxel to retrieve.
  * @return Pointer to the MetaVoxel if found, nullptr otherwise.
  */
-MetaVoxel* ModelLoader::getMetaVoxel(const octomap::OcTreeKey& key) {
+MetaVoxel* ModelLoader::getVoxel(const octomap::OcTreeKey& key) {
     return meta_voxel_map_.getMetaVoxel(key);
 }
 
@@ -795,7 +759,7 @@ MetaVoxel* ModelLoader::getMetaVoxel(const octomap::OcTreeKey& key) {
  * @param position The 3D position of the voxel.
  * @return Pointer to the MetaVoxel if found, nullptr otherwise.
  */
-MetaVoxel* ModelLoader::getMetaVoxel(const Eigen::Vector3d& position) {
+MetaVoxel* ModelLoader::getVoxel(const Eigen::Vector3d& position) {
     octomap::OcTreeKey key;
     if (surfaceShellOctomap_ && surfaceShellOctomap_->coordToKeyChecked(octomap::point3d(position.x(), position.y(), position.z()), key)) {
         return meta_voxel_map_.getMetaVoxel(key);
@@ -814,8 +778,8 @@ MetaVoxel* ModelLoader::getMetaVoxel(const Eigen::Vector3d& position) {
  * @param new_occupancy The new occupancy probability for the MetaVoxel.
  * @return True if the MetaVoxel is updated successfully, false otherwise.
  */
-bool ModelLoader::updateMetaVoxelOccupancy(const octomap::OcTreeKey& key, float new_occupancy) {
-    MetaVoxel* voxel = getMetaVoxel(key);
+bool ModelLoader::updateVoxelOccupancy(const octomap::OcTreeKey& key, float new_occupancy) {
+    MetaVoxel* voxel = getVoxel(key);
     if (voxel) {
         voxel->setOccupancy(new_occupancy);
         return true;
@@ -832,8 +796,8 @@ bool ModelLoader::updateMetaVoxelOccupancy(const octomap::OcTreeKey& key, float 
  * @param new_occupancy The new occupancy probability for the MetaVoxel.
  * @return True if the MetaVoxel is updated successfully, false otherwise.
  */
-bool ModelLoader::updateMetaVoxelOccupancy(const Eigen::Vector3d& position, float new_occupancy) {
-    MetaVoxel* voxel = getMetaVoxel(position);
+bool ModelLoader::updateVoxelOccupancy(const Eigen::Vector3d& position, float new_occupancy) {
+    MetaVoxel* voxel = getVoxel(position);
     if (voxel) {
         voxel->setOccupancy(new_occupancy);
         return true;
@@ -841,6 +805,13 @@ bool ModelLoader::updateMetaVoxelOccupancy(const Eigen::Vector3d& position, floa
     std::cerr << "MetaVoxel at the specified position not found." << std::endl;
     return false;
 }
+
+
+bool ModelLoader::addVoxelProperty(const std::string& property_name, const MetaVoxel::PropertyValue& initial_value) {
+    return meta_voxel_map_.setPropertyForAllVoxels(property_name, initial_value);
+}
+
+
 
 /**
  * @brief Set a custom property for a MetaVoxel identified by its OctoMap key.
@@ -852,7 +823,7 @@ bool ModelLoader::updateMetaVoxelOccupancy(const Eigen::Vector3d& position, floa
  * @param value The value to assign to the property.
  * @return True if the property is set successfully, false otherwise.
  */
-bool ModelLoader::setMetaVoxelProperty(const octomap::OcTreeKey& key, const std::string& property_name, const MetaVoxel::PropertyValue& value) {
+bool ModelLoader::setVoxelProperty(const octomap::OcTreeKey& key, const std::string& property_name, const MetaVoxel::PropertyValue& value) {
     return meta_voxel_map_.setMetaVoxelProperty(key, property_name, value);
 }
 
@@ -867,8 +838,8 @@ bool ModelLoader::setMetaVoxelProperty(const octomap::OcTreeKey& key, const std:
  * @param value The value to assign to the property.
  * @return True if the property is set successfully, false otherwise.
  */
-bool ModelLoader::setMetaVoxelProperty(const Eigen::Vector3d& position, const std::string& property_name, const MetaVoxel::PropertyValue& value) {
-    MetaVoxel* voxel = getMetaVoxel(position);
+bool ModelLoader::setVoxelProperty(const Eigen::Vector3d& position, const std::string& property_name, const MetaVoxel::PropertyValue& value) {
+    MetaVoxel* voxel = getVoxel(position);
     if (voxel) {
         voxel->setProperty(property_name, value);
         return true;
@@ -886,7 +857,7 @@ bool ModelLoader::setMetaVoxelProperty(const Eigen::Vector3d& position, const st
  * @param property_name The name of the property to retrieve.
  * @return The value of the property if found, throws runtime_error if the MetaVoxel or property is not found.
  */
-MetaVoxel::PropertyValue ModelLoader::getMetaVoxelProperty(const octomap::OcTreeKey& key, const std::string& property_name) const {
+MetaVoxel::PropertyValue ModelLoader::getVoxelProperty(const octomap::OcTreeKey& key, const std::string& property_name) const {
     return meta_voxel_map_.getMetaVoxelProperty(key, property_name);
 }
 
@@ -899,7 +870,7 @@ MetaVoxel::PropertyValue ModelLoader::getMetaVoxelProperty(const octomap::OcTree
  * @param property_name The name of the property to retrieve.
  * @return The value of the property if found, throws runtime_error if the MetaVoxel or property is not found.
  */
-MetaVoxel::PropertyValue ModelLoader::getMetaVoxelProperty(const Eigen::Vector3d& position, const std::string& property_name) const {
+MetaVoxel::PropertyValue ModelLoader::getVoxelProperty(const Eigen::Vector3d& position, const std::string& property_name) const {
     octomap::OcTreeKey key;
     if (surfaceShellOctomap_ && surfaceShellOctomap_->coordToKeyChecked(octomap::point3d(position.x(), position.y(), position.z()), key)) {
         return meta_voxel_map_.getMetaVoxelProperty(key, property_name);

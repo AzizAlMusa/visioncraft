@@ -50,6 +50,21 @@ public:
      */
     MetaVoxel* getMetaVoxel(const octomap::OcTreeKey& key);
 
+
+    /**
+     * @brief Set a specified property for all MetaVoxel instances within the map.
+     * 
+     * This function iterates over each MetaVoxel in the internal map and assigns the specified 
+     * property with the provided value. It ensures that each voxel has the same property, which 
+     * can be useful for initializing or updating attributes uniformly across all voxels.
+     * 
+     * @param property_name The name of the property to set for each MetaVoxel (e.g., "temperature").
+     * @param value The value to assign to the property for all MetaVoxels, utilizing the PropertyValue type.
+     * @return True if the property is successfully set for all MetaVoxels, false if the map is empty or operation fails.
+     */
+    bool setPropertyForAllVoxels(const std::string& property_name, const MetaVoxel::PropertyValue& value);
+
+
     /**
      * @brief Set a custom property for a specific MetaVoxel.
      * 

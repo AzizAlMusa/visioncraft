@@ -393,7 +393,7 @@ void Visualizer::addOctomap(const visioncraft::ModelLoader& modelLoader, const E
             colors->InsertNextTypedTuple(voxelColor);
         }
     }
-    std::cout << "[INFO] Number of occupied voxels: " << voxelCount << std::endl;
+    // std::cout << "[INFO] Number of occupied voxels: " << voxelCount << std::endl;
 
     vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
     polyData->SetPoints(points);
@@ -428,7 +428,7 @@ void Visualizer::addOctomap(const visioncraft::ModelLoader& modelLoader, const E
     renderer->AddActor(octomapActor);
 
 
-    std::cout << "[INFO] Octomap visualization complete." << std::endl;
+    // std::cout << "[INFO] Octomap visualization complete." << std::endl;
 }
 
 
@@ -493,7 +493,7 @@ void Visualizer::showGPUVoxelGrid(const visioncraft::ModelLoader& modelLoader, c
     // Add the voxel actor to the renderer
     renderer->AddActor(voxelActor);
 
-    std::cout << "[INFO] VoxelGridGPU visualization added to renderer." << std::endl;
+    // std::cout << "[INFO] VoxelGridGPU visualization added to renderer." << std::endl;
 }
 
 

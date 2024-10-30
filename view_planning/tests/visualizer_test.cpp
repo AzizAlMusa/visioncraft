@@ -36,14 +36,14 @@ void runModelLoaderMetaVoxelMapTests() {
     }
 
     // Generate the meta voxel map from the surface shell octomap
-    if (!model_loader.generateMetaVoxelMap()) {
+    if (!model_loader.generateVoxelMap()) {
         std::cerr << "Failed to generate meta voxel map." << std::endl;
         return;
     }
 
     // Select a sample key (this assumes the map has been populated)
     auto sample_key = model_loader.getSurfaceShellOctomap()->begin_leafs().getKey();
-    visioncraft::MetaVoxel* meta_voxel = model_loader.getMetaVoxel(sample_key);
+    visioncraft::MetaVoxel* meta_voxel = model_loader.getVoxel(sample_key);
 
     if (meta_voxel) {
         // Output initial state of the MetaVoxel
@@ -52,27 +52,48 @@ void runModelLoaderMetaVoxelMapTests() {
         std::cout << "  Occupancy: " << meta_voxel->getOccupancy() << std::endl;
 
         // Update occupancy and check result
-        model_loader.updateMetaVoxelOccupancy(sample_key, 0.8f);
+        model_loader.updateVoxelOccupancy(sample_key, 0.8f);
         std::cout << "Updated occupancy to 0.8 for MetaVoxel." << std::endl;
         std::cout << "  New Occupancy: " << meta_voxel->getOccupancy() << std::endl;
 
         // Set the "temperature" property and then retrieve it
-        model_loader.setMetaVoxelProperty(sample_key, "temperature", 22.5f);
-        float temperature = boost::get<float>(model_loader.getMetaVoxelProperty(sample_key, "temperature"));
+        model_loader.setVoxelProperty(sample_key, "temperature", 22.5f);
+        float temperature = boost::get<float>(model_loader.getVoxelProperty(sample_key, "temperature"));
         std::cout << "Set custom property 'temperature' to 22.5." << std::endl;
         std::cout << "  Retrieved Temperature: " << temperature << std::endl;
 
         // Set another custom property (e.g., "pressure") and retrieve it
-        model_loader.setMetaVoxelProperty(sample_key, "pressure", 101.3f);
-        float pressure = boost::get<float>(model_loader.getMetaVoxelProperty(sample_key, "pressure"));
+        model_loader.setVoxelProperty(sample_key, "pressure", 101.3f);
+        float pressure = boost::get<float>(model_loader.getVoxelProperty(sample_key, "pressure"));
         std::cout << "Set custom property 'pressure' to 101.3." << std::endl;
         std::cout << "  Retrieved Pressure: " << pressure << std::endl;
 
         // Attempt to retrieve a non-existing property to test error handling
         try {
-            auto nonexistent = model_loader.getMetaVoxelProperty(sample_key, "nonexistent_property");
+            auto nonexistent = model_loader.getVoxelProperty(sample_key, "nonexistent_property");
         } catch (const std::runtime_error& e) {
             std::cerr << "Expected error for non-existing property: " << e.what() << std::endl;
+        }
+
+        // Set a property for all voxels and check initialization
+        std::string property_name = "initialized_property";
+        float initial_value = 1.0f;
+        model_loader.addVoxelProperty(property_name, initial_value); // Initialize property for all voxels
+
+        bool all_initialized = true;
+        const auto& voxel_map = model_loader.getVoxelMap().getMap();
+
+        for (const auto& item : voxel_map) {
+            const visioncraft::MetaVoxel& voxel = item.second;
+            if (!voxel.hasProperty(property_name)) {
+                all_initialized = false;
+                std::cerr << "Voxel at position " << voxel.getPosition().transpose() 
+                          << " is missing the '" << property_name << "' property." << std::endl;
+            }
+        }
+
+        if (all_initialized) {
+            std::cout << "All voxels have the '" << property_name << "' property initialized to " << initial_value << "." << std::endl;
         }
     } else {
         std::cerr << "Failed to retrieve MetaVoxel for the provided key." << std::endl;
@@ -193,7 +214,6 @@ int main() {
     // Get the total voxels hit by all viewpoints and print it
     // std::cout << "Total unique voxels hit by all viewpoints: " << unique_hits.size() << std::endl;
 
-    
     
     // Visualize raycasting results
     // visualizer.showViewpointHits(modelLoader.getOctomap());
