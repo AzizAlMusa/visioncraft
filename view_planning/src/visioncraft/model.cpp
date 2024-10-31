@@ -718,7 +718,10 @@ void Model::updateVoxelGridFromHits(const std::set<std::tuple<int, int, int>>& u
  */
 void Model::updateOctomapWithHits(const std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash>& octree_hits) {
     
-    for (const auto& [key, hit] : octree_hits) {
+    for (const auto& pair : octree_hits) {
+        const octomap::OcTreeKey& key = pair.first;
+        bool hit = pair.second;
+        
         if (hit) {  // Only update for hit voxels (true values)
             // Update the voxel in the OctoMap and set its color to green (0, 255, 0)
             octomap::ColorOcTreeNode* node = surfaceShellOctomap_->updateNode(surfaceShellOctomap_->keyToCoord(key), true);

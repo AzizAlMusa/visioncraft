@@ -54,6 +54,7 @@ include_directories(
   "/home/abdulaziz/playground/open3d/env/lib/python3.6/site-packages/pybind11/include"
   include
   include/visioncraft
+  "src/visioncraft/bindings" 
 )
 
 # Custom target for dependencies
@@ -90,7 +91,8 @@ add_executable(visualizer_test tests/visualizer_test.cpp)
 target_link_libraries(visualizer_test PRIVATE visioncraft_lib project_dependencies)
 
 # Python bindings for visioncraft_py, linking with visioncraft_lib and project_dependencies
-pybind11_add_module(visioncraft_py src/visioncraft/bindings.cpp)
+pybind11_add_module(visioncraft_py src/visioncraft/bindings/bindings.cpp)
+
 target_link_libraries(visioncraft_py PRIVATE visioncraft_lib project_dependencies ${PYTHON_LIBRARIES})
 # Ensure output is placed in the correct folder for Python import with .so extension
 set_target_properties(visioncraft_py PROPERTIES

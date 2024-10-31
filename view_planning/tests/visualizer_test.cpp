@@ -28,7 +28,9 @@ void updateVoxelMapVisibility(
     const std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash>& octree_hits, 
     visioncraft::Model& model) {
     
-    for (const auto& [key, hit] : octree_hits) {
+    for (const auto& pair : octree_hits) {
+        const octomap::OcTreeKey& key = pair.first;
+        bool hit = pair.second;
 
         if (!hit) continue;  // Skip if voxel wasn't hit
 
@@ -36,19 +38,16 @@ void updateVoxelMapVisibility(
         visioncraft::MetaVoxel* meta_voxel = model.getVoxel(key);
 
         if (meta_voxel) {
-
             // Verify and update the visibility property
             int visibility = boost::get<int>(meta_voxel->getProperty("visibility")) + 1;
             meta_voxel->setProperty("visibility", visibility);
-    
         } else {
-
             std::cerr << "No MetaVoxel found for key (" 
                       << key.k[0] << ", " << key.k[1] << ", " << key.k[2] << ")" << std::endl;
-
         }
     }
 }
+
 
 // Function to generate random positions at a given radius
 std::vector<Eigen::Vector3d> generateRandomPositions(int n, double radius) {
