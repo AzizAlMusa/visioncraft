@@ -84,6 +84,17 @@ PYBIND11_MODULE(visioncraft_py, m) {
 
         // GPU voxel grid functions
         .def("convertVoxelGridToGPUFormat", &visioncraft::Model::convertVoxelGridToGPUFormat)
+        // Bind convertGPUHitsToOctreeKeys
+        .def("convertGPUHitsToOctreeKeys", [](const visioncraft::Model& self, const std::set<std::tuple<int, int, int>>& unique_hit_voxels) {
+            auto octree_hits = self.convertGPUHitsToOctreeKeys(unique_hit_voxels);
+
+            // Convert the unordered_map of OcTreeKeys to a Python dictionary
+            py::dict hits_dict;
+            for (auto it = octree_hits.begin(); it != octree_hits.end(); ++it) {
+                hits_dict[keyToTuple(it->first)] = it->second;
+            }
+            return hits_dict;
+        }, py::arg("unique_hit_voxels"))
         .def("getGPUVoxelGrid", &visioncraft::Model::getGPUVoxelGrid)
         .def("updateVoxelGridFromHits", &visioncraft::Model::updateVoxelGridFromHits)
         .def("updateOctomapWithHits", &visioncraft::Model::updateOctomapWithHits)
@@ -207,7 +218,8 @@ PYBIND11_MODULE(visioncraft_py, m) {
             } else {
                 throw std::runtime_error("Unsupported property type.");
             }
-        }, py::arg("position"), py::arg("property_name"));
+        }, py::arg("position"), py::arg("property_name"))
+        .def("getVoxelMap", &visioncraft::Model::getVoxelMap, py::return_value_policy::reference);
 
 
 
@@ -226,9 +238,143 @@ PYBIND11_MODULE(visioncraft_py, m) {
     // Expose the Viewpoint class to Python
     py::class_<visioncraft::Viewpoint>(m, "Viewpoint")
         .def(py::init<>())  // Default constructor
-        .def(py::init<const Eigen::Vector3d&, const Eigen::Matrix3d&, double, double, int, int, double, double>())
-        .def(py::init<const Eigen::VectorXd&, double, double, int, int, double, double>())
-        .def(py::init<const Eigen::Vector3d&, const Eigen::Vector3d&, const Eigen::Vector3d&, double, double, int, int, double, double>())
+        // Primary constructor with position and orientation
+        .def(py::init([](py::array_t<double> position, py::array_t<double> orientation,
+                         double near = 350.0, double far = 900.0,
+                         int resolution_width = 2448, int resolution_height = 2048,
+                         double hfov = 44.8, double vfov = 42.6) {
+            // Check shapes for position (1D, shape [3]) and orientation (2D, shape [3, 3])
+            if (position.ndim() != 1 || position.shape(0) != 3) {
+                throw std::invalid_argument("Position must be a 1D array with shape (3,)");
+            }
+            if (orientation.ndim() != 2 || orientation.shape(0) != 3 || orientation.shape(1) != 3) {
+                throw std::invalid_argument("Orientation must be a 2D array with shape (3, 3)");
+            }
+
+            // Copy position and orientation data to Eigen types
+            Eigen::Vector3d pos;
+            std::memcpy(pos.data(), position.data(), 3 * sizeof(double));
+            Eigen::Matrix3d orient;
+            std::memcpy(orient.data(), orientation.data(), 9 * sizeof(double));
+
+            // Initialize and return the Viewpoint instance
+            return visioncraft::Viewpoint(pos, orient, near, far, resolution_width, resolution_height, hfov, vfov);
+        }), py::arg("position"), py::arg("orientation"),
+           py::arg("near") = 350.0, py::arg("far") = 900.0,
+           py::arg("resolution_width") = 2448, py::arg("resolution_height") = 2048,
+           py::arg("hfov") = 44.8, py::arg("vfov") = 42.6)
+
+        // Second Constructor with combined position and Euler angles
+        .def(py::init([](py::array_t<double> position_yaw_pitch_roll,
+                        double near = 350.0, double far = 900.0,
+                        int resolution_width = 2448, int resolution_height = 2048,
+                        double hfov = 44.8, double vfov = 42.6) {
+            if (position_yaw_pitch_roll.ndim() != 1 || position_yaw_pitch_roll.size() != 6) {
+                throw std::invalid_argument("Position with yaw, pitch, and roll must be a 1D array with 6 elements.");
+            }
+
+            Eigen::VectorXd pos_ypr(6);
+            std::memcpy(pos_ypr.data(), position_yaw_pitch_roll.data(), 6 * sizeof(double));
+            
+            return visioncraft::Viewpoint(pos_ypr, near, far, resolution_width, resolution_height, hfov, vfov);
+        }), py::arg("position_yaw_pitch_roll"),
+            py::arg("near") = 350.0, py::arg("far") = 900.0,
+            py::arg("resolution_width") = 2448, py::arg("resolution_height") = 2048,
+            py::arg("hfov") = 44.8, py::arg("vfov") = 42.6)
+        
+        // Class method to create with Position and Euler Angles
+        .def_static("from_euler", [](py::array_t<double> position_yaw_pitch_roll,
+                                                double near = 350.0, double far = 900.0,
+                                                int resolution_width = 2448, int resolution_height = 2048,
+                                                double hfov = 44.8, double vfov = 42.6) {
+                if (position_yaw_pitch_roll.ndim() != 1 || position_yaw_pitch_roll.size() != 6) {
+                    throw std::invalid_argument("Position with yaw, pitch, and roll must be a 1D array with 6 elements.");
+                }
+                Eigen::VectorXd pos_ypr(6);
+                std::memcpy(pos_ypr.data(), position_yaw_pitch_roll.data(), 6 * sizeof(double));
+                
+                // Convert Euler angles to orientation matrix
+                Eigen::Vector3d pos = pos_ypr.head<3>();
+                Eigen::Vector3d euler = pos_ypr.tail<3>();
+                Eigen::Matrix3d orientation = (Eigen::AngleAxisd(euler[2], Eigen::Vector3d::UnitZ()) *
+                                Eigen::AngleAxisd(euler[1], Eigen::Vector3d::UnitY()) *
+                                Eigen::AngleAxisd(euler[0], Eigen::Vector3d::UnitX()))
+                                .toRotationMatrix();
+
+                
+                return visioncraft::Viewpoint(pos, orientation, near, far, resolution_width, resolution_height, hfov, vfov);
+            }, py::arg("position_yaw_pitch_roll"), py::arg("near") = 350.0, py::arg("far") = 900.0,
+            py::arg("resolution_width") = 2448, py::arg("resolution_height") = 2048,
+            py::arg("hfov") = 44.8, py::arg("vfov") = 42.6)
+
+        .def_static("from_lookat",
+            [](py::array_t<double> position, py::array_t<double> lookAt, 
+            py::array_t<double> up = py::none(),
+            double near = 350.0, double far = 900.0,
+            int resolution_width = 2448, int resolution_height = 2048,
+            double hfov = 44.8, double vfov = 42.6) {
+
+                // Validate shapes of position and lookAt arrays
+                if (position.ndim() != 1 || position.shape(0) != 3) {
+                    throw std::invalid_argument("Position must be a 1D array with shape (3,)");
+                }
+                if (lookAt.ndim() != 1 || lookAt.shape(0) != 3) {
+                    throw std::invalid_argument("LookAt must be a 1D array with shape (3,)");
+                }
+
+                // Initialize default up vector to -UnitZ if not provided
+                Eigen::Vector3d up_vec = -Eigen::Vector3d::UnitZ();
+                if (!up.is_none() && up.ndim() == 1 && up.shape(0) == 3) {
+                    std::memcpy(up_vec.data(), up.data(), 3 * sizeof(double));
+                }
+
+                // Copy data from numpy arrays to Eigen vectors
+                Eigen::Vector3d pos, look_at;
+                std::memcpy(pos.data(), position.data(), 3 * sizeof(double));
+                std::memcpy(look_at.data(), lookAt.data(), 3 * sizeof(double));
+
+                // Construct and return the Viewpoint object
+                return visioncraft::Viewpoint(pos, look_at, up_vec, near, far, resolution_width, resolution_height, hfov, vfov);
+            },
+            py::arg("position"), py::arg("lookAt"), py::arg("up") = py::none(),
+            py::arg("near") = 350.0, py::arg("far") = 900.0,
+            py::arg("resolution_width") = 2448, py::arg("resolution_height") = 2048,
+            py::arg("hfov") = 44.8, py::arg("vfov") = 42.6)
+
+
+
+
+        .def("setPosition", &visioncraft::Viewpoint::setPosition)
+        .def("getPosition", &visioncraft::Viewpoint::getPosition)
+        .def("setOrientation", py::overload_cast<const Eigen::Matrix3d&>(&visioncraft::Viewpoint::setOrientation))
+        .def("setLookAt", &visioncraft::Viewpoint::setLookAt)
+        .def("getOrientationMatrix", &visioncraft::Viewpoint::getOrientationMatrix)
+        .def("getOrientationQuaternion", [](const visioncraft::Viewpoint& self) {
+            Eigen::Quaterniond quat = self.getOrientationQuaternion();
+            py::array_t<double> result({4});
+            auto r = result.mutable_unchecked<1>();
+            r(0) = quat.w();
+            r(1) = quat.x();
+            r(2) = quat.y();
+            r(3) = quat.z();
+            return result;
+        })
+        // Additional methods for Viewpoint
+        .def("setPosition", &visioncraft::Viewpoint::setPosition)
+        .def("getPosition", &visioncraft::Viewpoint::getPosition)
+        .def("setOrientation", py::overload_cast<const Eigen::Matrix3d&>(&visioncraft::Viewpoint::setOrientation))
+        .def("setLookAt", &visioncraft::Viewpoint::setLookAt)
+        .def("getOrientationMatrix", &visioncraft::Viewpoint::getOrientationMatrix)
+        .def("getOrientationQuaternion", [](const visioncraft::Viewpoint& self) {
+            Eigen::Quaterniond quat = self.getOrientationQuaternion();
+            py::array_t<double> result({4});
+            auto r = result.mutable_unchecked<1>();
+            r(0) = quat.w();
+            r(1) = quat.x();
+            r(2) = quat.y();
+            r(3) = quat.z();
+            return result;
+        })
         .def("setPosition", &visioncraft::Viewpoint::setPosition)
         .def("getPosition", &visioncraft::Viewpoint::getPosition)
         .def("setOrientation", py::overload_cast<const Eigen::Matrix3d&>(&visioncraft::Viewpoint::setOrientation))
@@ -303,7 +449,16 @@ PYBIND11_MODULE(visioncraft_py, m) {
 
             return py_result;
         })
-        .def("performRaycastingOnGPU", &visioncraft::Viewpoint::performRaycastingOnGPU);
+        .def("performRaycastingOnGPU", [](visioncraft::Viewpoint& self, const visioncraft::Model& model) {
+            auto hits_map = self.performRaycastingOnGPU(model);
+
+            // Convert the unordered_map of OcTreeKeys to a Python dictionary
+            py::dict hits_dict;
+            for (auto it = hits_map.begin(); it != hits_map.end(); ++it) {
+                hits_dict[keyToTuple(it->first)] = it->second;
+            }
+            return hits_dict;
+        }, py::arg("model"));
 
 
         // Expose the Visualizer class to Python
@@ -318,6 +473,13 @@ PYBIND11_MODULE(visioncraft_py, m) {
             .def("addMesh", &visioncraft::Visualizer::addMesh)
             .def("addPointCloud", &visioncraft::Visualizer::addPointCloud)
             .def("addOctomap", &visioncraft::Visualizer::addOctomap, py::arg("model"), py::arg("color") = Eigen::Vector3d(-1, -1, -1))
+            .def("addVoxelMap", &visioncraft::Visualizer::addVoxelMap,
+                py::arg("model"), py::arg("defaultColor") = Eigen::Vector3d(0.0, 0.0, 1.0))
+            .def("addVoxelMapProperty", &visioncraft::Visualizer::addVoxelMapProperty,
+                py::arg("model"), py::arg("property_name"),
+                py::arg("baseColor") = Eigen::Vector3d(0.0, 1.0, 0.0),
+                py::arg("propertyColor") = Eigen::Vector3d(1.0, 1.0, 1.0),
+                py::arg("minScale") = -1.0, py::arg("maxScale") = -1.0)
             .def("showGPUVoxelGrid", &visioncraft::Visualizer::showGPUVoxelGrid, py::arg("model"), py::arg("color") = Eigen::Vector3d(1, 0, 0))
             .def("setBackgroundColor", &visioncraft::Visualizer::setBackgroundColor)
             .def("setViewpointFrustumColor", &visioncraft::Visualizer::setViewpointFrustumColor)
@@ -403,6 +565,16 @@ PYBIND11_MODULE(visioncraft_py, m) {
                 );
                 return self.setMetaVoxel(octomap_key, meta_voxel);
             }, "Insert or update a MetaVoxel in the map using an OctoMap key.")
+
+            // Add the getMap function to provide direct access to the internal map
+            .def("getMap", [](visioncraft::MetaVoxelMap &self) -> py::dict {
+                py::dict map_dict;
+                for (auto& pair : self.getMap()) {
+                    py::tuple key = py::make_tuple(pair.first.k[0], pair.first.k[1], pair.first.k[2]);
+                    map_dict[key] = pair.second;  // Assume MetaVoxel is already exposed as a Python class
+                }
+                return map_dict;
+            }, "Retrieve the internal meta voxel map as a Python dictionary.")
             
             .def("getMetaVoxel", [](visioncraft::MetaVoxelMap &self, py::tuple key) -> visioncraft::MetaVoxel* {
                 if (key.size() != 3) throw std::runtime_error("Key tuple must have exactly 3 elements.");

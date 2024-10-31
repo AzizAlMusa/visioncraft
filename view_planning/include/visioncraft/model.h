@@ -315,6 +315,21 @@ public:
     const VoxelGridGPU& getGPUVoxelGrid() const { return gpu_voxel_grid_; }
 
     /**
+     * @brief Convert hit voxels from GPU format to OctoMap format.
+     * 
+     * This function takes a set of hit voxel indices (x, y, z) from the GPU raycasting results,
+     * converts each index into world coordinates, and then generates an OctoMap key for each
+     * voxel. The resulting map has keys representing each voxel's OctoMap coordinates and
+     * a value of `true` to indicate that the voxel was hit.
+     * 
+     * @param unique_hit_voxels A set of 3D voxel indices (x, y, z) representing hit voxels.
+     * @return A map where the key is the voxel key (octomap::OcTreeKey), and the value is a boolean indicating if the voxel was hit.
+     */
+    std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> convertGPUHitsToOctreeKeys(
+        const std::set<std::tuple<int, int, int>>& unique_hit_voxels) const;
+
+
+    /**
      * @brief Update the voxel grid based on the hit voxels.
      * 
      * This function takes a set of 3D voxel indices (x, y, z) representing hit voxels and
@@ -325,14 +340,16 @@ public:
     void updateVoxelGridFromHits(const std::set<std::tuple<int, int, int>>& unique_hit_voxels);
 
     /**
-     * @brief Update the OctoMap based on the hit voxels.
+     * @brief Update the OctoMap based on precomputed octree hit keys.
      * 
-     * This function takes a set of 3D voxel indices (x, y, z), converts them to world coordinates,
-     * and updates the corresponding voxels in the OctoMap to have a green color (0, 255, 0).
+     * This function takes a map of OctoMap keys representing hit voxels and
+     * updates the corresponding voxels in the OctoMap to have a green color (0, 255, 0).
      * 
-     * @param unique_hit_voxels A set of 3D voxel indices (x, y, z) representing hit voxels.
+     * @param octree_hits A map where the key is the OctoMap voxel key (octomap::OcTreeKey),
+     * and the value is a boolean indicating if the voxel was hit.
      */
-    void updateOctomapWithHits(const std::set<std::tuple<int, int, int>>& unique_hit_voxels);
+    void updateOctomapWithHits(const std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash>& octree_hits);
+
 
     /**
      * @brief Generate a map of MetaVoxel instances by copying the structure from the surface shell octomap.

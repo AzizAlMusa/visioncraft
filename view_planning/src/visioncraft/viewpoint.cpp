@@ -289,7 +289,7 @@ void launchGenerateRaysOnGPU(const float* position, const float* forward, const 
                              float near_plane, float far_plane,
                              const VoxelGridGPU& voxelGridGPU, int3* host_hit_voxels, unsigned int& host_hit_count);
 
-std::set<std::tuple<int, int, int>> Viewpoint::performRaycastingOnGPU(const Model& model) {
+std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> Viewpoint::performRaycastingOnGPU(const Model& model) {
 
     // Fetch the VoxelGridGPU from the model loader
     const VoxelGridGPU& voxelGridGPU = model.getGPUVoxelGrid();
@@ -349,20 +349,18 @@ std::set<std::tuple<int, int, int>> Viewpoint::performRaycastingOnGPU(const Mode
 
     // std::cout << "Total unique hit voxels: " << unique_hit_voxels.size() << std::endl;
 
-
-
     // Free allocated memory
     delete[] host_hit_voxels;
 
     // End total function timer
-   
 
     // Since we're not transferring rays back, we can return an empty vector or regenerate rays if needed
-    std::vector<Eigen::Vector3d> rays;  // Empty vector in this case
+    std::vector<Eigen::Vector3d> rays; // Empty vector in this case
 
-    GPU_hits_ = unique_hit_voxels;  // Store the hit voxels in the member variable
+    GPU_hits_ = unique_hit_voxels; // Store the hit voxels in the member variable
+    hits_ = model.convertGPUHitsToOctreeKeys(unique_hit_voxels);  // Convert hit voxels to OctoMap format
 
-    return unique_hit_voxels;
+    return hits_;
 }
 
 /**

@@ -115,7 +115,7 @@ MetaVoxel::PropertyValue MetaVoxelMap::getMetaVoxelProperty(const octomap::OcTre
  */
 void MetaVoxelMap::clear() {
     meta_voxel_map_.clear();
-    std::cout << "MetaVoxelMap cleared." << std::endl;
+   
 }
 
 /**

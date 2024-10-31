@@ -644,6 +644,44 @@ bool Model::convertVoxelGridToGPUFormat(double voxelSize) {
 
 
 /**
+ * @brief Convert hit voxels from GPU format to OctoMap format.
+ * 
+ * This function takes a set of hit voxel indices (x, y, z) from the GPU raycasting results,
+ * converts each index into world coordinates, and then generates an OctoMap key for each
+ * voxel. The resulting map has keys representing each voxel's OctoMap coordinates and
+ * a value of `true` to indicate that the voxel was hit.
+ * 
+ * @param unique_hit_voxels A set of 3D voxel indices (x, y, z) representing hit voxels.
+ * @return A map where the key is the voxel key (octomap::OcTreeKey), and the value is a boolean indicating if the voxel was hit.
+ */
+std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> Model::convertGPUHitsToOctreeKeys(
+    const std::set<std::tuple<int, int, int>>& unique_hit_voxels) const {
+    
+    // Initialize the result map
+    std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> octree_hits;
+
+    for (const auto& voxel_idx : unique_hit_voxels) {
+        int x = std::get<0>(voxel_idx);
+        int y = std::get<1>(voxel_idx);
+        int z = std::get<2>(voxel_idx);
+
+        // Calculate the world coordinates of the voxel center
+        double x_world = minBound_.x() + x * voxel_size_;
+        double y_world = minBound_.y() + y * voxel_size_;
+        double z_world = minBound_.z() + z * voxel_size_;
+
+        // Convert world coordinates to OctoMap's OcTreeKey
+        octomap::point3d world_point(x_world, y_world, z_world);
+        octomap::OcTreeKey key = surfaceShellOctomap_->coordToKey(world_point);
+
+        // Insert into the map with a value of true (indicating hit)
+        octree_hits[key] = true;
+    }
+
+    return octree_hits;
+}
+
+/**
  * @brief Update the voxel grid based on the hit voxels.
  * 
  * This function takes a set of 3D voxel indices (x, y, z) representing hit voxels and
@@ -670,31 +708,25 @@ void Model::updateVoxelGridFromHits(const std::set<std::tuple<int, int, int>>& u
 }
 
 /**
- * @brief Update the OctoMap based on the hit voxels.
+ * @brief Update the OctoMap based on precomputed octree hit keys.
  * 
- * This function takes a set of 3D voxel indices (x, y, z), converts them to world coordinates,
- * and updates the corresponding voxels in the OctoMap to have a green color (0, 255, 0).
+ * This function takes a map of OctoMap keys representing hit voxels and
+ * updates the corresponding voxels in the OctoMap to have a green color (0, 255, 0).
  * 
- * @param unique_hit_voxels A set of 3D voxel indices (x, y, z) representing hit voxels.
+ * @param octree_hits A map where the key is the OctoMap voxel key (octomap::OcTreeKey),
+ * and the value is a boolean indicating if the voxel was hit.
  */
-void Model::updateOctomapWithHits(const std::set<std::tuple<int, int, int>>& unique_hit_voxels) {
-    for (const auto& voxel_idx : unique_hit_voxels) {
-        int x = std::get<0>(voxel_idx);
-        int y = std::get<1>(voxel_idx);
-        int z = std::get<2>(voxel_idx);
-
-        // Calculate the world coordinates of the voxel center
-        double x_world = gpu_voxel_grid_.min_bound[0] + x * gpu_voxel_grid_.voxel_size;
-        double y_world = gpu_voxel_grid_.min_bound[1] + y * gpu_voxel_grid_.voxel_size;
-        double z_world = gpu_voxel_grid_.min_bound[2] + z * gpu_voxel_grid_.voxel_size;
-
-        // Update the voxel in the OctoMap and set its color to green (0, 255, 0)
-        octomap::ColorOcTreeNode* node = surfaceShellOctomap_->updateNode(octomap::point3d(x_world, y_world, z_world), true);
-        if (node) {
-            // std::cout << "Updating OctoMap node at (" << x_world << ", " << y_world << ", " << z_world << ")" << std::endl;
-            node->setColor(0, 255, 0);  // Green color for hit voxels
-        } else {
-            std::cerr << "Error: Failed to update OctoMap node!" << std::endl;
+void Model::updateOctomapWithHits(const std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash>& octree_hits) {
+    
+    for (const auto& [key, hit] : octree_hits) {
+        if (hit) {  // Only update for hit voxels (true values)
+            // Update the voxel in the OctoMap and set its color to green (0, 255, 0)
+            octomap::ColorOcTreeNode* node = surfaceShellOctomap_->updateNode(surfaceShellOctomap_->keyToCoord(key), true);
+            if (node) {
+                node->setColor(0, 255, 0);  // Green color for hit voxels
+            } else {
+                std::cerr << "Error: Failed to update OctoMap node!" << std::endl;
+            }
         }
     }
 }

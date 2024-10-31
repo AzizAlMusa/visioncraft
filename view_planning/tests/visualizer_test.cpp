@@ -24,52 +24,28 @@ VTK_MODULE_INIT(vtkInteractionStyle);
 
 #include <random>
 
-/**
- * @brief Update the visibility property for each hit voxel in the MetaVoxelMap.
- *
- * This function takes a set of 3D voxel indices (x, y, z) from raycasting and increments
- * the visibility property for each corresponding voxel in the MetaVoxelMap.
- *
- * @param unique_hit_voxels A set of 3D voxel indices (x, y, z) representing hit voxels.
- * @param model The model instance containing the MetaVoxelMap.
- */
-void updateVoxelMapVisibility(const std::set<std::tuple<int, int, int>>& unique_hit_voxels, visioncraft::Model& model) {
-    auto& meta_voxel_map = model.getVoxelMap();
-    double voxel_size = model.getVoxelSize();
-    Eigen::Vector3d min_bound(model.getMinBound().x(), model.getMinBound().y(), model.getMinBound().z());
+void updateVoxelMapVisibility(
+    const std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash>& octree_hits, 
+    visioncraft::Model& model) {
+    
+    for (const auto& [key, hit] : octree_hits) {
 
+        if (!hit) continue;  // Skip if voxel wasn't hit
 
-    for (const auto& voxel_idx : unique_hit_voxels) {
-        int x = std::get<0>(voxel_idx);
-        int y = std::get<1>(voxel_idx);
-        int z = std::get<2>(voxel_idx);
-
-        // Calculate the voxel position in world coordinates
-        Eigen::Vector3d voxel_position = min_bound + Eigen::Vector3d(x * voxel_size, y * voxel_size, z * voxel_size);
-
-
-        // Convert position to OctoMap key
-        auto octomap = model.getOctomap();
-        octomap::OcTreeKey key = octomap->coordToKey(octomap::point3d(voxel_position.x(), voxel_position.y(), voxel_position.z()));
-
-        // Use the key to access the MetaVoxel in MetaVoxelMap
+        // Access the MetaVoxel corresponding to the OctoMap key
         visioncraft::MetaVoxel* meta_voxel = model.getVoxel(key);
-        
+
         if (meta_voxel) {
-   
+
             // Verify and update the visibility property
-            if (meta_voxel->hasProperty("visibility") && meta_voxel->getProperty("visibility").type() == typeid(int)) {
-                int visibility = boost::get<int>(meta_voxel->getProperty("visibility")) + 1;
-                meta_voxel->setProperty("visibility", visibility);
-                // std::cout << "Visibility updated to " << visibility << " for voxel at position: " 
-                        //   << voxel_position.transpose() << std::endl;
-            } else {
-                std::cerr << "Warning: 'visibility' property not found or incorrect type for voxel at position " 
-                          << voxel_position.transpose() << std::endl;
-            }
+            int visibility = boost::get<int>(meta_voxel->getProperty("visibility")) + 1;
+            meta_voxel->setProperty("visibility", visibility);
+    
         } else {
-            std::cerr << "No MetaVoxel found for position: " << voxel_position.transpose() << " with key (" 
+
+            std::cerr << "No MetaVoxel found for key (" 
                       << key.k[0] << ", " << key.k[1] << ", " << key.k[2] << ")" << std::endl;
+
         }
     }
 }
@@ -122,10 +98,10 @@ int main() {
     std::vector<Eigen::Vector3d> positions = {
         Eigen::Vector3d(400, 0, 0),  // +X axis
         Eigen::Vector3d(-400, 0, 0), // -X axis
-        Eigen::Vector3d(400, 100, 0),  // +Y axis
-        // Eigen::Vector3d(0, -400, 0), // -Y axis
-        // Eigen::Vector3d(0, 0, 400),  // +Z axis
-        // Eigen::Vector3d(0, 0, -400)  // -Z axis
+        Eigen::Vector3d(0, 400, 0),  // +Y axis
+        Eigen::Vector3d(0, -400, 0), // -Y axis
+        Eigen::Vector3d(0, 0, 400),  // +Z axis
+        Eigen::Vector3d(0, 0, -400)  // -Z axis
     };
 
     // Generate n random positions at radius 400
@@ -152,11 +128,16 @@ int main() {
     // // To store hit voxels across all viewpoints
     // std::unordered_set<octomap::OcTreeKey, octomap::OcTreeKey::KeyHash> unique_hits;
     
-   
+   int counter = 0;
     // Perform raycasting for each viewpoint
     for (const auto& position : positions) {
         visioncraft::Viewpoint viewpoint(position, lookAt);
         viewpoint.setDownsampleFactor(8);
+
+        //After initializing each viewpoint in Python
+        std::cout << "Orientation Matrix after setLookAt in C++:\n" << viewpoint.getOrientationMatrix() << std::endl;
+
+
 
   
         auto start = std::chrono::high_resolution_clock::now();
@@ -168,7 +149,7 @@ int main() {
         std::cout << "Raycasting for viewpoint at position (" << position.x() << ", " << position.y() << ", " << position.z() << ") took: " << elapsed.count() << " ms" << std::endl;
         
         // model.updateVoxelGridFromHits(hit_results);
-        model.updateOctomapWithHits(hit_results);
+        // model.updateOctomapWithHits(hit_results);
         // Update visibility in the MetaVoxelMap for each hit voxel
         updateVoxelMapVisibility(hit_results, model);
 
@@ -184,7 +165,10 @@ int main() {
 
         // Add the viewpoint to the visualizer
         visualizer.addViewpoint(viewpoint, true, true);
+        // if (counter == 2) visualizer.showRays(viewpoint, Eigen::Vector3d(1.0, 0.0, 0.0));  // Red rays
+        
 
+        counter++;
         // // Perform raycasting for this viewpoint
         // auto start = std::chrono::high_resolution_clock::now();
         // auto hit_results = viewpoint.performRaycasting(model.getOctomap(), true);

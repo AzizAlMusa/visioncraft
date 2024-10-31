@@ -335,7 +335,7 @@ public:
      * 
      * @return A vector of Eigen::Vector3d containing the ray endpoints generated on the GPU.
      */
-    std::set<std::tuple<int, int, int>> performRaycastingOnGPU(const Model& model);
+    std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> performRaycastingOnGPU(const Model& model);
 
 
     /**
