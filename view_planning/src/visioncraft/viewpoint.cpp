@@ -360,6 +360,8 @@ std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> Viewpo
     GPU_hits_ = unique_hit_voxels; // Store the hit voxels in the member variable
     hits_ = model.convertGPUHitsToOctreeKeys(unique_hit_voxels);  // Convert hit voxels to OctoMap format
 
+    notifyObservers();  // Notify observers after updating hits_
+
     return hits_;
 }
 
@@ -484,10 +486,54 @@ std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> Viewpo
             }
         }
     }
+    
+    notifyObservers();  // Notify observers after updating hits_
 
     // Return the map of hit results (both true and false)
     return hits_;
 }
+
+
+/**
+ * @brief Add an observer to receive notifications about changes in raycasting hits.
+ * 
+ * Adds the provided observer to the list of observers that will be notified whenever
+ * there is an update in the `hits_` variable, indicating visibility changes.
+ * 
+ * @param observer Shared pointer to the observer (VisibilityManager) to be added.
+ */
+void Viewpoint::addObserver(const std::shared_ptr<VisibilityManager>& observer) {
+    if (observer) {
+        observers_.insert(observer);  // Adds observer only if it’s not already in the set
+    }
+}
+
+/**
+ * @brief Remove an observer from the notification list.
+ * 
+ * Removes the specified observer from the list of observers, ensuring it no
+ * longer receives updates when `hits_` changes.
+ * 
+ * @param observer Shared pointer to the observer (VisibilityManager) to be removed.
+ */
+void Viewpoint::removeObserver(const std::shared_ptr<VisibilityManager>& observer) {
+    observers_.erase(observer);  // Safely removes the observer if it exists in the set
+}
+
+/**
+ * @brief Notify all registered observers of changes in the viewpoint’s visibility.
+ * 
+ * Iterates over all observers and calls their `updateVisibility` method to inform
+ * them of the latest `hits_` results.
+ */
+void Viewpoint::notifyObservers()  {
+    for (const auto& observer : observers_) {
+        if (observer) {
+            observer->updateVisibility(shared_from_this());  // Pass shared_ptr<Viewpoint>
+        }
+    }
+}
+
 
 
 

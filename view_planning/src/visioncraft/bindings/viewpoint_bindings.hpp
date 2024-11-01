@@ -15,7 +15,7 @@ namespace py = pybind11;
 
 inline void bind_viewpoint(py::module& m) {
     // Expose the Viewpoint class to Python
-    py::class_<visioncraft::Viewpoint>(m, "Viewpoint")
+    py::class_<visioncraft::Viewpoint, std::shared_ptr<visioncraft::Viewpoint>>(m, "Viewpoint")
         .def(py::init<>())  // Default constructor
         // Primary constructor with position and orientation
         .def(py::init([](py::array_t<double> position, py::array_t<double> orientation,

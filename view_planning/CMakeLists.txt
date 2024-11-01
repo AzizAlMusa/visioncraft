@@ -81,14 +81,18 @@ add_library(visioncraft_lib STATIC
   src/visioncraft/viewpoint.cpp 
   src/visioncraft/meta_voxel_map.cpp
   src/visioncraft/meta_voxel.cpp
+  src/visioncraft/visibility_manager.cpp
 )
 
 # Link project dependencies to visioncraft_lib
 target_link_libraries(visioncraft_lib PRIVATE project_dependencies)
 
 # Executable for visualization test, linking with visioncraft_lib
-add_executable(visualizer_test tests/visualizer_test.cpp)
-target_link_libraries(visualizer_test PRIVATE visioncraft_lib project_dependencies)
+# add_executable(visualizer_test tests/visualizer_test.cpp)
+# target_link_libraries(visualizer_test PRIVATE visioncraft_lib project_dependencies)
+add_executable(observer_tests tests/observer_tests.cpp)
+target_link_libraries(observer_tests PRIVATE visioncraft_lib project_dependencies)
+
 
 # Python bindings for visioncraft_py, linking with visioncraft_lib and project_dependencies
 pybind11_add_module(visioncraft_py src/visioncraft/bindings/bindings.cpp)

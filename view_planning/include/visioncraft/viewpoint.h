@@ -6,6 +6,7 @@
 #include <open3d/Open3D.h>
 #include <octomap/ColorOcTree.h>
 #include <model.h>
+#include <visibility_manager.h>
 #include <cuda_runtime.h>
 
 
@@ -18,7 +19,7 @@ namespace visioncraft {
  * of a depth camera viewpoint in a 3D space. It also includes camera properties like near
  * and far planes, resolution, and downsampling for simulation purposes.
  */
-class Viewpoint {
+class Viewpoint : public std::enable_shared_from_this<Viewpoint>   {
 public:
     /**
      * @brief Default constructor for Viewpoint class.
@@ -345,6 +346,33 @@ public:
      */
     std::set<std::tuple<int, int, int>> getGPUHitResults() const {return GPU_hits_;}
 
+    /**
+     * @brief Add an observer to receive notifications about changes in raycasting hits.
+     * 
+     * Adds the provided observer to the list of observers that will be notified whenever
+     * there is an update in the `hits_` variable, indicating visibility changes.
+     * 
+     * @param observer Shared pointer to the observer (VisibilityManager) to be added.
+     */
+    void addObserver(const std::shared_ptr<VisibilityManager>& observer);
+
+    /**
+     * @brief Remove an observer from the notification list.
+     * 
+     * Removes the specified observer from the list of observers, ensuring it no
+     * longer receives updates when `hits_` changes.
+     * 
+     * @param observer Shared pointer to the observer (VisibilityManager) to be removed.
+     */
+    void removeObserver(const std::shared_ptr<VisibilityManager>& observer);
+
+    /**
+     * @brief Notify all registered observers of changes in the viewpoint’s visibility.
+     * 
+     * Iterates over all observers and calls their `updateVisibility` method to inform
+     * them of the latest `hits_` results.
+     */
+    void notifyObservers();
 
 
 private:
@@ -371,6 +399,11 @@ private:
     std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> hits_; ///< Stores the hit results of the raycasting operation.
     std::set<std::tuple<int, int, int>> GPU_hits_; ///< Stores the hit results of the raycasting operation performed on the GPU.
     std::shared_ptr<octomap::ColorOcTree> rays_octomap_; ///< Stores the rays as an octomap (typically for visualization).
+
+
+    // Observer
+    std::unordered_set<std::shared_ptr<VisibilityManager>> observers_; ///< Set of registered observers.
+
 };
 
 } // namespace visioncraft
