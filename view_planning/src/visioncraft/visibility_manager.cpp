@@ -37,7 +37,6 @@ void VisibilityManager::trackViewpoint(const std::shared_ptr<Viewpoint>& viewpoi
 }
 
 void VisibilityManager::untrackViewpoint(const std::shared_ptr<Viewpoint>& viewpoint) {
-
     if (tracked_viewpoints_.erase(viewpoint) > 0) {
         viewpoint->removeObserver(shared_from_this());
 
@@ -45,12 +44,25 @@ void VisibilityManager::untrackViewpoint(const std::shared_ptr<Viewpoint>& viewp
         auto it = visibility_map_.find(viewpoint);
         if (it != visibility_map_.end()) {
             for (const auto& voxel : it->second) {
-                visible_voxels_.erase(voxel);  // Remove from visible_voxels_ if no longer tracked
+                // Decrement the visibility count for each voxel associated with this viewpoint
+                auto count_it = visibility_count_.find(voxel);
+                if (count_it != visibility_count_.end()) {
+                    if (--count_it->second > 0) {
+                        // If visibility count is still above zero, update the voxel property
+                        model_.setVoxelProperty(voxel, "visibility", count_it->second);
+                    } else {
+                        // If count reaches zero, remove from visible_voxels_ and reset the property
+                        visible_voxels_.erase(voxel);
+                        visibility_count_.erase(count_it); // Clean up the count entry
+                        model_.setVoxelProperty(voxel, "visibility", 0);
+                    }
+                }
             }
             visibility_map_.erase(it);  // Remove viewpoint from visibility_map_
         }
     }
 }
+
 
 
 void VisibilityManager::trackViewpoints(const std::vector<std::shared_ptr<Viewpoint>>& viewpoints) {
@@ -74,10 +86,15 @@ void VisibilityManager::updateVisibility(const std::shared_ptr<Viewpoint>& viewp
 
     // Decrement the visibility count for each voxel currently in viewpoint_visibility_set
     for (const auto& voxel : viewpoint_visibility_set) {
-        if (--visibility_count_[voxel] == 0) {
-            // If the visibility count drops to zero, remove it from visible_voxels_
+        auto it = visibility_count_.find(voxel);
+        if (it != visibility_count_.end() && --it->second > 0) {
+            // If the visibility count is still above zero, update the voxel's visibility property
+            model_.setVoxelProperty(voxel, "visibility", it->second);
+        } else {
+            // If the visibility count drops to zero, remove it from visible_voxels_ and reset the property
             visible_voxels_.erase(voxel);
-            visibility_count_.erase(voxel);  // Clean up visibility count for the voxel
+            visibility_count_.erase(it);  // Clean up visibility count for the voxel
+            model_.setVoxelProperty(voxel, "visibility", 0);
         }
     }
 
@@ -92,11 +109,16 @@ void VisibilityManager::updateVisibility(const std::shared_ptr<Viewpoint>& viewp
             viewpoint_visibility_set.insert(hit.first);
             visible_voxels_.insert(hit.first);
             visibility_count_[hit.first]++;
+
+            // Set or update the visibility property for the voxel
+            model_.setVoxelProperty(hit.first, "visibility", visibility_count_[hit.first]);
         }
     }
 
+    // Recompute coverage score after the update
     computeCoverageScore();
 }
+
 
 double VisibilityManager::computeCoverageScore() {
     // Compute the ratio of visible voxels to all voxels

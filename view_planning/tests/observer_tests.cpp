@@ -20,11 +20,12 @@ int main() {
     // Define positions for six viewpoints
     std::vector<Eigen::Vector3d> positions = {
         Eigen::Vector3d(400.0, 0.0, 0.0),
-        // Eigen::Vector3d(-400.0, 0.0, 0.0),
+        Eigen::Vector3d(-400.0, 0.0, 0.0),
         Eigen::Vector3d(0.0, 400.0, 0.0),
-        // Eigen::Vector3d(0.0, -400.0, 0.0),
-        // Eigen::Vector3d(0.0, 0.0, 400.0),
-        // Eigen::Vector3d(0.0, 0.0, -400.0)
+        Eigen::Vector3d(0.0, -400.0, 0.0),
+        Eigen::Vector3d(0.0, 0.0, 400.0),
+        Eigen::Vector3d(0.0, 0.0, -400.0),
+        Eigen::Vector3d(300.0, 300.0, 0.0)
     };
 
     Eigen::Vector3d lookAt(0.0, 0.0, 0.0);
@@ -39,6 +40,7 @@ int main() {
 
         // Perform raycasting on the viewpoint
         viewpoint->performRaycastingOnGPU(model);
+ 
         visualizer.addViewpoint(*viewpoint, true, true);
     }
 
@@ -51,7 +53,9 @@ int main() {
     std::cout << "Number of visible voxels: " << visibleVoxels.size() << std::endl;
     std::cout << "Coverage score: " << coverageScore << std::endl;
 
-    visualizer.addOctomap(model);
+    Eigen::Vector3d baseColor(1.0, 1.0, 1.0);  // Green color
+    Eigen::Vector3d propertyColor(0.0, 1.0, 0.0);  // Green color
+    visualizer.addVoxelMapProperty(model, "visibility",baseColor, propertyColor);
     visualizer.render();
     return 0;
 }

@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <vector>
 #include <octomap/ColorOcTree.h>
+#include <boost/variant.hpp>
 
 #include "visioncraft/model.h"
 
@@ -25,6 +26,10 @@ class Viewpoint;
  */
 class VisibilityManager : public std::enable_shared_from_this<VisibilityManager> {
 public:
+    
+    
+    using PropertyValue = boost::variant<int, float, double, Eigen::Matrix<double, 3, 1>, std::string>;
+    
     /**
      * @brief Constructor for VisibilityManager.
      * 
