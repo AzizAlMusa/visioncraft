@@ -1,72 +1,69 @@
 import numpy as np
 import sys
-import os
+import time
 import random
 
-# Adjust path to locate bindings if necessary
-sys.path.append(os.path.abspath("../build/python_bindings"))
+# Import visioncraft bindings
+sys.path.append("../build/python_bindings")
 from visioncraft_py import Model, Viewpoint, VisibilityManager, Visualizer
 
-# Function to generate random positions on the surface of a sphere
 def generate_random_positions(radius, count):
-    positions = []
-    for _ in range(count):
-        # Random spherical coordinates
-        theta = random.uniform(0, 2 * np.pi)  # azimuthal angle
-        phi = random.uniform(0, np.pi)        # polar angle
-        
-        # Convert spherical coordinates to Cartesian coordinates
-        x = radius * np.sin(phi) * np.cos(theta)
-        y = radius * np.sin(phi) * np.sin(theta)
-        z = radius * np.cos(phi)
-        
-        positions.append(np.array([x, y, z]))
-    return positions
+    return [
+        np.array([radius * np.sin(phi) * np.cos(theta), 
+                  radius * np.sin(phi) * np.sin(theta), 
+                  radius * np.cos(phi)])
+        for theta, phi in zip(np.random.uniform(0, 2 * np.pi, count), 
+                              np.random.uniform(0, np.pi, count))
+    ]
 
-# Initialize the Visualizer
+# Initialize model and visibility manager
 visualizer = Visualizer()
 visualizer.initializeWindow("3D View")
-visualizer.setBackgroundColor(np.array([0.0, 0.0, 0.0]))  # Set background color to black
+visualizer.setBackgroundColor([0.0, 0.0, 0.0])
 
-# Load the model
 model = Model()
-model.loadModel("../models/cube.ply", 50000)
-
-# Create the VisibilityManager
+model.loadModel("../models/gorilla.ply", 50000)
 visibility_manager = VisibilityManager(model)
 
-# Generate random positions for viewpoints within a radius of 80
-positions = generate_random_positions(80, 7)  # Generate 7 random positions
-lookAt = np.array([0.0, 0.0, 0.0])
+# Greedy algorithm setup
+target_coverage, achieved_coverage = 0.995, visibility_manager.getCoverageScore()
+selected_viewpoints = []
+start_time = time.time()
 
-# Iterate over each viewpoint position
-for position in positions:
-    # Create a viewpoint with the specified position and lookAt point
-    viewpoint = Viewpoint.from_lookat(position, lookAt)
-    viewpoint.setDownsampleFactor(8.0)  # Set downsample factor
-    viewpoint.setNearPlane(10)         # Set near plane distance
-    viewpoint.setFarPlane(100)         # Set far plane distance
-    # Track the viewpoint in the VisibilityManager
-    visibility_manager.trackViewpoint(viewpoint)
+# Greedy algorithm loop
+while achieved_coverage < target_coverage:
+    best_viewpoint, best_coverage_increment = None, 0.0
 
-    # Perform raycasting on the viewpoint
-    viewpoint.performRaycastingOnGPU(model)
+    # Test each viewpoint in the batch
+    for position in generate_random_positions(400, 10):
+        viewpoint = Viewpoint.from_lookat(position, [0.0, 0.0, 0.0])
+        viewpoint.setDownsampleFactor(8.0)
+        
+        visibility_manager.trackViewpoint(viewpoint)
+        viewpoint.performRaycastingOnGPU(model)
+        
+        coverage_increment = visibility_manager.computeNovelCoverageScore(viewpoint)
+        visibility_manager.untrackViewpoint(viewpoint)
 
-    # Visualize the viewpoint with frustum and rays
+        if coverage_increment > best_coverage_increment:
+            best_coverage_increment, best_viewpoint = coverage_increment, viewpoint
+
+    # Track the best viewpoint and update coverage
+    if best_viewpoint:
+        visibility_manager.trackViewpoint(best_viewpoint)
+        best_viewpoint.performRaycastingOnGPU(model)
+        
+        achieved_coverage += best_coverage_increment
+        selected_viewpoints.append(best_viewpoint)
+
+# Print results
+print(f"\nFinal Coverage Score: {visibility_manager.getCoverageScore()}")
+print(f"Total Viewpoints Selected: {len(selected_viewpoints)}")
+print(f"Time taken for greedy algorithm (excluding rendering): {time.time() - start_time:.2f} seconds")
+
+# Render selected viewpoints
+visualizer.addVoxelMapProperty(model, "visibility", [1.0, 1.0, 1.0], [0.0, 1.0, 0.0])
+for viewpoint in selected_viewpoints:
     visualizer.addViewpoint(viewpoint, True, True)
 
-# Get the visible voxels tracked by the VisibilityManager
-visible_voxels = visibility_manager.getVisibleVoxels()
-coverage_score = visibility_manager.getCoverageScore()
-
-# Output the number of visible voxels and coverage score
-print(f"Number of visible voxels: {len(visible_voxels)}")
-print(f"Coverage score: {coverage_score}")
-
-# Visualize the voxel map with a 'visibility' property (assuming visibility property is tracked)
-base_color = np.array([1.0, 1.0, 1.0])      # White color
-property_color = np.array([0.0, 1.0, 0.0])   # Green color
-visualizer.addVoxelMapProperty(model, "visibility", base_color, property_color)
-
-# Start the rendering loop
 visualizer.render()

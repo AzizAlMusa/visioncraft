@@ -61,6 +61,8 @@ void VisibilityManager::untrackViewpoint(const std::shared_ptr<Viewpoint>& viewp
             visibility_map_.erase(it);  // Remove viewpoint from visibility_map_
         }
     }
+
+    computeCoverageScore();
 }
 
 
@@ -130,6 +132,49 @@ double VisibilityManager::computeCoverageScore() {
     return coverage_score_;
 }
 
+
+/**
+ * @brief Get the number of novel voxels seen by a specific viewpoint.
+ *
+ * This function calculates the number of voxels that are visible only to the specified viewpoint
+ * (i.e., voxels with a visibility count of 1).
+ *
+ * @param viewpoint The viewpoint for which to compute the novel voxels.
+ * @return The number of novel voxels seen by this viewpoint.
+ */
+size_t VisibilityManager::countNovelVoxels(const std::shared_ptr<Viewpoint>& viewpoint) const {
+    size_t novel_voxel_count = 0;
+    const auto& viewpoint_visibility_set = visibility_map_.at(viewpoint);
+
+    for (const auto& voxel : viewpoint_visibility_set) {
+        // A voxel is novel to this viewpoint if its visibility count is exactly 1
+        if (visibility_count_.at(voxel) == 1) {
+            novel_voxel_count++;
+        }
+       
+    }
+    return novel_voxel_count;
+}
+
+
+/**
+ * @brief Compute the novel coverage score for a specific viewpoint.
+ *
+ * This function calculates the novel coverage score, which is the ratio of the number
+ * of novel voxels (voxels visible only to the specified viewpoint) to the total number of
+ * voxels in the model.
+ *
+ * @param viewpoint The viewpoint for which to compute the novel coverage score.
+ * @return The novel coverage score for this viewpoint as a double.
+ */
+double VisibilityManager::computeNovelCoverageScore(const std::shared_ptr<Viewpoint>& viewpoint) const {
+    if (all_voxels_.empty()) {
+        return 0.0;  // No voxels to cover
+    }
+
+    size_t novel_voxel_count = countNovelVoxels(viewpoint);
+    return static_cast<double>(novel_voxel_count) / all_voxels_.size();
+}
 
 
 } // namespace visioncraft

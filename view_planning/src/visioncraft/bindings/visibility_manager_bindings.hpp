@@ -56,7 +56,13 @@ inline void bind_visibility_manager(py::module& m) {
 
         // Coverage score retrieval and computation
         .def("getCoverageScore", &visioncraft::VisibilityManager::getCoverageScore)
-        .def("computeCoverageScore", &visioncraft::VisibilityManager::computeCoverageScore);
+        .def("computeCoverageScore", &visioncraft::VisibilityManager::computeCoverageScore)
+
+        // Novel voxel count and novel coverage score for a specific viewpoint
+        .def("countNovelVoxels", &visioncraft::VisibilityManager::countNovelVoxels, py::arg("viewpoint"),
+             "Count the number of novel voxels observed only by the specified viewpoint.")
+        .def("computeNovelCoverageScore", &visioncraft::VisibilityManager::computeNovelCoverageScore, py::arg("viewpoint"),
+             "Compute the novel coverage score for the specified viewpoint.");
 }
 
 #endif // VISIBILITY_MANAGER_BINDINGS_HPP

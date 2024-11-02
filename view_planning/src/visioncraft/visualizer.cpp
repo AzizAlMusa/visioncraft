@@ -599,24 +599,31 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
         Eigen::Vector3d color = baseColor;
 
         // Adjust color intensity based on the property value
+        // Adjust color intensity based on the property value
         if (metaVoxel.hasProperty(property_name)) {
             try {
                 float propertyValue = (metaVoxel.getProperty(property_name).type() == typeid(int))
                     ? static_cast<float>(boost::get<int>(metaVoxel.getProperty(property_name)))
                     : boost::get<float>(metaVoxel.getProperty(property_name));
 
-                // Normalize property value to [0,1]
-                float normalizedValue = (propertyValue - minScale) / (maxScale - minScale);
-                normalizedValue = std::max(0.0f, std::min(normalizedValue, 1.0f));
+                // Check if the property value is 0
+                if (propertyValue == 0.0f) {
+                    // If property value is 0, use baseColor directly
+                    // color = baseColor;
+                    color = Eigen::Vector3d(1.0, 0.0, 0.0);
+                } else {
+                    // Normalize property value to [0,1]
+                    float normalizedValue = (propertyValue - minScale) / (maxScale - minScale);
+                    normalizedValue = std::max(0.0f, std::min(normalizedValue, 1.0f));
 
-
-                // Interpolate between baseColor and propertyColor
-                color = baseColor * (1.0f - normalizedValue) + propertyColor * normalizedValue;
-                color = color.cwiseMin(1.0).cwiseMax(0.0); // Ensure color stays within [0,1] range
+                    // Interpolate between baseColor and propertyColor
+                    color = baseColor * (1.0f - normalizedValue) + propertyColor * normalizedValue;
+                    color = color.cwiseMin(1.0).cwiseMax(0.0); // Ensure color stays within [0,1] range
+                }
             } catch (const boost::bad_get& e) {
                 std::cerr << "Error: Failed to retrieve property " << property_name 
-                          << " for voxel at position " << voxelPos.transpose() 
-                          << ": " << e.what() << std::endl;
+                        << " for voxel at position " << voxelPos.transpose() 
+                        << ": " << e.what() << std::endl;
                 continue;
             }
         }

@@ -132,6 +132,30 @@ public:
      */
     double computeCoverageScore();
 
+    /**
+     * @brief Get the number of novel voxels seen by a specific viewpoint.
+     *
+     * This function calculates the number of voxels that are visible only to the specified viewpoint
+     * (i.e., voxels with a visibility count of 1).
+     *
+     * @param viewpoint The viewpoint for which to compute the novel voxels.
+     * @return The number of novel voxels seen by this viewpoint.
+     */
+    size_t countNovelVoxels(const std::shared_ptr<Viewpoint>& viewpoint) const;
+    
+
+    /**
+     * @brief Compute the novel coverage score for a specific viewpoint.
+     *
+     * This function calculates the novel coverage score, which is the ratio of the number
+     * of novel voxels (voxels visible only to the specified viewpoint) to the total number of
+     * voxels in the model.
+     *
+     * @param viewpoint The viewpoint for which to compute the novel coverage score.
+     * @return The novel coverage score for this viewpoint as a double.
+     */
+    double computeNovelCoverageScore(const std::shared_ptr<Viewpoint>& viewpoint) const;
+
 private:
 
 

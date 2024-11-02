@@ -34,14 +34,16 @@ int main() {
     for (const auto& position : positions) {
         auto viewpoint = std::make_shared<visioncraft::Viewpoint>(position, lookAt);
         viewpoint->setDownsampleFactor(8.0);
-
+        
         // Track the viewpoint in the VisibilityManager
         visibilityManager->trackViewpoint(viewpoint);
 
         // Perform raycasting on the viewpoint
         viewpoint->performRaycastingOnGPU(model);
- 
+
         visualizer.addViewpoint(*viewpoint, true, true);
+        // print novel coverage score
+        std::cout << "Novel coverage score: " << visibilityManager->computeNovelCoverageScore(viewpoint) << std::endl;
     }
 
     // Get visible voxels tracked by the VisibilityManager
