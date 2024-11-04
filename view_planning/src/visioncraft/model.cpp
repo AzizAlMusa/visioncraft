@@ -1,6 +1,9 @@
 #include "visioncraft/model.h" // Include the Model header file
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
+
 #include <iomanip>
 #include <string>
 #include <Eigen/Core>
@@ -46,7 +49,70 @@ bool Model::loadMesh(const std::string& file_path) {
     }
 }
 
+bool Model::loadBinvoxToOctomap(const std::string& file_path) {
+    std::ifstream ifs(file_path, std::ios::binary);
+    if (!ifs.is_open()) {
+        std::cerr << "Error: Could not open binvox file " << file_path << std::endl;
+        return false;
+    }
 
+    // Parse binvox header
+    std::string line;
+    int width, height, depth;
+    double resolution = 0.0;  // Will match the binvox file resolution
+    double tx, ty, tz;
+    bool has_header = false;
+
+    while (std::getline(ifs, line)) {
+        if (line.substr(0, 9) == "binvox 1") {
+            has_header = true;
+        } else if (line.substr(0, 5) == "dim ") {
+            std::istringstream dims(line.substr(4));
+            dims >> width >> height >> depth;
+        } else if (line.substr(0, 9) == "translate") {
+            std::istringstream trans(line.substr(10));
+            trans >> tx >> ty >> tz;
+        } else if (line.substr(0, 5) == "scale") {
+            std::istringstream scale(line.substr(6));
+            scale >> resolution;
+        } else if (line.empty()) {
+            break;
+        }
+    }
+
+    if (!has_header || width == 0 || height == 0 || depth == 0 || resolution == 0.0) {
+        std::cerr << "Error: Invalid or incomplete binvox header in " << file_path << std::endl;
+        return false;
+    }
+
+    // Prepare the OctoMap with binvox resolution
+    octoMap_ = std::make_shared<octomap::ColorOcTree>(resolution);
+
+    // Read voxel data
+    unsigned char value;
+    unsigned char count;
+    int index = 0;
+
+    while (ifs.read((char*)&value, 1) && ifs.read((char*)&count, 1)) {
+        for (int i = 0; i < count; ++i, ++index) {
+            int x = index % width;
+            int y = (index / width) % height;
+            int z = index / (width * height);
+
+            if (value == 1) {
+                octomap::point3d voxel_center(
+                    tx + x * resolution,
+                    ty + y * resolution,
+                    tz + z * resolution
+                );
+                octoMap_->updateNode(voxel_center, true);  // Insert occupied voxel
+            }
+        }
+    }
+
+    ifs.close();
+    return true;
+}
 
 // Load a 3D model and generate all necessary structures
 bool Model::loadModel(const std::string& file_path, int num_samples, double resolution) {
@@ -594,7 +660,6 @@ bool Model::generateExplorationMap(int num_cells_per_side, const octomap::point3
  * @return True if the conversion is successful, false otherwise.
  */
 bool Model::convertVoxelGridToGPUFormat(double voxelSize) {
-    // Ensure surfaceShellOctomap_ data is available
     if (!surfaceShellOctomap_) {
         std::cerr << "Error: Surface shell OctoMap data is not available." << std::endl;
         return false;
@@ -605,12 +670,17 @@ bool Model::convertVoxelGridToGPUFormat(double voxelSize) {
     surfaceShellOctomap_->getMetricMin(min_x, min_y, min_z);
     surfaceShellOctomap_->getMetricMax(max_x, max_y, max_z);
 
+    // Adjust max bounds to the nearest lower multiple of voxelSize from min bound
+    max_x = min_x + std::floor((max_x - min_x) / voxelSize) * voxelSize;
+    max_y = min_y + std::floor((max_y - min_y) / voxelSize) * voxelSize;
+    max_z = min_z + std::floor((max_z - min_z) / voxelSize) * voxelSize;
+
     gpu_voxel_grid_.voxel_size = voxelSize;
 
     // Calculate dimensions of the voxel grid
-    gpu_voxel_grid_.width = static_cast<int>((max_x - min_x) / voxelSize);
-    gpu_voxel_grid_.height = static_cast<int>((max_y - min_y) / voxelSize);
-    gpu_voxel_grid_.depth = static_cast<int>((max_z - min_z) / voxelSize);
+    gpu_voxel_grid_.width = static_cast<int>((max_x - min_x) / voxelSize) + 1;
+    gpu_voxel_grid_.height = static_cast<int>((max_y - min_y) / voxelSize) + 1;
+    gpu_voxel_grid_.depth = static_cast<int>((max_z - min_z) / voxelSize) + 1;
 
     // Set min_bound in gpu_voxel_grid_
     gpu_voxel_grid_.min_bound[0] = static_cast<float>(min_x) + voxelSize / 2;
@@ -631,11 +701,20 @@ bool Model::convertVoxelGridToGPUFormat(double voxelSize) {
         int y_idx = static_cast<int>((voxel_center.y() - min_y) / voxelSize);
         int z_idx = static_cast<int>((voxel_center.z() - min_z) / voxelSize);
 
-        // Calculate the linear index for the voxel in the 1D array
-        int linear_idx = z_idx * (gpu_voxel_grid_.width * gpu_voxel_grid_.height) + y_idx * gpu_voxel_grid_.width + x_idx;
+        // Ensure indices are within calculated dimensions
+        if (x_idx >= 0 && x_idx < gpu_voxel_grid_.width &&
+            y_idx >= 0 && y_idx < gpu_voxel_grid_.height &&
+            z_idx >= 0 && z_idx < gpu_voxel_grid_.depth) {
 
-        if (linear_idx >= 0 && linear_idx < total_voxels) {
+            // Calculate the linear index for the voxel in the 1D array
+            int linear_idx = z_idx * (gpu_voxel_grid_.width * gpu_voxel_grid_.height) + y_idx * gpu_voxel_grid_.width + x_idx;
+
+            // Mark voxel as occupied
             gpu_voxel_grid_.voxel_data[linear_idx] = 1;
+        } else {
+            // Debugging output for out-of-bounds voxels
+            std::cerr << "Voxel center (" << voxel_center.x() << ", " << voxel_center.y() << ", " << voxel_center.z()
+                      << ") mapped to out-of-bounds indices (" << x_idx << ", " << y_idx << ", " << z_idx << ")" << std::endl;
         }
     }
 
@@ -656,30 +735,35 @@ bool Model::convertVoxelGridToGPUFormat(double voxelSize) {
  */
 std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> Model::convertGPUHitsToOctreeKeys(
     const std::set<std::tuple<int, int, int>>& unique_hit_voxels) const {
-    
-    // Initialize the result map
+
     std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> octree_hits;
+
+    // Min bound and voxel size to match the setup in convertVoxelGridToGPUFormat
+    double min_x, min_y, min_z;
+    surfaceShellOctomap_->getMetricMin(min_x, min_y, min_z);
+    double voxelSize = gpu_voxel_grid_.voxel_size;
 
     for (const auto& voxel_idx : unique_hit_voxels) {
         int x = std::get<0>(voxel_idx);
         int y = std::get<1>(voxel_idx);
         int z = std::get<2>(voxel_idx);
 
-        // Calculate the world coordinates of the voxel center
-        double x_world = minBound_.x() + x * voxel_size_;
-        double y_world = minBound_.y() + y * voxel_size_;
-        double z_world = minBound_.z() + z * voxel_size_;
+        // Calculate world coordinates, adjusted to the center of each voxel
+        double x_world = min_x + x * voxelSize + voxelSize / 2.0;
+        double y_world = min_y + y * voxelSize + voxelSize / 2.0;
+        double z_world = min_z + z * voxelSize + voxelSize / 2.0;
 
-        // Convert world coordinates to OctoMap's OcTreeKey
+        // Convert world coordinates to OctoMap key
         octomap::point3d world_point(x_world, y_world, z_world);
         octomap::OcTreeKey key = surfaceShellOctomap_->coordToKey(world_point);
 
-        // Insert into the map with a value of true (indicating hit)
+        // Insert into the map with a value of true to indicate a hit
         octree_hits[key] = true;
     }
 
     return octree_hits;
 }
+
 
 /**
  * @brief Update the voxel grid based on the hit voxels.
@@ -755,7 +839,8 @@ bool Model::generateVoxelMap() {
 
     // Iterate through each leaf node in the surface shell octomap
     for (auto it = surfaceShellOctomap_->begin_leafs(); it != surfaceShellOctomap_->end_leafs(); ++it) {
-        if (it->getOccupancy() > 0.5) { // Only consider occupied cells
+       
+  
             octomap::OcTreeKey key = it.getKey();
             Eigen::Vector3d position(it.getX(), it.getY(), it.getZ());
             float occupancy = it->getOccupancy();
@@ -763,7 +848,7 @@ bool Model::generateVoxelMap() {
 
             // Insert the MetaVoxel into the map
             meta_voxel_map_.setMetaVoxel(key, meta_voxel);
-        }
+        
     }
 
     // std::cout << "Meta voxel map generated successfully with " << meta_voxel_map_.size() << " voxels." << std::endl;
@@ -941,4 +1026,178 @@ void Model::clear() {
 }
 
 
+bool Model::compareVoxelStructures() const {
+    bool consistent = true;
+
+    std::cerr << "\nComparing Voxel Structures:\n";
+
+    // Get the bounds of the surfaceShellOctomap_
+    double min_x, min_y, min_z;
+    surfaceShellOctomap_->getMetricMin(min_x, min_y, min_z);
+
+    // Part 1: Check each voxel in surfaceShellOctomap_ against gpu_voxel_grid_ and meta_voxel_map_
+    std::cerr << "Checking surfaceShellOctomap_ against gpu_voxel_grid_ and meta_voxel_map_\n";
+    for (auto it = surfaceShellOctomap_->begin_leafs(); it != surfaceShellOctomap_->end_leafs(); ++it) {
+        octomap::OcTreeKey key = it.getKey();
+        Eigen::Vector3d voxel_center(it.getX(), it.getY(), it.getZ());
+
+        // Check gpu_voxel_grid_
+        int x_idx = static_cast<int>((voxel_center.x() - min_x) / voxel_size_);
+        int y_idx = static_cast<int>((voxel_center.y() - min_y) / voxel_size_);
+        int z_idx = static_cast<int>((voxel_center.z() - min_z) / voxel_size_);
+        int linear_idx = z_idx * (gpu_voxel_grid_.width * gpu_voxel_grid_.height) + y_idx * gpu_voxel_grid_.width + x_idx;
+
+        if (linear_idx < 0 || linear_idx >= gpu_voxel_grid_.width * gpu_voxel_grid_.height * gpu_voxel_grid_.depth || gpu_voxel_grid_.voxel_data[linear_idx] != 1) {
+            std::cerr << "Mismatch in gpu_voxel_grid_ for voxel at (" << voxel_center.x() << ", " << voxel_center.y() << ", " << voxel_center.z() << ")\n";
+            consistent = false;
+        }
+
+        // Check meta_voxel_map_
+        MetaVoxel* meta_voxel = meta_voxel_map_.getMetaVoxel(key);
+        if (!meta_voxel || meta_voxel->getPosition() != voxel_center) {
+            std::cerr << "Mismatch in meta_voxel_map_ for voxel at (" << voxel_center.x() << ", " << voxel_center.y() << ", " << voxel_center.z() << ")\n";
+            consistent = false;
+        }
+    }
+
+    // Part 2: Check each voxel in gpu_voxel_grid_ against surfaceShellOctomap_ and meta_voxel_map_
+    std::cerr << "Checking gpu_voxel_grid_ against surfaceShellOctomap_ and meta_voxel_map_\n";
+    for (int z = 0; z < gpu_voxel_grid_.depth; ++z) {
+        for (int y = 0; y < gpu_voxel_grid_.height; ++y) {
+            for (int x = 0; x < gpu_voxel_grid_.width; ++x) {
+                int linear_idx = z * (gpu_voxel_grid_.width * gpu_voxel_grid_.height) + y * gpu_voxel_grid_.width + x;
+                if (gpu_voxel_grid_.voxel_data[linear_idx] == 1) {
+                    // Convert (x, y, z) index to world coordinates
+                    Eigen::Vector3d voxel_center(
+                        min_x + x * voxel_size_ + voxel_size_ / 2,
+                        min_y + y * voxel_size_ + voxel_size_ / 2,
+                        min_z + z * voxel_size_ + voxel_size_ / 2
+                    );
+
+                    // Check surfaceShellOctomap_
+                    octomap::OcTreeKey key = surfaceShellOctomap_->coordToKey(voxel_center.x(), voxel_center.y(), voxel_center.z());
+                    if (!surfaceShellOctomap_->search(key)) {
+                        std::cerr << "Voxel in gpu_voxel_grid_ does not exist in surfaceShellOctomap_ at (" << voxel_center.x() << ", " << voxel_center.y() << ", " << voxel_center.z() << ")\n";
+                        consistent = false;
+                    }
+
+                    // Check meta_voxel_map_
+                    MetaVoxel* meta_voxel = meta_voxel_map_.getMetaVoxel(key);
+                    if (!meta_voxel || meta_voxel->getPosition() != voxel_center) {
+                        std::cerr << "Voxel in gpu_voxel_grid_ does not exist in meta_voxel_map_ at (" << voxel_center.x() << ", " << voxel_center.y() << ", " << voxel_center.z() << ")\n";
+                        consistent = false;
+                    }
+                }
+            }
+        }
+    }
+
+    // Part 3: Check each voxel in meta_voxel_map_ against surfaceShellOctomap_ and gpu_voxel_grid_
+    std::cerr << "Checking meta_voxel_map_ against surfaceShellOctomap_ and gpu_voxel_grid_\n";
+    for (const auto& entry : meta_voxel_map_.getMap()) {
+        octomap::OcTreeKey key = entry.first;
+        const MetaVoxel& meta_voxel = entry.second;
+        Eigen::Vector3d voxel_center = meta_voxel.getPosition();
+
+        // Check surfaceShellOctomap_
+        if (!surfaceShellOctomap_->search(key)) {
+            std::cerr << "Voxel in meta_voxel_map_ does not exist in surfaceShellOctomap_ at (" << voxel_center.x() << ", " << voxel_center.y() << ", " << voxel_center.z() << ")\n";
+            consistent = false;
+        }
+
+        // Check gpu_voxel_grid_
+        int x_idx = static_cast<int>((voxel_center.x() - min_x) / voxel_size_);
+        int y_idx = static_cast<int>((voxel_center.y() - min_y) / voxel_size_);
+        int z_idx = static_cast<int>((voxel_center.z() - min_z) / voxel_size_);
+        int linear_idx = z_idx * (gpu_voxel_grid_.width * gpu_voxel_grid_.height) + y_idx * gpu_voxel_grid_.width + x_idx;
+
+        if (linear_idx < 0 || linear_idx >= gpu_voxel_grid_.width * gpu_voxel_grid_.height * gpu_voxel_grid_.depth || gpu_voxel_grid_.voxel_data[linear_idx] != 1) {
+            std::cerr << "Voxel in meta_voxel_map_ does not exist in gpu_voxel_grid_ at (" << voxel_center.x() << ", " << voxel_center.y() << ", " << voxel_center.z() << ")\n";
+            consistent = false;
+        }
+    }
+
+    if (consistent) {
+        std::cerr << "All voxel structures are consistent.\n";
+    } else {
+        std::cerr << "Inconsistencies found in voxel structures.\n";
+    }
+
+    return consistent;
+}
+
+void Model::countAndCompareVoxelNumbers() const {
+    // Count the number of leaf nodes (voxels) in surfaceShellOctomap_
+    int surfaceShellVoxelCount = 0;
+    for (auto it = surfaceShellOctomap_->begin_leafs(); it != surfaceShellOctomap_->end_leafs(); ++it) {
+        surfaceShellVoxelCount++;
+    }
+
+    // Count the number of voxels in meta_voxel_map_
+    int metaVoxelMapCount = meta_voxel_map_.size();
+
+    // Print the counts
+    std::cout << "Voxel Count Comparison:\n";
+    std::cout << "  Surface Shell OctoMap Voxel Count: " << surfaceShellVoxelCount << std::endl;
+    std::cout << "  Meta Voxel Map Voxel Count: " << metaVoxelMapCount << std::endl;
+
+    // Check if they match
+    if (surfaceShellVoxelCount == metaVoxelMapCount) {
+        std::cout << "The voxel counts match." << std::endl;
+    } else {
+        std::cout << "Warning: The voxel counts do not match!" << std::endl;
+    }
+}
+
+
+void Model::printMismatchedVoxels() const {
+    std::cerr << "\nChecking for Mismatched Voxels between Surface Shell OctoMap and Meta Voxel Map:\n";
+    bool mismatch_found = false;
+
+    // Iterate through each voxel in surfaceShellOctomap_ and check against meta_voxel_map_
+    for (auto it = surfaceShellOctomap_->begin_leafs(); it != surfaceShellOctomap_->end_leafs(); ++it) {
+        octomap::OcTreeKey key = it.getKey();
+        Eigen::Vector3d surfaceShellPosition(it.getX(), it.getY(), it.getZ());
+
+        // Retrieve the corresponding MetaVoxel from meta_voxel_map_
+        MetaVoxel* meta_voxel = meta_voxel_map_.getMetaVoxel(key);
+
+        if (meta_voxel) {
+            // Compare positions
+            Eigen::Vector3d metaVoxelPosition = meta_voxel->getPosition();
+            if (!metaVoxelPosition.isApprox(surfaceShellPosition)) {
+                std::cerr << "Mismatch found for key (" << key.k[0] << ", " << key.k[1] << ", " << key.k[2] << "):\n";
+                std::cerr << "  Surface Shell Position: (" << surfaceShellPosition.x() << ", " << surfaceShellPosition.y() << ", " << surfaceShellPosition.z() << ")\n";
+                std::cerr << "  Meta Voxel Map Position: (" << metaVoxelPosition.x() << ", " << metaVoxelPosition.y() << ", " << metaVoxelPosition.z() << ")\n";
+                mismatch_found = true;
+            }
+        } else {
+            std::cerr << "Key present in Surface Shell OctoMap but missing in Meta Voxel Map: (" 
+                      << key.k[0] << ", " << key.k[1] << ", " << key.k[2] << ")\n";
+            mismatch_found = true;
+        }
+    }
+
+    // Check if there are keys in meta_voxel_map_ that are not present in surfaceShellOctomap_
+    for (const auto& entry : meta_voxel_map_.getMap()) {
+        octomap::OcTreeKey key = entry.first;
+        Eigen::Vector3d metaVoxelPosition = entry.second.getPosition();
+
+        // Verify if the key exists in surfaceShellOctomap_
+        if (!surfaceShellOctomap_->search(key)) {
+            std::cerr << "Key present in Meta Voxel Map but missing in Surface Shell OctoMap: (" 
+                      << key.k[0] << ", " << key.k[1] << ", " << key.k[2] << ")\n";
+            std::cerr << "  Meta Voxel Map Position: (" << metaVoxelPosition.x() << ", " << metaVoxelPosition.y() << ", " << metaVoxelPosition.z() << ")\n";
+            mismatch_found = true;
+        }
+    }
+
+    if (!mismatch_found) {
+        std::cerr << "No mismatches found. The voxel positions in Surface Shell OctoMap and Meta Voxel Map match.\n";
+    }
+}
+
+
 } // namespace visioncraft
+
+

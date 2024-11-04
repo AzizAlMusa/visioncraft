@@ -65,6 +65,18 @@ public:
     bool loadMesh(const std::string& file_path);
 
     /**
+     * @brief Load a .binvox file and convert it to an OctoMap using the file's resolution.
+     *
+     * This function reads a .binvox file, parses the voxel data, and inserts the voxels
+     * into an OctoMap with a resolution matching that specified in the file.
+     *
+     * @param file_path Path to the .binvox file.
+     * @return True if the file is successfully loaded and processed, false otherwise.
+     */
+    bool loadBinvoxToOctomap(const std::string& file_path);
+
+
+    /**
      * @brief Load a 3D model and generate all necessary structures.
      * 
      * This function loads a 3D model and generates the mesh, point cloud, voxel grid, and octomap.
@@ -491,8 +503,12 @@ public:
     void clear();
 
 
+    bool compareVoxelStructures() const;
 
 
+    void countAndCompareVoxelNumbers() const ;
+
+    void printMismatchedVoxels() const ;
 
 private:
 

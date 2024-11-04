@@ -590,51 +590,57 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
         }
     }
 
-    for (const auto& kv : metaVoxelMap) {
-        const auto& metaVoxel = kv.second;
-        const auto& voxelPos = metaVoxel.getPosition();  // Use MetaVoxel's stored position
-        points->InsertNextPoint(voxelPos.x(), voxelPos.y(), voxelPos.z());
+        for (const auto& kv : metaVoxelMap) {
+            
+            const auto& metaVoxel = kv.second;
+            const auto& voxelPos = metaVoxel.getPosition();
+            points->InsertNextPoint(voxelPos.x(), voxelPos.y(), voxelPos.z());
 
-        // Default to base color if property is missing
-        Eigen::Vector3d color = baseColor;
+            Eigen::Vector3d color = baseColor;  // Default for 0.0 values
 
-        // Adjust color intensity based on the property value
-        // Adjust color intensity based on the property value
-        if (metaVoxel.hasProperty(property_name)) {
-            try {
-                float propertyValue = (metaVoxel.getProperty(property_name).type() == typeid(int))
-                    ? static_cast<float>(boost::get<int>(metaVoxel.getProperty(property_name)))
-                    : boost::get<float>(metaVoxel.getProperty(property_name));
+            // Check if the voxel has the specified property
+            if (metaVoxel.hasProperty(property_name)) {
+                try {
+                    float propertyValue = (metaVoxel.getProperty(property_name).type() == typeid(int))
+                        ? static_cast<float>(boost::get<int>(metaVoxel.getProperty(property_name)))
+                        : boost::get<float>(metaVoxel.getProperty(property_name));
 
-                // Check if the property value is 0
-                if (propertyValue == 0.0f) {
-                    // If property value is 0, use baseColor directly
-                    // color = baseColor;
-                    color = Eigen::Vector3d(1.0, 0.0, 0.0);
-                } else {
-                    // Normalize property value to [0,1]
-                    float normalizedValue = (propertyValue - minScale) / (maxScale - minScale);
-                    normalizedValue = std::max(0.0f, std::min(normalizedValue, 1.0f));
+                    // Special handling for scores equal to 0.0
+                    if (propertyValue == 0.0f) {
+                        color = baseColor;  // Use baseColor directly for 0.0 scores
+                    } else {
+                        // Set a pastel color for the minimum non-zero value by blending with white
+                        if (propertyValue == minScale) {
+                            color = (propertyColor + Eigen::Vector3d(1.0, 1.0, 1.0)) * 0.5;  // Pastel version
+                        } else {
+                            // Normalize property value to [0,1] and darken progressively for higher scores
+                            float normalizedValue = (propertyValue - minScale) / (maxScale - minScale);
+                            normalizedValue = std::max(0.0f, std::min(normalizedValue, 1.0f));
 
-                    // Interpolate between baseColor and propertyColor
-                    color = baseColor * (1.0f - normalizedValue) + propertyColor * normalizedValue;
-                    color = color.cwiseMin(1.0).cwiseMax(0.0); // Ensure color stays within [0,1] range
+                            // Darken the pastel color for higher values
+                            Eigen::Vector3d pastelColor = (propertyColor + Eigen::Vector3d(1.0, 1.0, 1.0)) * 0.5;
+                            color = pastelColor * (1.0f - 0.5f * normalizedValue);
+                            color = color.cwiseMin(1.0).cwiseMax(0.0);  // Clamp to [0,1]
+                        }
+                    }
+                } catch (const boost::bad_get& e) {
+                    std::cerr << "Error: Failed to retrieve property " << property_name 
+                            << " for voxel at position " << voxelPos.transpose() 
+                            << ": " << e.what() << std::endl;
+                    continue;
                 }
-            } catch (const boost::bad_get& e) {
-                std::cerr << "Error: Failed to retrieve property " << property_name 
-                        << " for voxel at position " << voxelPos.transpose() 
-                        << ": " << e.what() << std::endl;
-                continue;
             }
+
+            unsigned char voxelColor[3] = {
+                static_cast<unsigned char>(color(0) * 255),
+                static_cast<unsigned char>(color(1) * 255),
+                static_cast<unsigned char>(color(2) * 255)
+            };
+            colors->InsertNextTypedTuple(voxelColor);
         }
 
-        unsigned char voxelColor[3] = {
-            static_cast<unsigned char>(color(0) * 255),
-            static_cast<unsigned char>(color(1) * 255),
-            static_cast<unsigned char>(color(2) * 255)
-        };
-        colors->InsertNextTypedTuple(voxelColor);
-    }
+
+
 
     vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
     polyData->SetPoints(points);

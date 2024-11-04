@@ -1,6 +1,9 @@
 #include "visioncraft/meta_voxel_map.h"
 #include <iostream>
 
+
+#include <execinfo.h>
+
 namespace visioncraft {
 
 /**
@@ -40,15 +43,30 @@ bool MetaVoxelMap::setMetaVoxel(const octomap::OcTreeKey& key, const MetaVoxel& 
  * @param key The OctoMap key for spatial indexing.
  * @return Pointer to the MetaVoxel if found, nullptr otherwise.
  */
-MetaVoxel* MetaVoxelMap::getMetaVoxel(const octomap::OcTreeKey& key) const{
+MetaVoxel* MetaVoxelMap::getMetaVoxel(const octomap::OcTreeKey& key) const {
+    // Attempt to find the key in meta_voxel_map_
     auto it = meta_voxel_map_.find(key);
+
     if (it != meta_voxel_map_.end()) {
         return const_cast<MetaVoxel*>(&it->second);
     } else {
-        std::cerr << "MetaVoxel not found for the provided key." << std::endl;
+        // Print the key being searched for
+        std::cerr << "MetaVoxel not found for key: (" << key.k[0] << ", " << key.k[1] << ", " << key.k[2] << ")" << std::endl;
+
+        // Debug: Iterate manually to check for close matches
+        for (const auto& entry : meta_voxel_map_) {
+            const octomap::OcTreeKey& stored_key = entry.first;
+            if (stored_key.k[0] == key.k[0] && stored_key.k[1] == key.k[1] && stored_key.k[2] == key.k[2]) {
+                std::cerr << "Potential match found with identical values in stored key, but find() failed. Stored Key: ("
+                          << stored_key.k[0] << ", " << stored_key.k[1] << ", " << stored_key.k[2] << ")" << std::endl;
+                break;
+            }
+        }
+
         return nullptr;
     }
 }
+
 
 
 /**

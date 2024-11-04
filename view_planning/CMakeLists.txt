@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 project(view_planning LANGUAGES CXX CUDA)
 
+# Disable optimization for Debug build and enable debug symbols for C++
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+
+# Disable optimization for Debug build and enable debug symbols for CUDA
+set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -g -G")
+
+
 # Set paths for Python 3.6
 set(PYTHON_EXECUTABLE "/home/abdulaziz/playground/open3d/env/bin/python")
 set(PYTHON_LIBRARY "/usr/lib/x86_64-linux-gnu/libpython3.6m.so")

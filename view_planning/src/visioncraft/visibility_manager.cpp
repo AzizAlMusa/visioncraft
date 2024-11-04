@@ -92,6 +92,7 @@ void VisibilityManager::updateVisibility(const std::shared_ptr<Viewpoint>& viewp
         if (it != visibility_count_.end() && --it->second > 0) {
             // If the visibility count is still above zero, update the voxel's visibility property
             model_.setVoxelProperty(voxel, "visibility", it->second);
+            
         } else {
             // If the visibility count drops to zero, remove it from visible_voxels_ and reset the property
             visible_voxels_.erase(voxel);
