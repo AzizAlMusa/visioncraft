@@ -24,7 +24,7 @@ visualizer.setBackgroundColor([0.0, 0.0, 0.0])
 model = Model()
 test_path = "/home/abdulaziz/playground/ShapeNet/ShapeNetCore/02691156/02691156/3fd97395c1d1479b35cfde72d9f6a4cf/models/model_normalized.ply"
 main_path = "../models/gorilla.ply"
-model.loadModel(main_path, 100000)
+model.loadModel(main_path, 20000)
 visibility_manager = VisibilityManager(model)
 
 # Greedy algorithm setup

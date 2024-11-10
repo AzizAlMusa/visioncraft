@@ -168,6 +168,11 @@ public:
      * @brief Start the rendering process for the visualization.
      */
     void render();
+    
+     /**
+     * @brief TODO
+     */
+    void renderStep();
 
 private:
     vtkSmartPointer<vtkRenderer> renderer; ///< The VTK renderer used for visualization.

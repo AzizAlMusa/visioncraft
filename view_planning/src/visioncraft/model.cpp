@@ -49,6 +49,7 @@ bool Model::loadMesh(const std::string& file_path) {
     }
 }
 
+
 bool Model::loadBinvoxToOctomap(const std::string& file_path) {
     std::ifstream ifs(file_path, std::ios::binary);
     if (!ifs.is_open()) {
@@ -56,17 +57,18 @@ bool Model::loadBinvoxToOctomap(const std::string& file_path) {
         return false;
     }
 
-    // Parse binvox header
+    // Variables for parsing the header
     std::string line;
-    int width, height, depth;
-    double resolution = 0.0;  // Will match the binvox file resolution
-    double tx, ty, tz;
+    int width = 0, height = 0, depth = 0;
+    double resolution = 0.0;
+    double tx = 0.0, ty = 0.0, tz = 0.0;
     bool has_header = false;
 
+    // Parse the header
     while (std::getline(ifs, line)) {
-        if (line.substr(0, 9) == "binvox 1") {
+        if (line.substr(0, 7) == "#binvox") {
             has_header = true;
-        } else if (line.substr(0, 5) == "dim ") {
+        } else if (line.substr(0, 3) == "dim") {
             std::istringstream dims(line.substr(4));
             dims >> width >> height >> depth;
         } else if (line.substr(0, 9) == "translate") {
@@ -75,17 +77,18 @@ bool Model::loadBinvoxToOctomap(const std::string& file_path) {
         } else if (line.substr(0, 5) == "scale") {
             std::istringstream scale(line.substr(6));
             scale >> resolution;
-        } else if (line.empty()) {
+        } else if (line == "data") {
             break;
         }
     }
 
-    if (!has_header || width == 0 || height == 0 || depth == 0 || resolution == 0.0) {
+    // Validate header data
+    if (!has_header || width == 0 || height == 0 || depth == 0 || resolution <= 0.0) {
         std::cerr << "Error: Invalid or incomplete binvox header in " << file_path << std::endl;
         return false;
     }
 
-    // Prepare the OctoMap with binvox resolution
+    // Prepare the OctoMap with the parsed resolution
     octoMap_ = std::make_shared<octomap::ColorOcTree>(resolution);
 
     // Read voxel data
@@ -99,20 +102,29 @@ bool Model::loadBinvoxToOctomap(const std::string& file_path) {
             int y = (index / width) % height;
             int z = index / (width * height);
 
-            if (value == 1) {
+            if (value == 1) { // Mark voxel as occupied if value is 1
                 octomap::point3d voxel_center(
                     tx + x * resolution,
                     ty + y * resolution,
                     tz + z * resolution
                 );
-                octoMap_->updateNode(voxel_center, true);  // Insert occupied voxel
+                octoMap_->updateNode(voxel_center, true);
             }
         }
     }
 
     ifs.close();
+
+    // Count and print the number of leaf nodes
+    size_t leaf_count = 0;
+    for (auto it = octoMap_->begin_leafs(), end = octoMap_->end_leafs(); it != end; ++it) {
+        ++leaf_count;
+    }
+    std::cout << "Total leaf nodes in OctoMap: " << leaf_count << std::endl;
+
     return true;
 }
+
 
 // Load a 3D model and generate all necessary structures
 bool Model::loadModel(const std::string& file_path, int num_samples, double resolution) {
@@ -153,6 +165,7 @@ bool Model::generateAllStructures(int num_samples, double resolution) {
     success &= initializeRaycastingScene();
     success &= generatePointCloud(num_samples);
 
+    // success &= loadBinvoxToOctomap("../models/model_normalized.surface.binvox");
     if (resolution <= 0) {
         resolution = 8.0 * getAverageSpacing();
         voxel_size_ = resolution;

@@ -32,8 +32,11 @@ int main() {
 
     // Load the model
     visioncraft::Model model;
+   
     std::cout << "Loading model..." << std::endl;
     model.loadModel("../models/gorilla.ply", 100000);
+    // visualizer.addOctomap(model, Eigen::Vector3d(0.0, 1.0, 0.0));
+    // visualizer.render();
     std::cout << "Model loaded successfully." << std::endl;
 
     // Initialize visibility manager
