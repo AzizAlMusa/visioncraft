@@ -4,12 +4,13 @@
 #include "visioncraft/visualizer.h"
 #include <Eigen/Dense>
 #include <iostream>
-#include <vector>
 #include <cmath>
-#include <ctime>
-#include <cstdlib>
+#include <memory>
+#include <chrono>
+#include <thread>
+#include <vector>
+#include <iomanip>  // For setting decimal precision
 
-// Function to generate random positions around a sphere
 std::vector<Eigen::Vector3d> generateRandomPositions(double radius, int count) {
     std::vector<Eigen::Vector3d> positions;
     for (int i = 0; i < count; ++i) {
@@ -24,7 +25,7 @@ std::vector<Eigen::Vector3d> generateRandomPositions(double radius, int count) {
 }
 
 int main() {
-    srand(time(nullptr)); // Initialize random seed
+    srand(time(nullptr));
 
     // Initialize the visualizer
     visioncraft::Visualizer visualizer;
@@ -32,95 +33,86 @@ int main() {
 
     // Load the model
     visioncraft::Model model;
-   
-    std::cout << "Loading model..." << std::endl;
-    model.loadModel("../models/gorilla.ply", 100000);
-    // visualizer.addOctomap(model, Eigen::Vector3d(0.0, 1.0, 0.0));
-    // visualizer.render();
-    std::cout << "Model loaded successfully." << std::endl;
+    model.loadModel("../models/gorilla.ply", 20000);
 
-    // Initialize visibility manager
+    // Initialize the visibility manager
     auto visibilityManager = std::make_shared<visioncraft::VisibilityManager>(model);
-    std::cout << "VisibilityManager initialized." << std::endl;
 
-    // Greedy algorithm setup
-    double targetCoverage = 0.998;
-    double achievedCoverage = visibilityManager->getCoverageScore();
-    std::cout << "Initial coverage score: " << achievedCoverage << std::endl;
-    std::vector<std::shared_ptr<visioncraft::Viewpoint>> selectedViewpoints;
+    // Camera rotation parameters (fixed camera view)
+    double radius = 600.0; // Distance of the camera from the object
+    double elevation = 30.0 * M_PI / 180.0;  // Elevation angle in radians (30 degrees)
+    double angle = -45.0 * M_PI / 180.0;    // Start angle in radians
 
-    int iteration = 0;
-    while (achievedCoverage < targetCoverage) {
-        std::cout << "\nIteration " << iteration + 1 << " - Starting greedy algorithm loop." << std::endl;
+    // Calculate the camera position in 3D space
+    double x = radius * std::cos(angle) * std::cos(elevation);
+    double y = radius * std::sin(angle) * std::cos(elevation);
+    double z = radius * std::sin(elevation);
 
-        auto randomPositions = generateRandomPositions(400.0, 10);
-        std::cout << "Random positions generated." << std::endl;
+    // Set the camera position and focal point
+    visualizer.getRenderer()->GetActiveCamera()->SetPosition(x, y, z);
+    visualizer.getRenderer()->GetActiveCamera()->SetFocalPoint(0.0, 0.0, 0.0);
+    visualizer.getRenderer()->GetActiveCamera()->SetViewUp(0.0, 0.0, 1.0);  // Ensure the "up" direction is consistent
 
-        std::shared_ptr<visioncraft::Viewpoint> bestViewpoint = nullptr;
-        double bestCoverageIncrement = 0.0;
+    // Declare total loop time variable
+    auto totalLoopStart = std::chrono::high_resolution_clock::now();  // Start tracking cumulative loop time
+    double cumulativeComputationTime = 0.0;  // To accumulate the total computation time
 
-        // Evaluate each random viewpoint
-        for (size_t i = 0; i < randomPositions.size(); ++i) {
-            const auto& position = randomPositions[i];
-            std::cout << "Evaluating viewpoint " << i + 1 << "/" << randomPositions.size() << " at position: " << position.transpose() << std::endl;
+    // Loop for generating random viewpoints and performing raycasting
+    for (int iteration = 0; iteration < 500; ++iteration) { // Adjust number of iterations as needed
+        // Generate random position and create a viewpoint
+        Eigen::Vector3d position = generateRandomPositions(300, 1)[0]; // Get one random position
+        auto viewpoint = std::make_shared<visioncraft::Viewpoint>(position, Eigen::Vector3d(0.0, 0.0, 0.0));
+        viewpoint->setDownsampleFactor(8.0);
+        viewpoint->setNearPlane(100);
+        viewpoint->setFarPlane(300);
 
-            auto viewpoint = std::make_shared<visioncraft::Viewpoint>(position, Eigen::Vector3d(0.0, 0.0, 0.0));
-            viewpoint->setDownsampleFactor(8.0);
+        // Perform raycasting (no threading, just sequential)
+        visibilityManager->trackViewpoint(viewpoint);
 
-            // Track the viewpoint in the visibility manager
-            std::cout << "Tracking viewpoint in visibility manager..." << std::endl;
-            visibilityManager->trackViewpoint(viewpoint);
-            
-            std::cout << "Performing raycasting on GPU..." << std::endl;
-            viewpoint->performRaycastingOnGPU(model);
+        // Start the timer before raycasting
+        auto start = std::chrono::high_resolution_clock::now();
 
-            // Calculate the novel coverage score for the current viewpoint
-            double coverageIncrement = visibilityManager->computeNovelCoverageScore(viewpoint);
-            std::cout << "Coverage increment for this viewpoint: " << coverageIncrement << std::endl;
+        // viewpoint->performRaycasting(model, true);
+        viewpoint->performRaycastingOnGPU(model);    // Perform raycasting on GPU
 
-            // Untrack the viewpoint after evaluation
-            visibilityManager->untrackViewpoint(viewpoint);
-            std::cout << "Viewpoint untracked." << std::endl;
+        // Stop the timer after raycasting
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> duration = end - start;  // In milliseconds
 
-            if (coverageIncrement > bestCoverageIncrement) {
-                bestCoverageIncrement = coverageIncrement;
-                bestViewpoint = viewpoint;
-                std::cout << "New best viewpoint found with increment: " << bestCoverageIncrement << std::endl;
-            }
-        }
+        // Add the duration of the current iteration to the cumulative computation time
+        cumulativeComputationTime += duration.count() / 1000.0;  // Convert ms to seconds
 
-        // If a suitable viewpoint is found, track it and update coverage
-        if (bestViewpoint) {
-            std::cout << "Tracking the best viewpoint with coverage increment: " << bestCoverageIncrement << std::endl;
-            visibilityManager->trackViewpoint(bestViewpoint);
-            std::cout << "Performing raycasting on GPU for the best viewpoint..." << std::endl;
-            bestViewpoint->performRaycastingOnGPU(model);
-            
-            achievedCoverage += bestCoverageIncrement;
-            selectedViewpoints.push_back(bestViewpoint);
+        // Compute and display the cumulative loop time (total time elapsed since the start of the loop)
+        auto totalLoopEnd = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> totalLoopDuration = totalLoopEnd - totalLoopStart;  // Total loop time in seconds
 
-            std::cout << "Coverage updated: " << achievedCoverage << " / " << targetCoverage << std::endl;
-        } else {
-            std::cout << "No suitable viewpoint found in this iteration." << std::endl;
-        }
-        std::cout << "End of iteration " << iteration + 1 << ".\n" << std::endl;
-        
-        iteration++;
-    }
+        // Prepare the message
+        std::ostringstream stream;
+        stream << std::fixed << std::setprecision(2);
+        stream << "Viewpoints evaluated   =   " << (iteration + 1) << 
+                "\n\nComputation time         =   " << static_cast<int>(duration.count()) << " ms" <<
+                "\n\nSpeed (evaluations/s)   =   " << (iteration + 1) / cumulativeComputationTime <<
+                "\n\nTime                                 =   " << totalLoopDuration.count() << " s" ;
 
-    // Print final results
-    std::cout << "\nFinal Coverage Score: " << visibilityManager->getCoverageScore() << std::endl;
-    std::cout << "Total Viewpoints Selected: " << selectedViewpoints.size() << std::endl;
+        // Overlay the iteration count, computation time, and cumulative loop time on the visualizer
+        visualizer.removeOverlayTexts(); // Remove previous overlay texts
+        visualizer.addOverlayText(stream.str(), 0.05, 0.05, 18, Eigen::Vector3d(1.0, 1.0, 1.0)); // Display text in white color
 
-    // Render the selected viewpoints and visible voxels
-    Eigen::Vector3d baseColor(1.0, 1.0, 1.0);
-    Eigen::Vector3d propertyColor(0.0, 1.0, 0.0);
-    visualizer.addVoxelMapProperty(model, "visibility", baseColor, propertyColor);
-
-    for (const auto& viewpoint : selectedViewpoints) {
+        // Add the viewpoint to the visualizer and update the render
         visualizer.addViewpoint(*viewpoint, true, true);
+        visualizer.addVoxelMapProperty(model, "visibility", Eigen::Vector3d(1.0, 1.0, 1.0), Eigen::Vector3d(0.0, 1.0, 0.0)); // Add visibility map
+
+        // Render the updated scene
+        visualizer.renderStep();
+
+        // Clean up after rendering the frame
+        visibilityManager->untrackViewpoint(viewpoint);
+        visualizer.removeViewpoints(); // Remove previous viewpoints
+        visualizer.removeVoxelMapProperty(); // Remove previous voxel map property
+
+        // Optionally, add a small delay to control the speed of iteration
+        std::this_thread::sleep_for(std::chrono::milliseconds(1)); // 1 ms delay between iterations
     }
-    visualizer.showGPUVoxelGrid(model, Eigen::Vector3d(0.0, 0.0, 1.0));
-    visualizer.render();
+
     return 0;
 }

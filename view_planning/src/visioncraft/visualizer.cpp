@@ -31,6 +31,7 @@
 
 VTK_MODULE_INIT(vtkRenderingOpenGL2);
 VTK_MODULE_INIT(vtkInteractionStyle);
+VTK_MODULE_INIT(vtkRenderingFreeType);
 
 namespace visioncraft {
 
@@ -40,7 +41,7 @@ Visualizer::Visualizer() {
     renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
     renderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
 
-    renderWindow->SetSize(1280, 720);
+    renderWindow->SetSize(1920, 1080);
     renderWindow->AddRenderer(renderer);
     renderWindowInteractor->SetRenderWindow(renderWindow);
     renderWindow->SetWindowName("Visualization");
@@ -64,27 +65,61 @@ void Visualizer::initializeWindow(const std::string& windowName) {
  
 }
 
-void Visualizer::addViewpoint(const visioncraft::Viewpoint& viewpoint, bool showFrustum, bool showAxes) {
-    Eigen::Vector3d position = viewpoint.getPosition();
-    Eigen::Matrix3d orientationMatrix = viewpoint.getOrientationMatrix();
-
-    // Only show the axes for now, frustum will be added later
-    if (showAxes) {
-        this->showAxes(position, orientationMatrix);  // Now passing the orientation matrix instead of quaternion
-    }
-
-
-    // Show frustum
-    if (showFrustum) {
-        this->showFrustum(viewpoint);  // Visualize frustum
+void visioncraft::Visualizer::processEvents() {
+    if (renderWindowInteractor) {
+        renderWindowInteractor->ProcessEvents();
     }
 }
+
+void visioncraft::Visualizer::startAsyncRendering() {
+    // Set the flag to false before starting
+    stopRendering_ = false;
+
+    // Start the rendering thread
+    renderThread_ = std::thread([this]() {
+        renderWindowInteractor->Initialize();
+        while (!stopRendering_) {
+            renderWindowInteractor->ProcessEvents();
+            renderWindow->Render();
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));  // ~60 FPS
+        }
+    });
+}
+
+void visioncraft::Visualizer::stopAsyncRendering() {
+    stopRendering_ = true;
+    if (renderThread_.joinable()) {
+        renderThread_.join();
+    }
+}
+
+
+void Visualizer::addViewpoint(const visioncraft::Viewpoint& viewpoint, bool showFrustum, bool showAxes) {
+    if (showAxes) {
+        auto axesActors = this->showAxes(viewpoint.getPosition(), viewpoint.getOrientationMatrix());
+        viewpointActors_.insert(viewpointActors_.end(), axesActors.begin(), axesActors.end());
+    }
+
+    if (showFrustum) {
+        auto frustumActors = this->showFrustum(viewpoint);
+        viewpointActors_.insert(viewpointActors_.end(), frustumActors.begin(), frustumActors.end());
+    }
+}
+
 
 void Visualizer::addMultipleViewpoints(const std::vector<visioncraft::Viewpoint>& viewpoints) {
     for (const auto& viewpoint : viewpoints) {
         addViewpoint(viewpoint);
     }
 }
+
+void Visualizer::removeViewpoints() {
+    for (auto& actor : viewpointActors_) {
+        renderer->RemoveActor(actor);  // Remove each actor from the renderer
+    }
+    viewpointActors_.clear();  // Clear the list of actors
+}
+
 
 void Visualizer::showRays(visioncraft::Viewpoint& viewpoint, const Eigen::Vector3d& color) {
     // Get the rays generated from the viewpoint
@@ -668,9 +703,17 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
     voxelActor->GetProperty()->SetEdgeColor(0.0, 0.0, 0.0);
     voxelActor->GetProperty()->SetLineWidth(1.0);
 
-    renderer->AddActor(voxelActor);
+    voxelMapPropertyActor_ = voxelActor;  // Store the actor for later removal
+    renderer->AddActor(voxelMapPropertyActor_);
+
 }
 
+void Visualizer::removeVoxelMapProperty() {
+    if (voxelMapPropertyActor_) {
+        renderer->RemoveActor(voxelMapPropertyActor_);  // Remove from renderer
+        voxelMapPropertyActor_ = nullptr;  // Reset the actor pointer
+    }
+}
 
 
 void Visualizer::setBackgroundColor(const Eigen::Vector3d& color) {
@@ -693,15 +736,19 @@ void Visualizer::render() {
 }
 
 
+void Visualizer::renderStep() {
+    renderWindow->Render();
+}
 
-void Visualizer::showFrustum(const visioncraft::Viewpoint& viewpoint) {
+
+
+std::vector<vtkSmartPointer<vtkActor>> Visualizer::showFrustum(const visioncraft::Viewpoint& viewpoint) {
+    std::vector<vtkSmartPointer<vtkActor>> frustumActors;
+
     // Get the frustum corners from the viewpoint
     std::vector<Eigen::Vector3d> corners = viewpoint.getFrustumCorners();
+    if (corners.size() != 8) return frustumActors; // Return empty if corners are invalid
 
-    // Ensure there are exactly 8 corners (4 for near plane, 4 for far plane)
-    if (corners.size() != 8) return;
-
-    // Function to create lines between two points
     auto createFrustumLine = [&](const Eigen::Vector3d& start, const Eigen::Vector3d& end, const Eigen::Vector3d& color) {
         vtkSmartPointer<vtkLineSource> lineSource = vtkSmartPointer<vtkLineSource>::New();
         lineSource->SetPoint1(start(0), start(1), start(2));
@@ -713,27 +760,26 @@ void Visualizer::showFrustum(const visioncraft::Viewpoint& viewpoint) {
         vtkSmartPointer<vtkActor> lineActor = vtkSmartPointer<vtkActor>::New();
         lineActor->SetMapper(lineMapper);
         lineActor->GetProperty()->SetColor(color(0), color(1), color(2));
-        lineActor->GetProperty()->SetLineWidth(0.5);  // Set line thickness
+        lineActor->GetProperty()->SetLineWidth(0.5);
 
         renderer->AddActor(lineActor);
+        return lineActor;
     };
 
-    // Define color for the frustum lines
     Eigen::Vector3d frustumColor(1.0, 1.0, 0.0);  // Yellow for the frustum
 
-    // Draw lines between near and far plane corners
     for (int i = 0; i < 4; ++i) {
-        // Near plane edges
-        createFrustumLine(corners[i], corners[(i + 1) % 4], frustumColor);
-        // Far plane edges
-        createFrustumLine(corners[i + 4], corners[(i + 1) % 4 + 4], frustumColor);
-        // Lines connecting near and far planes
-        createFrustumLine(corners[i], corners[i + 4], frustumColor);
+        frustumActors.push_back(createFrustumLine(corners[i], corners[(i + 1) % 4], frustumColor));
+        frustumActors.push_back(createFrustumLine(corners[i + 4], corners[(i + 1) % 4 + 4], frustumColor));
+        frustumActors.push_back(createFrustumLine(corners[i], corners[i + 4], frustumColor));
     }
+
+    return frustumActors;
 }
 
-void Visualizer::showAxes(const Eigen::Vector3d& position, const Eigen::Matrix3d& orientation) {
-    // Function to create a line for each axis
+std::vector<vtkSmartPointer<vtkActor>> Visualizer::showAxes(const Eigen::Vector3d& position, const Eigen::Matrix3d& orientation) {
+    std::vector<vtkSmartPointer<vtkActor>> axesActors;
+
     auto createAxis = [](const Eigen::Vector3d& start, const Eigen::Vector3d& end, const Eigen::Vector3d& color) {
         vtkSmartPointer<vtkLineSource> lineSource = vtkSmartPointer<vtkLineSource>::New();
         lineSource->SetPoint1(start(0), start(1), start(2));
@@ -745,25 +791,58 @@ void Visualizer::showAxes(const Eigen::Vector3d& position, const Eigen::Matrix3d
         vtkSmartPointer<vtkActor> lineActor = vtkSmartPointer<vtkActor>::New();
         lineActor->SetMapper(lineMapper);
         lineActor->GetProperty()->SetColor(color(0), color(1), color(2));
-        lineActor->GetProperty()->SetLineWidth(2.0);  // Set line thickness
+        lineActor->GetProperty()->SetLineWidth(2.0);
 
         return lineActor;
     };
 
-    // Define axis length
     double axisLength = 5.0;
 
-    // Create X, Y, Z axes
-    vtkSmartPointer<vtkActor> xAxis = createAxis(position, position + axisLength * orientation.col(0), Eigen::Vector3d(1.0, 0.0, 0.0)); // Red for X
-    vtkSmartPointer<vtkActor> yAxis = createAxis(position, position + axisLength * orientation.col(1), Eigen::Vector3d(0.0, 1.0, 0.0)); // Green for Y
-    vtkSmartPointer<vtkActor> zAxis = createAxis(position, position + axisLength * orientation.col(2), Eigen::Vector3d(0.0, 0.0, 1.0)); // Blue for Z
+    vtkSmartPointer<vtkActor> xAxis = createAxis(position, position + axisLength * orientation.col(0), Eigen::Vector3d(1.0, 0.0, 0.0));
+    vtkSmartPointer<vtkActor> yAxis = createAxis(position, position + axisLength * orientation.col(1), Eigen::Vector3d(0.0, 1.0, 0.0));
+    vtkSmartPointer<vtkActor> zAxis = createAxis(position, position + axisLength * orientation.col(2), Eigen::Vector3d(0.0, 0.0, 1.0));
 
-    // Add actors to the renderer
     renderer->AddActor(xAxis);
     renderer->AddActor(yAxis);
     renderer->AddActor(zAxis);
+
+    axesActors.push_back(xAxis);
+    axesActors.push_back(yAxis);
+    axesActors.push_back(zAxis);
+
+    return axesActors;
 }
 
+
+void Visualizer::addOverlayText(const std::string& text, double x, double y, int fontSize, const Eigen::Vector3d& color) {
+    // Create a text actor for the overlay text
+    vtkSmartPointer<vtkTextActor> textActor = vtkSmartPointer<vtkTextActor>::New();
+    textActor->SetInput(text.c_str());
+
+    // Position the text using normalized viewport coordinates
+    textActor->SetPosition(x * renderWindow->GetSize()[0], y * renderWindow->GetSize()[1]);
+
+    // Configure text properties
+    vtkTextProperty* textProperty = textActor->GetTextProperty();
+    textProperty->SetFontSize(fontSize);
+    textProperty->SetColor(color(0), color(1), color(2)); // Set the text color
+    textProperty->SetJustificationToLeft();
+    textProperty->SetVerticalJustificationToBottom();
+
+    // Add the text actor to the renderer
+    renderer->AddActor2D(textActor);
+
+    // Store the text actor for future removal
+    overlayTextActors_.push_back(textActor);
+}
+
+void Visualizer::removeOverlayTexts() {
+    // Remove each overlay text actor from the renderer
+    for (auto& actor : overlayTextActors_) {
+        renderer->RemoveActor2D(actor);
+    }
+    overlayTextActors_.clear(); // Clear the vector to remove all references
+}
 
 
 } // namespace visioncraft

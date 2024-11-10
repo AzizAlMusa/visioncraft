@@ -17,6 +17,9 @@
 #include <vtkFrustumSource.h>
 #include <vtkPolyDataMapper.h>
 
+#include <vtkTextActor.h>
+#include <vtkTextProperty.h>
+
 
 namespace visioncraft {
 
@@ -46,6 +49,14 @@ public:
     void initializeWindow(const std::string& windowName = "3D Visualizer");
 
     /**
+     * @brief Process any pending interaction events.
+     *
+     * This function allows the interactor to process events during each render step,
+     * enabling user control of the camera and window.
+     */
+    void processEvents();
+
+    /**
      * @brief Add a viewpoint to the visualization.
      * @param viewpoint The viewpoint object containing position and orientation.
      * @param showFrustum Whether to show the frustum for the viewpoint (default is true).
@@ -58,6 +69,12 @@ public:
      * @param viewpoints A vector of viewpoint objects.
      */
     void addMultipleViewpoints(const std::vector<visioncraft::Viewpoint>& viewpoints);
+
+
+    /**
+     * @brief Remove all added viewpoints from the visualization.
+     */
+    void removeViewpoints();
 
     /**
      * @brief Visualize the rays generated from a viewpoint.
@@ -148,6 +165,11 @@ public:
                                     const Eigen::Vector3d& propertyColor = Eigen::Vector3d(1.0, 1.0, 1.0), 
                                     float minScale = -1.0, float maxScale = -1.0);
 
+    /**
+     * @brief Remove the voxel map property from the visualization.
+     */
+    void removeVoxelMapProperty();
+
 
     /**
      * @brief Set the background color of the visualization.
@@ -174,27 +196,88 @@ public:
      */
     void renderStep();
 
+
+    /**
+     * @brief Starts the asynchronous rendering loop in a separate thread.
+     */
+    void startAsyncRendering();
+
+    /**
+     * @brief Stops the asynchronous rendering thread safely.
+     */
+    void stopAsyncRendering();
+
+    /**
+     * @brief Get the render window interactor for managing interactive events.
+     * @return A pointer to the vtkRenderWindowInteractor.
+     */
+    vtkSmartPointer<vtkRenderWindowInteractor> getRenderWindowInteractor() const {return renderWindowInteractor;}
+
+     /**
+     * @brief Getter for the renderer.
+     * @return A pointer to the renderer.
+     */
+    vtkSmartPointer<vtkRenderer> getRenderer() const { return renderer; }
+
+    /**
+     * @brief Overlay text on the visualization window at a specified location.
+     * 
+     * This function adds a text overlay to the visualization window, allowing customization 
+     * of the position, font size, and color. The text is displayed on top of the rendered scene.
+     * 
+     * @param text The text string to display.
+     * @param x X-coordinate for text position in normalized [0.0, 1.0] viewport coordinates.
+     * @param y Y-coordinate for text position in normalized [0.0, 1.0] viewport coordinates.
+     * @param fontSize The font size of the text overlay.
+     * @param color The color of the text in RGB format.
+     */
+    void addOverlayText(const std::string& text, double x, double y, int fontSize, const Eigen::Vector3d& color);
+
+    /**
+     * @brief Remove all text overlays from the visualization.
+     *
+     * This function removes all previously added text overlays to clear the visualization
+     * or prepare for new overlays.
+     */
+    void removeOverlayTexts();
+
+
+
+
+
 private:
-    vtkSmartPointer<vtkRenderer> renderer; ///< The VTK renderer used for visualization.
-    vtkSmartPointer<vtkRenderWindow> renderWindow; ///< The VTK render window.
-    vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor; ///< The VTK render window interactor.
+
     /**
      * @brief Helper function to add a frustum for a viewpoint.
      * @param position The position of the viewpoint.
      * @param orientation The orientation matrix of the viewpoint.
      */
-    void showFrustum(const visioncraft::Viewpoint& viewpoint);
+    std::vector<vtkSmartPointer<vtkActor>> showFrustum(const visioncraft::Viewpoint& viewpoint);
 
     /**
      * @brief Helper function to add axes for a viewpoint.
      * @param position The position of the viewpoint.
      * @param orientation The orientation matrix of the viewpoint.
      */
-    void showAxes(const Eigen::Vector3d& position, const Eigen::Matrix3d& orientation);
+    std::vector<vtkSmartPointer<vtkActor>> showAxes(const Eigen::Vector3d& position, const Eigen::Matrix3d& orientation);
 
+    vtkSmartPointer<vtkRenderer> renderer; ///< The VTK renderer used for visualization.
+    vtkSmartPointer<vtkRenderWindow> renderWindow; ///< The VTK render window.
+    vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor; ///< The VTK render window interactor.
+      
     vtkSmartPointer<vtkActor> octomapActor_;  ///< Store the actor for the octomap
     vtkSmartPointer<vtkUnsignedCharArray> octomapColors_;  ///< Store the color array for the octomap voxels
     vtkSmartPointer<vtkPolyData> octomapPolyData_;  ///< Store the poly data for easy access to voxel points
+
+
+    std::vector<vtkSmartPointer<vtkActor>> viewpointActors_; ///< Store actors for all viewpoints
+    vtkSmartPointer<vtkActor> voxelMapPropertyActor_ = nullptr; ///< Store actor for the voxel map property
+
+    std::thread renderThread_; ///< Thread for asynchronous rendering
+    bool stopRendering_ = false; ///< Flag to control rendering loop termination
+
+    std::vector<vtkSmartPointer<vtkTextActor>> overlayTextActors_; ///< Store text actors for overlay text.
+
 
 };
 
