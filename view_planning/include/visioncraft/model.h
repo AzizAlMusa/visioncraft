@@ -510,6 +510,22 @@ public:
 
     void printMismatchedVoxels() const ;
 
+    /**
+     * @brief Compute and store normals for each voxel by averaging the point cloud normals within each voxel.
+     * 
+     * This function computes the average normal for each voxel in the voxel grid, storing the result in a private 
+     * member variable. The normals are calculated based on the point cloud normals contained within the boundaries 
+     * of each voxel, providing a reliable representation of surface orientation within each voxel.
+     * 
+     * @return True if the normals are computed and stored successfully, false otherwise.
+     */
+    bool computeVoxelNormals();
+
+    /**
+     * @brief Get the computed normals for each voxel.
+    */
+    std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash> getVoxelNormals() const { return voxel_normals_; }
+
 private:
 
     /**
@@ -526,6 +542,9 @@ private:
     bool generateAllStructures(int num_samples, double resolution);
 
 
+
+   
+
     /**
      * @brief Generate all necessary structures from the loaded mesh.
      * 
@@ -538,6 +557,8 @@ private:
      * @return True if all structures are generated successfully, false otherwise.
      */
     bool generateExplorationStructures(int num_samples, int num_cells_per_side);
+
+    
 
     // Mesh representation
     std::shared_ptr<open3d::geometry::TriangleMesh> meshData_;  ///< Mesh data representing the loaded 3D model.
@@ -580,6 +601,8 @@ private:
     // TODO: Add normals for the octomap/voxels
     // TODO: Add FPFH clustering for the octomap/voxels
     // TODO: Add features such as NARF etc. for the octomap/voxels
+    std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash> voxel_normals_; ///< Map storing averaged normals for each voxel, keyed by OctoMap keys.
+
 };  
 
 } // namespace visioncraft

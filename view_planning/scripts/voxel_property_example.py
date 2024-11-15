@@ -15,7 +15,7 @@ visualizer.setBackgroundColor(np.array([0.0, 0.0, 0.0]))
 
 # Load model
 model = Model()
-model.loadModel("../models/cube.ply", 50000)
+model.loadModel("../models/gorilla.ply", 50000)
 model.addVoxelProperty("radius", 0.0)  # Initialize radius property for all voxels
 
 for key, voxel in model.getVoxelMap().items():

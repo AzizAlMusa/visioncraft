@@ -88,6 +88,12 @@ public:
     void showRays(visioncraft::Viewpoint& viewpoint, const Eigen::Vector3d& color);
 
     /**
+     * @brief Visualize the rays generated from a viewpoint in parallel.
+     * 
+    */
+    void showRaysParallel(visioncraft::Viewpoint& viewpoint);
+
+    /**
      * @brief Visualizes the ray endpoints as voxels along the ray paths generated from the viewpoint.
      * Each ray endpoint is visualized as a voxel (cube) in the 3D space.
      * 

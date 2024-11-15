@@ -53,6 +53,15 @@ inline void bind_visibility_manager(py::module& m) {
             }
             return visibility_map;
         })
+        .def("getVisibleVoxelsForViewpoint", [](const visioncraft::VisibilityManager& self, const std::shared_ptr<visioncraft::Viewpoint>& viewpoint) {
+            py::set visible_voxels;
+            const auto& viewpoint_visibility_set = self.getVisibilityMap().at(viewpoint);
+            for (const auto& key : viewpoint_visibility_set) {
+                visible_voxels.add(py::make_tuple(key.k[0], key.k[1], key.k[2]));
+            }
+            return visible_voxels;
+        }, py::arg("viewpoint"))
+
 
         // Coverage score retrieval and computation
         .def("getCoverageScore", &visioncraft::VisibilityManager::getCoverageScore)

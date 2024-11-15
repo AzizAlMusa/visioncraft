@@ -170,6 +170,93 @@ void Visualizer::showRays(visioncraft::Viewpoint& viewpoint, const Eigen::Vector
     renderer->AddActor(lineActor);
 }
 
+
+void Visualizer::showRaysParallel(visioncraft::Viewpoint& viewpoint) {
+    // Get the rays generated from the viewpoint
+    auto rays = viewpoint.generateRays();
+
+    // Get the viewpoint position
+    Eigen::Vector3d viewpointPosition = viewpoint.getPosition();
+
+    // Define a color palette with 12 distinct, visually appealing colors
+   std::vector<Eigen::Vector3d> colors = {
+        Eigen::Vector3d(0.0, 0.717, 0.925),  // Cyan (#00B7EB)
+        Eigen::Vector3d(1.0, 0.0, 1.0),  // Magenta (#FF00FF)
+        Eigen::Vector3d(0.224, 1.0, 0.078),  // Neon Green (#39FF14)
+        Eigen::Vector3d(1.0, 1.0, 0.0),  // Bright Yellow (#FFFF00)
+        Eigen::Vector3d(1.0, 0.373, 0.0),  // Neon Orange (#FF5F00)
+        Eigen::Vector3d(1.0, 0.5, 0.0),  // Orange (#FF8000)
+        Eigen::Vector3d(0.5, 0.0, 0.0),  // Red (#800000)
+        Eigen::Vector3d(0.0, 0.5, 1.0),  // Bright Blue (#0080FF)
+        Eigen::Vector3d(0.5, 1.0, 1.0),  // Light Cyan (#80FFFF)
+        Eigen::Vector3d(0.8, 0.8, 0.0),  // Yellow Green (#CCCC00)
+        Eigen::Vector3d(0.5, 0.0, 0.5),  // Purple (#800080)
+        Eigen::Vector3d(1.0, 0.8, 0.8)   // Light Pink (#FFCCCC)
+    };
+
+
+
+    // Get the number of rays
+    int numRays = rays.size();
+
+    // Max number of threads (colors)
+    int maxThreads = 12;
+
+    // Calculate the batch size (round down if necessary)
+    int batchSize = numRays / maxThreads;
+
+    // Iterate over the colors and assign rays to each color batch
+    for (int batch = 0; batch < maxThreads; ++batch) {
+        // Create a new vtkPoints and vtkCellArray for each batch
+        vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+        vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+
+        // Calculate the range of rays for this batch
+        int startIdx = batch * batchSize;
+        int endIdx = (batch == maxThreads - 1) ? numRays : (startIdx + batchSize);  // Handle remaining rays
+
+        // Get the current color for this batch
+        Eigen::Vector3d currentColor = colors[batch];
+
+        // Iterate over the rays for this batch
+        for (int i = startIdx; i < endIdx; ++i) {
+            const auto& rayEnd = rays[i];
+
+            // Insert the start and end points of the ray
+            vtkIdType startId = points->InsertNextPoint(viewpointPosition(0), viewpointPosition(1), viewpointPosition(2));
+            vtkIdType endId = points->InsertNextPoint(rayEnd(0), rayEnd(1), rayEnd(2));
+
+            // Create a line connecting the start and end points
+            vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+            line->GetPointIds()->SetId(0, startId);
+            line->GetPointIds()->SetId(1, endId);
+
+            // Add the line to the vtkCellArray
+            lines->InsertNextCell(line);
+        }
+
+        // Create a vtkPolyData to hold the points and lines
+        vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+        polyData->SetPoints(points);
+        polyData->SetLines(lines);
+
+        // Create a mapper for the polydata
+        vtkSmartPointer<vtkPolyDataMapper> lineMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        lineMapper->SetInputData(polyData);
+
+        // Create a new actor for the lines and set the color
+        vtkSmartPointer<vtkActor> lineActor = vtkSmartPointer<vtkActor>::New();
+        lineActor->SetMapper(lineMapper);
+        lineActor->GetProperty()->SetColor(currentColor(0), currentColor(1), currentColor(2));
+        lineActor->GetProperty()->SetLineWidth(1.0);  // Set line thickness
+        lineActor->GetProperty()->SetOpacity(1.0);  // Set the opacity for transparency
+
+        // Add the actor to the renderer
+        renderer->AddActor(lineActor);
+    }
+}
+
+
 void Visualizer::showRayVoxels(visioncraft::Viewpoint& viewpoint, const std::shared_ptr<octomap::ColorOcTree>& octomap, const Eigen::Vector3d& color) {
     std::cout << "[INFO] Starting showRayVoxels for all rays..." << std::endl;
 
@@ -610,9 +697,16 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
             const auto& metaVoxel = kv.second;
             if (metaVoxel.hasProperty(property_name)) {
                 try {
-                    float value = (metaVoxel.getProperty(property_name).type() == typeid(int))
-                        ? static_cast<float>(boost::get<int>(metaVoxel.getProperty(property_name)))
-                        : boost::get<float>(metaVoxel.getProperty(property_name));
+                    // Try handling different property types (int, float, double)
+                    float value = 0.0f;
+                    const auto& prop = metaVoxel.getProperty(property_name);
+                    if (prop.type() == typeid(int)) {
+                        value = static_cast<float>(boost::get<int>(prop));
+                    } else if (prop.type() == typeid(float)) {
+                        value = boost::get<float>(prop);
+                    } else if (prop.type() == typeid(double)) {
+                        value = static_cast<float>(boost::get<double>(prop)); // Cast double to float for consistency
+                    }
                     minScale = std::min(minScale, value);
                     maxScale = std::max(maxScale, value);
                 } catch (const boost::bad_get& e) {
@@ -625,57 +719,68 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
         }
     }
 
-        for (const auto& kv : metaVoxelMap) {
-            
-            const auto& metaVoxel = kv.second;
-            const auto& voxelPos = metaVoxel.getPosition();
-            points->InsertNextPoint(voxelPos.x(), voxelPos.y(), voxelPos.z());
+    for (const auto& kv : metaVoxelMap) {
+        const auto& metaVoxel = kv.second;
+        const auto& voxelPos = metaVoxel.getPosition();
+        points->InsertNextPoint(voxelPos.x(), voxelPos.y(), voxelPos.z());
 
-            Eigen::Vector3d color = baseColor;  // Default for 0.0 values
+        Eigen::Vector3d color = baseColor;  // Default for 0.0 values
 
-            // Check if the voxel has the specified property
-            if (metaVoxel.hasProperty(property_name)) {
-                try {
-                    float propertyValue = (metaVoxel.getProperty(property_name).type() == typeid(int))
-                        ? static_cast<float>(boost::get<int>(metaVoxel.getProperty(property_name)))
-                        : boost::get<float>(metaVoxel.getProperty(property_name));
+        // Check if the voxel has the specified property
+        if (metaVoxel.hasProperty(property_name)) {
+            try {
+                float propertyValue = 0.0f;
+                const auto& prop = metaVoxel.getProperty(property_name);
 
-                    // Special handling for scores equal to 0.0
-                    if (propertyValue == 0.0f) {
-                        color = baseColor;  // Use baseColor directly for 0.0 scores
-                    } else {
-                        // Set a pastel color for the minimum non-zero value by blending with white
-                        if (propertyValue == minScale) {
-                            color = (propertyColor + Eigen::Vector3d(1.0, 1.0, 1.0)) * 0.5;  // Pastel version
-                        } else {
-                            // Normalize property value to [0,1] and darken progressively for higher scores
-                            float normalizedValue = (propertyValue - minScale) / (maxScale - minScale);
-                            normalizedValue = std::max(0.0f, std::min(normalizedValue, 1.0f));
-
-                            // Darken the pastel color for higher values
-                            Eigen::Vector3d pastelColor = (propertyColor + Eigen::Vector3d(1.0, 1.0, 1.0)) * 0.5;
-                            color = pastelColor * (1.0f - 0.5f * normalizedValue);
-                            color = color.cwiseMin(1.0).cwiseMax(0.0);  // Clamp to [0,1]
-                        }
-                    }
-                } catch (const boost::bad_get& e) {
-                    std::cerr << "Error: Failed to retrieve property " << property_name 
-                            << " for voxel at position " << voxelPos.transpose() 
-                            << ": " << e.what() << std::endl;
-                    continue;
+                // Retrieve the property value depending on its type
+                if (prop.type() == typeid(int)) {
+                    propertyValue = static_cast<float>(boost::get<int>(prop));
+                } else if (prop.type() == typeid(float)) {
+                    propertyValue = boost::get<float>(prop);
+                } else if (prop.type() == typeid(double)) {
+                    propertyValue = static_cast<float>(boost::get<double>(prop)); // Cast double to float for consistency
                 }
-            }
 
-            unsigned char voxelColor[3] = {
-                static_cast<unsigned char>(color(0) * 255),
-                static_cast<unsigned char>(color(1) * 255),
-                static_cast<unsigned char>(color(2) * 255)
-            };
-            colors->InsertNextTypedTuple(voxelColor);
+                // Special handling for scores equal to 0.0
+                if (propertyValue == 0.0f) {
+                    color = baseColor;  // Use baseColor directly for 0.0 scores
+                } else {
+                    // Normalize the property value to [0, 1]
+                    float normalizedValue = (propertyValue - minScale) / (maxScale - minScale);
+                    normalizedValue = std::max(0.0f, std::min(normalizedValue, 1.0f));
+
+                    // Lighten the property color by blending with white for the minimum values (pastel effect)
+                    Eigen::Vector3d lightColor = propertyColor + Eigen::Vector3d(1.0, 1.0, 1.0) * 0.7; // Add white to light the color
+
+                    // Clamp the lightened color to ensure it doesn't exceed [0, 1]
+                    lightColor = lightColor.cwiseMin(1.0).cwiseMax(0.0);
+
+                    // Darken the color for higher property values by blending with black
+                    Eigen::Vector3d black(0.0, 0.0, 0.0); // Black
+
+                    // Blend between light color (pastel) and original property color, then blend from property color to black as value increases
+                    color = lightColor * (1.0f - normalizedValue) + propertyColor * normalizedValue;  // Blend from light to property color
+                    color = color * (1.0f - normalizedValue) + black * normalizedValue; // Blend from property color to black
+
+                    // Clamp the final color to ensure it stays within [0, 1]
+                    color = color.cwiseMin(1.0).cwiseMax(0.0);
+                }
+
+            } catch (const boost::bad_get& e) {
+                std::cerr << "Error: Failed to retrieve property " << property_name 
+                          << " for voxel at position " << voxelPos.transpose() 
+                          << ": " << e.what() << std::endl;
+                continue;
+            }
         }
 
-
-
+        unsigned char voxelColor[3] = {
+            static_cast<unsigned char>(color(0) * 255),
+            static_cast<unsigned char>(color(1) * 255),
+            static_cast<unsigned char>(color(2) * 255)
+        };
+        colors->InsertNextTypedTuple(voxelColor);
+    }
 
     vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
     polyData->SetPoints(points);
@@ -705,8 +810,8 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
 
     voxelMapPropertyActor_ = voxelActor;  // Store the actor for later removal
     renderer->AddActor(voxelMapPropertyActor_);
-
 }
+
 
 void Visualizer::removeVoxelMapProperty() {
     if (voxelMapPropertyActor_) {

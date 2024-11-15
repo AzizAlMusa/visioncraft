@@ -336,8 +336,10 @@ std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> Viewpo
                             voxelGridGPU, host_hit_voxels, host_hit_count);
 
 
-    // Start processing hit voxels
+    //print host_hit_voxels size
+   
 
+    // Start processing hit voxels
     std::set<std::tuple<int, int, int>> unique_hit_voxels;
 
     for (unsigned int i = 0; i < host_hit_count; ++i) {

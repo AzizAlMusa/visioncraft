@@ -5,27 +5,20 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <cmath>
-#include <memory>
-#include <chrono>
-#include <thread>
-#include <vector>
-#include <iomanip>  // For setting decimal precision
+#include <ctime>
+#include <cstdlib>
 
-std::vector<Eigen::Vector3d> generateRandomPositions(double radius, int count) {
-    std::vector<Eigen::Vector3d> positions;
-    for (int i = 0; i < count; ++i) {
-        double theta = ((double) rand() / RAND_MAX) * 2 * M_PI;
-        double phi = ((double) rand() / RAND_MAX) * M_PI;
-        double x = radius * std::sin(phi) * std::cos(theta);
-        double y = radius * std::sin(phi) * std::sin(theta);
-        double z = radius * std::cos(phi);
-        positions.emplace_back(x, y, z);
-    }
-    return positions;
+// Function to calculate the attraction potential field for a voxel
+float computeField(const Eigen::Vector3d& voxelPosition, const Eigen::Vector3d& viewpointPosition, int visibility) {
+    // Weighting function w(p): Euclidean distance between viewpoint and voxel
+    float weight = static_cast<float>((voxelPosition - viewpointPosition).norm());
+
+    // Calculate attraction potential as w(p) * phi(v_i, p), where phi is visibility (1 if visible, 0 otherwise)
+    return weight * (1 - visibility);
 }
 
 int main() {
-    srand(time(nullptr));
+    srand(time(nullptr)); // Initialize random seed
 
     // Initialize the visualizer
     visioncraft::Visualizer visualizer;
@@ -33,86 +26,46 @@ int main() {
 
     // Load the model
     visioncraft::Model model;
-    model.loadModel("../models/gorilla.ply", 20000);
+    std::cout << "Loading model..." << std::endl;
+    model.loadModel("../models/gorilla.ply", 100000);
+    std::cout << "Model loaded successfully." << std::endl;
 
-    // Initialize the visibility manager
+    // Initialize visibility manager
     auto visibilityManager = std::make_shared<visioncraft::VisibilityManager>(model);
+    std::cout << "VisibilityManager initialized." << std::endl;
+    // Generate a single viewpoint
+    Eigen::Vector3d viewpointPosition(400.0, 0.0, 0.0); // Example viewpoint on the bounding sphere
+    auto viewpoint = std::make_shared<visioncraft::Viewpoint>(viewpointPosition, Eigen::Vector3d(0.0, 0.0, 0.0));
+    viewpoint->setDownsampleFactor(8.0);
+    
+    visibilityManager->trackViewpoint(viewpoint);
 
-    // Camera rotation parameters (fixed camera view)
-    double radius = 600.0; // Distance of the camera from the object
-    double elevation = 30.0 * M_PI / 180.0;  // Elevation angle in radians (30 degrees)
-    double angle = -45.0 * M_PI / 180.0;    // Start angle in radians
+    // Perform raycasting for the viewpoint
+    std::cout << "Performing raycasting for the viewpoint..." << std::endl;
+    viewpoint->performRaycastingOnGPU(model);
 
-    // Calculate the camera position in 3D space
-    double x = radius * std::cos(angle) * std::cos(elevation);
-    double y = radius * std::sin(angle) * std::cos(elevation);
-    double z = radius * std::sin(elevation);
+    // Access the voxel map and iterate through its entries
+    const auto& voxelMap = model.getVoxelMap().getMap();
 
-    // Set the camera position and focal point
-    visualizer.getRenderer()->GetActiveCamera()->SetPosition(x, y, z);
-    visualizer.getRenderer()->GetActiveCamera()->SetFocalPoint(0.0, 0.0, 0.0);
-    visualizer.getRenderer()->GetActiveCamera()->SetViewUp(0.0, 0.0, 1.0);  // Ensure the "up" direction is consistent
+    model.addVoxelProperty("attractive_field", 0.0);  // Initialize the attractive field property for all voxels
+    for (auto it = voxelMap.begin(); it != voxelMap.end(); ++it) {
+        const auto& key = it->first;
+        auto& voxel = it->second; // Non-const reference to allow modification
 
-    // Declare total loop time variable
-    auto totalLoopStart = std::chrono::high_resolution_clock::now();  // Start tracking cumulative loop time
-    double cumulativeComputationTime = 0.0;  // To accumulate the total computation time
+        // Retrieve visibility status (1 if visible, 0 if not)
+        int visibility = boost::get<int>(model.getVoxelProperty(key, "visibility"));
 
-    // Loop for generating random viewpoints and performing raycasting
-    for (int iteration = 0; iteration < 500; ++iteration) { // Adjust number of iterations as needed
-        // Generate random position and create a viewpoint
-        Eigen::Vector3d position = generateRandomPositions(300, 1)[0]; // Get one random position
-        auto viewpoint = std::make_shared<visioncraft::Viewpoint>(position, Eigen::Vector3d(0.0, 0.0, 0.0));
-        viewpoint->setDownsampleFactor(8.0);
-        viewpoint->setNearPlane(100);
-        viewpoint->setFarPlane(300);
+        // Calculate the attraction potential field for the current voxel using Euclidean distance as the weight
+        float attractiveField = computeField(voxel.getPosition(), viewpointPosition, visibility);
 
-        // Perform raycasting (no threading, just sequential)
-        visibilityManager->trackViewpoint(viewpoint);
-
-        // Start the timer before raycasting
-        auto start = std::chrono::high_resolution_clock::now();
-
-        // viewpoint->performRaycasting(model, true);
-        viewpoint->performRaycastingOnGPU(model);    // Perform raycasting on GPU
-
-        // Stop the timer after raycasting
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> duration = end - start;  // In milliseconds
-
-        // Add the duration of the current iteration to the cumulative computation time
-        cumulativeComputationTime += duration.count() / 1000.0;  // Convert ms to seconds
-
-        // Compute and display the cumulative loop time (total time elapsed since the start of the loop)
-        auto totalLoopEnd = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> totalLoopDuration = totalLoopEnd - totalLoopStart;  // Total loop time in seconds
-
-        // Prepare the message
-        std::ostringstream stream;
-        stream << std::fixed << std::setprecision(2);
-        stream << "Viewpoints evaluated   =   " << (iteration + 1) << 
-                "\n\nComputation time         =   " << static_cast<int>(duration.count()) << " ms" <<
-                "\n\nSpeed (evaluations/s)   =   " << (iteration + 1) / cumulativeComputationTime <<
-                "\n\nTime                                 =   " << totalLoopDuration.count() << " s" ;
-
-        // Overlay the iteration count, computation time, and cumulative loop time on the visualizer
-        visualizer.removeOverlayTexts(); // Remove previous overlay texts
-        visualizer.addOverlayText(stream.str(), 0.05, 0.05, 18, Eigen::Vector3d(1.0, 1.0, 1.0)); // Display text in white color
-
-        // Add the viewpoint to the visualizer and update the render
-        visualizer.addViewpoint(*viewpoint, true, true);
-        visualizer.addVoxelMapProperty(model, "visibility", Eigen::Vector3d(1.0, 1.0, 1.0), Eigen::Vector3d(0.0, 1.0, 0.0)); // Add visibility map
-
-        // Render the updated scene
-        visualizer.renderStep();
-
-        // Clean up after rendering the frame
-        visibilityManager->untrackViewpoint(viewpoint);
-        visualizer.removeViewpoints(); // Remove previous viewpoints
-        visualizer.removeVoxelMapProperty(); // Remove previous voxel map property
-
-        // Optionally, add a small delay to control the speed of iteration
-        std::this_thread::sleep_for(std::chrono::milliseconds(1)); // 1 ms delay between iterations
+        // Set the attractive field as a property in the MetaVoxel
+        model.setVoxelProperty(key, "attractive_field", attractiveField);
     }
+
+    // Visualize the updated model with attractive fields
+    visualizer.addVoxelMapProperty(model, "attractive_field", Eigen::Vector3d(1.0, 0.0, 0.0), Eigen::Vector3d(1.0, 0.0, 0.0));
+    visualizer.addViewpoint(*viewpoint, true, true);
+    visualizer.render();
 
     return 0;
 }

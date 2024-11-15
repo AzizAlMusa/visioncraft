@@ -198,7 +198,18 @@ inline void bind_model(py::module& m) {
                 throw std::runtime_error("Unsupported property type.");
             }
         }, py::arg("position"), py::arg("property_name"))
-        .def("getVoxelMap", &visioncraft::Model::getVoxelMap, py::return_value_policy::reference);
+        .def("getVoxelMap", &visioncraft::Model::getVoxelMap, py::return_value_policy::reference)
+        .def("getVoxelNormals", [](const visioncraft::Model& self) {
+            // Retrieve the voxel normals
+            auto voxel_normals = self.getVoxelNormals();
+            
+            // Convert the unordered_map to a Python dictionary
+            py::dict py_voxel_normals;
+            for (const auto& item : voxel_normals) {
+                py_voxel_normals[keyToTuple(item.first)] = item.second;
+            }
+            return py_voxel_normals;
+        });
 
 
     // Expose VoxelGridGPU Struct to Python

@@ -176,6 +176,7 @@ bool Model::generateAllStructures(int num_samples, double resolution) {
     success &= generateSurfaceShellOctomap();
     success &= convertVoxelGridToGPUFormat(resolution);
     success &= generateVoxelMap();
+    success &= computeVoxelNormals();
     success &= generateExplorationMap(resolution, getMinBound(), getMaxBound());
 
     return success;
@@ -1209,6 +1210,61 @@ void Model::printMismatchedVoxels() const {
         std::cerr << "No mismatches found. The voxel positions in Surface Shell OctoMap and Meta Voxel Map match.\n";
     }
 }
+
+bool Model::computeVoxelNormals() {
+    if (!pointCloud_ || !surfaceShellOctomap_) {
+        std::cerr << "Error: Point cloud or surface shell OctoMap is not available." << std::endl;
+        return false;
+    }
+
+    // Step 1: Add an initial "normal" property for all voxels in meta_voxel_map_
+    Eigen::Vector3d initial_normal(0.0, 0.0, 0.0);  // Default value for the normal property
+    addVoxelProperty("normal", initial_normal);
+
+    // Temporary map to hold the sum of normals and the count for averaging
+    std::unordered_map<octomap::OcTreeKey, std::pair<Eigen::Vector3d, int>, octomap::OcTreeKey::KeyHash> normals_accumulator;
+
+    // Step 2: Accumulate normals for each voxel only if it is occupied in surfaceShellOctomap
+    for (size_t i = 0; i < pointCloud_->points_.size(); ++i) {
+        const auto& point = pointCloud_->points_[i];
+        const auto& normal = pointCloud_->normals_[i];
+
+        // Get the OctoMap key for the point's voxel
+        octomap::point3d voxel_center(point.x(), point.y(), point.z());
+        octomap::OcTreeKey key = surfaceShellOctomap_->coordToKey(voxel_center);
+
+        // Check if the voxel is occupied in the surface shell OctoMap
+        auto voxel_node = surfaceShellOctomap_->search(key);
+        if (voxel_node && surfaceShellOctomap_->isNodeOccupied(voxel_node)) {
+            // Accumulate normals for each voxel
+            if (normals_accumulator.find(key) == normals_accumulator.end()) {
+                normals_accumulator[key] = std::make_pair(normal, 1);
+            } else {
+                normals_accumulator[key].first += normal;
+                normals_accumulator[key].second += 1;
+            }
+        }
+    }
+
+    // Step 3: Compute the average normal for each voxel and set it in meta_voxel_map_
+    for (const auto& entry : normals_accumulator) {
+        octomap::OcTreeKey key = entry.first;
+        const Eigen::Vector3d& normal_sum = entry.second.first;
+        int count = entry.second.second;
+
+        // Calculate the average normal
+        Eigen::Vector3d average_normal = normal_sum / count;
+        average_normal.normalize();
+
+        // Set the "normal" property for each voxel in meta_voxel_map_
+        setVoxelProperty(key, "normal", average_normal);
+    }
+
+    std::cout << "Voxel normals computed and stored successfully." << std::endl;
+    return true;
+}
+
+
 
 
 } // namespace visioncraft
