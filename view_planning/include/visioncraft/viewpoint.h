@@ -95,6 +95,9 @@ public:
      */
     ~Viewpoint();
 
+    // ID Methods
+    int getId() const  {return id_;}; // Get the unique ID of the viewpoint
+
     // Position and Orientation Methods
 
     /**
@@ -377,7 +380,8 @@ public:
 
 private:
 
-
+    static std::atomic<int> globalIdCounter_; ///< Static counter for unique IDs (thread-safe).
+    int id_; ///< Unique ID for this viewpoint instance.
 
 
     // Viewpoint pose

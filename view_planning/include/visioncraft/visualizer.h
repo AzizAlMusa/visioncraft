@@ -64,6 +64,8 @@ public:
      */
     void addViewpoint(const visioncraft::Viewpoint& viewpoint, bool showFrustum = true, bool showAxes = true);
 
+    void updateViewpoint(const visioncraft::Viewpoint& viewpoint, bool updateFrustum, bool updateAxes);
+
     /**
      * @brief Add multiple viewpoints to the visualization.
      * @param viewpoints A vector of viewpoint objects.
@@ -75,6 +77,10 @@ public:
      * @brief Remove all added viewpoints from the visualization.
      */
     void removeViewpoints();
+
+    void removeViewpoint(const visioncraft::Viewpoint& viewpoint);
+
+
 
     /**
      * @brief Visualize the rays generated from a viewpoint.
@@ -278,6 +284,8 @@ private:
 
     std::vector<vtkSmartPointer<vtkActor>> viewpointActors_; ///< Store actors for all viewpoints
     vtkSmartPointer<vtkActor> voxelMapPropertyActor_ = nullptr; ///< Store actor for the voxel map property
+    std::unordered_map<int, std::vector<vtkSmartPointer<vtkActor>>> viewpointActorMap_;
+
 
     std::thread renderThread_; ///< Thread for asynchronous rendering
     bool stopRendering_ = false; ///< Flag to control rendering loop termination

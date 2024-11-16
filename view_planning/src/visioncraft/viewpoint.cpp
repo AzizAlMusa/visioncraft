@@ -11,8 +11,13 @@
 
 namespace visioncraft {
 
+
+std::atomic<int> Viewpoint::globalIdCounter_(0);
+
+
 Viewpoint::Viewpoint() 
-    : position_(Eigen::Vector3d::Zero()), 
+    : id_(globalIdCounter_++),
+      position_(Eigen::Vector3d::Zero()), 
       orientation_matrix_(Eigen::Matrix3d::Identity()),
       quaternion_(Eigen::Quaterniond::Identity()),
       near_(350.0), 
@@ -27,7 +32,8 @@ Viewpoint::Viewpoint(const Eigen::Vector3d& position, const Eigen::Matrix3d& ori
                      double near, double far, 
                      int resolution_width, int resolution_height,
                      double hfov, double vfov)
-    : position_(position), 
+    : id_(globalIdCounter_++),
+      position_(position), 
       orientation_matrix_(orientation), 
       quaternion_(Eigen::Quaterniond(orientation)),
       near_(near), 
@@ -42,7 +48,8 @@ Viewpoint::Viewpoint(const Eigen::VectorXd& position_yaw_pitch_roll,
                      double near, double far, 
                      int resolution_width, int resolution_height,
                      double hfov, double vfov)
-    : position_(position_yaw_pitch_roll.head<3>()), 
+    : id_(globalIdCounter_++),
+      position_(position_yaw_pitch_roll.head<3>()), 
       near_(near), 
       far_(far), 
       resolution_width_(resolution_width), 
@@ -336,9 +343,7 @@ std::unordered_map<octomap::OcTreeKey, bool, octomap::OcTreeKey::KeyHash> Viewpo
                             voxelGridGPU, host_hit_voxels, host_hit_count);
 
 
-    //print host_hit_voxels size
-   
-
+    
     // Start processing hit voxels
     std::set<std::tuple<int, int, int>> unique_hit_voxels;
 

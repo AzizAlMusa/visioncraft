@@ -33,6 +33,8 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2);
 VTK_MODULE_INIT(vtkInteractionStyle);
 VTK_MODULE_INIT(vtkRenderingFreeType);
 
+#include <iterator> // Provides std::begin and std::end
+
 namespace visioncraft {
 
 
@@ -72,19 +74,21 @@ void visioncraft::Visualizer::processEvents() {
 }
 
 void visioncraft::Visualizer::startAsyncRendering() {
-    // Set the flag to false before starting
     stopRendering_ = false;
 
     // Start the rendering thread
     renderThread_ = std::thread([this]() {
         renderWindowInteractor->Initialize();
+
+        // Run until stopRendering_ is set to true
         while (!stopRendering_) {
-            renderWindowInteractor->ProcessEvents();
-            renderWindow->Render();
-            std::this_thread::sleep_for(std::chrono::milliseconds(16));  // ~60 FPS
+            renderWindow->Render();            // Render the current scene
+            renderWindowInteractor->ProcessEvents();  // Process user interaction
+            std::this_thread::sleep_for(std::chrono::milliseconds(16)); // Limit to ~60 FPS
         }
     });
 }
+
 
 void visioncraft::Visualizer::stopAsyncRendering() {
     stopRendering_ = true;
@@ -94,17 +98,36 @@ void visioncraft::Visualizer::stopAsyncRendering() {
 }
 
 
-void Visualizer::addViewpoint(const visioncraft::Viewpoint& viewpoint, bool showFrustum, bool showAxes) {
+void visioncraft::Visualizer::addViewpoint(const visioncraft::Viewpoint& viewpoint, bool showFrustum, bool showAxes) {
+    std::vector<vtkSmartPointer<vtkActor>> actors;
+
     if (showAxes) {
         auto axesActors = this->showAxes(viewpoint.getPosition(), viewpoint.getOrientationMatrix());
-        viewpointActors_.insert(viewpointActors_.end(), axesActors.begin(), axesActors.end());
+        actors.insert(actors.end(), axesActors.begin(), axesActors.end());
     }
 
     if (showFrustum) {
         auto frustumActors = this->showFrustum(viewpoint);
-        viewpointActors_.insert(viewpointActors_.end(), frustumActors.begin(), frustumActors.end());
+        actors.insert(actors.end(), frustumActors.begin(), frustumActors.end());
+    }
+
+    for (auto& actor : actors) {
+        renderer->AddActor(actor);  // Add each actor to the renderer
+        viewpointActorMap_[viewpoint.getId()].push_back(actor);  // Add actor to the map
     }
 }
+
+
+
+void visioncraft::Visualizer::updateViewpoint(const visioncraft::Viewpoint& viewpoint, bool updateFrustum, bool updateAxes) {
+    // Remove the existing viewpoint
+    removeViewpoint(viewpoint);
+
+    // Add the updated viewpoint
+    addViewpoint(viewpoint, updateFrustum, updateAxes);
+}
+
+
 
 
 void Visualizer::addMultipleViewpoints(const std::vector<visioncraft::Viewpoint>& viewpoints) {
@@ -112,6 +135,19 @@ void Visualizer::addMultipleViewpoints(const std::vector<visioncraft::Viewpoint>
         addViewpoint(viewpoint);
     }
 }
+
+void visioncraft::Visualizer::removeViewpoint(const visioncraft::Viewpoint& viewpoint) {
+    auto it = viewpointActorMap_.find(viewpoint.getId());
+    if (it != viewpointActorMap_.end()) {
+        for (auto& actor : it->second) {
+            renderer->RemoveActor(actor);  // Remove each actor individually
+        }
+        viewpointActorMap_.erase(it);  // Remove the entry from the map
+    }
+}
+
+
+
 
 void Visualizer::removeViewpoints() {
     for (auto& actor : viewpointActors_) {
@@ -677,7 +713,6 @@ void Visualizer::addVoxelMap(const visioncraft::Model& model, const Eigen::Vecto
     renderer->AddActor(voxelActor);
 }
 
-
 void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std::string& property_name, 
                                      const Eigen::Vector3d& baseColor, const Eigen::Vector3d& propertyColor, 
                                      float minScale, float maxScale) {
@@ -697,7 +732,6 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
             const auto& metaVoxel = kv.second;
             if (metaVoxel.hasProperty(property_name)) {
                 try {
-                    // Try handling different property types (int, float, double)
                     float value = 0.0f;
                     const auto& prop = metaVoxel.getProperty(property_name);
                     if (prop.type() == typeid(int)) {
@@ -705,7 +739,7 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
                     } else if (prop.type() == typeid(float)) {
                         value = boost::get<float>(prop);
                     } else if (prop.type() == typeid(double)) {
-                        value = static_cast<float>(boost::get<double>(prop)); // Cast double to float for consistency
+                        value = static_cast<float>(boost::get<double>(prop)); 
                     }
                     minScale = std::min(minScale, value);
                     maxScale = std::max(maxScale, value);
@@ -719,52 +753,37 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
         }
     }
 
+    auto rainbowColorMap = [](float normalizedValue) -> Eigen::Vector3d {
+        // Compute RGB using a rainbow color scheme (Blue -> Green -> Red)
+        float r = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.75f) + 1.5f));
+        float g = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.5f) + 1.5f));
+        float b = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.25f) + 1.5f));
+        return Eigen::Vector3d(r, g, b);
+    };
+
     for (const auto& kv : metaVoxelMap) {
         const auto& metaVoxel = kv.second;
         const auto& voxelPos = metaVoxel.getPosition();
         points->InsertNextPoint(voxelPos.x(), voxelPos.y(), voxelPos.z());
 
-        Eigen::Vector3d color = baseColor;  // Default for 0.0 values
+        Eigen::Vector3d color(0.0, 0.0, 1.0);  // Default to blue for undefined values
 
-        // Check if the voxel has the specified property
         if (metaVoxel.hasProperty(property_name)) {
             try {
                 float propertyValue = 0.0f;
                 const auto& prop = metaVoxel.getProperty(property_name);
 
-                // Retrieve the property value depending on its type
                 if (prop.type() == typeid(int)) {
                     propertyValue = static_cast<float>(boost::get<int>(prop));
                 } else if (prop.type() == typeid(float)) {
                     propertyValue = boost::get<float>(prop);
                 } else if (prop.type() == typeid(double)) {
-                    propertyValue = static_cast<float>(boost::get<double>(prop)); // Cast double to float for consistency
+                    propertyValue = static_cast<float>(boost::get<double>(prop));
                 }
 
-                // Special handling for scores equal to 0.0
-                if (propertyValue == 0.0f) {
-                    color = baseColor;  // Use baseColor directly for 0.0 scores
-                } else {
-                    // Normalize the property value to [0, 1]
-                    float normalizedValue = (propertyValue - minScale) / (maxScale - minScale);
-                    normalizedValue = std::max(0.0f, std::min(normalizedValue, 1.0f));
-
-                    // Lighten the property color by blending with white for the minimum values (pastel effect)
-                    Eigen::Vector3d lightColor = propertyColor + Eigen::Vector3d(1.0, 1.0, 1.0) * 0.7; // Add white to light the color
-
-                    // Clamp the lightened color to ensure it doesn't exceed [0, 1]
-                    lightColor = lightColor.cwiseMin(1.0).cwiseMax(0.0);
-
-                    // Darken the color for higher property values by blending with black
-                    Eigen::Vector3d black(0.0, 0.0, 0.0); // Black
-
-                    // Blend between light color (pastel) and original property color, then blend from property color to black as value increases
-                    color = lightColor * (1.0f - normalizedValue) + propertyColor * normalizedValue;  // Blend from light to property color
-                    color = color * (1.0f - normalizedValue) + black * normalizedValue; // Blend from property color to black
-
-                    // Clamp the final color to ensure it stays within [0, 1]
-                    color = color.cwiseMin(1.0).cwiseMax(0.0);
-                }
+                float normalizedValue = (propertyValue - minScale) / (maxScale - minScale);
+                normalizedValue = std::max(0.0f, std::min(normalizedValue, 1.0f));
+                color = rainbowColorMap(normalizedValue);
 
             } catch (const boost::bad_get& e) {
                 std::cerr << "Error: Failed to retrieve property " << property_name 
@@ -813,6 +832,7 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
 }
 
 
+
 void Visualizer::removeVoxelMapProperty() {
     if (voxelMapPropertyActor_) {
         renderer->RemoveActor(voxelMapPropertyActor_);  // Remove from renderer
@@ -830,19 +850,23 @@ void Visualizer::setViewpointFrustumColor(const Eigen::Vector3d& color) {
 }
 
 void Visualizer::render() {
-        // Initialize the window interactor before starting the rendering loop
-    renderWindowInteractor->Initialize();
-    
-    // Render the window and start the interaction
+    // Initialize rendering components if necessary
+    if (!renderWindowInteractor->GetInitialized()) {
+        renderWindowInteractor->Initialize();
+    }
+
+    // Render the scene
     renderWindow->Render();
-    
-    // Start the interaction loop
-    renderWindowInteractor->Start();
+
+    // Process interaction events (non-blocking)
+    renderWindowInteractor->ProcessEvents();
 }
 
 
-void Visualizer::renderStep() {
-    renderWindow->Render();
+
+void visioncraft::Visualizer::renderStep() {
+    renderWindow->Render();                // Update the scene
+    renderWindowInteractor->ProcessEvents();  // Handle interactions
 }
 
 
