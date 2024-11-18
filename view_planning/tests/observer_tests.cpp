@@ -38,16 +38,53 @@ std::vector<std::shared_ptr<visioncraft::Viewpoint>> generateClusteredViewpoints
 }
 
 // Compute attractive force
-Eigen::Vector3d computeAttractiveForce(
-    const visioncraft::Model& model, 
-    const std::shared_ptr<visioncraft::Viewpoint>& viewpoint,
-    float sphere_radius,
-    float sigma, 
-    int V_max) 
+// Eigen::Vector3d computeAttractiveForce(
+//     const visioncraft::Model& model, 
+//     const std::shared_ptr<visioncraft::Viewpoint>& viewpoint,
+//     float sphere_radius,
+//     float sigma, 
+//     int V_max) 
+// {
+//     Eigen::Vector3d F_attr = Eigen::Vector3d::Zero();
+//     const auto& voxelMap = model.getVoxelMap().getMap();
+
+//     for (const auto& kv : voxelMap) {
+//         const auto& voxel = kv.second;
+//         const auto& key = kv.first;
+
+//         int visibility = boost::get<int>(model.getVoxelProperty(key, "visibility"));
+//         float V_norm = static_cast<float>(visibility) / V_max;
+
+//         Eigen::Vector3d r = viewpoint->getPosition() - voxel.getPosition();
+//         float distance_squared = r.squaredNorm();
+//         float W = std::exp(-(distance_squared - sphere_radius * sphere_radius) / (2 * sigma * sigma));
+//         // float W = std::exp(-(distance_squared) / (2 * sigma * sigma));
+        
+//         Eigen::Vector3d grad_W = -r * W / (sigma * sigma);
+        
+//         F_attr += (1.0f - V_norm) * grad_W;
+
+//         std::cout << "r norm: " << r.norm() << std::endl;
+//         std::cout << "distance_squared: " << distance_squared << std::endl;
+//         std::cout << "W: " << W << std::endl;
+//         std::cout << "grad_W: " << grad_W << std::endl;
+//         std::cout << "F_attr: " << F_attr << std::endl;
+
+//     }
+//     return F_attr;
+// }
+
+// Compute potential for each voxel based on distances to all viewpoints
+void computeVoxelPotentials(
+    visioncraft::Model& model,
+    const std::vector<std::shared_ptr<visioncraft::Viewpoint>>& viewpoints,
+    int V_max,
+    bool use_exponential,
+    float sigma = 1.0f) // Default value; adjust as needed
 {
-    Eigen::Vector3d F_attr = Eigen::Vector3d::Zero();
     const auto& voxelMap = model.getVoxelMap().getMap();
 
+    // Loop over each voxel in the map
     for (const auto& kv : voxelMap) {
         const auto& voxel = kv.second;
         const auto& key = kv.first;
@@ -55,15 +92,104 @@ Eigen::Vector3d computeAttractiveForce(
         int visibility = boost::get<int>(model.getVoxelProperty(key, "visibility"));
         float V_norm = static_cast<float>(visibility) / V_max;
 
-        Eigen::Vector3d r = viewpoint->getPosition() - voxel.getPosition();
-        float distance_squared = r.squaredNorm();
-        float W = std::exp(-(distance_squared - sphere_radius * sphere_radius) / (2 * sigma * sigma));
-        Eigen::Vector3d grad_W = -r * W / (sigma * sigma);
+        if (V_norm < 1.0f) {
+            float potential = 0.0f;
+            for (const auto& viewpoint : viewpoints) {
+                Eigen::Vector3d r = viewpoint->getPosition() - voxel.getPosition();
+                float distance_squared = r.squaredNorm();
 
-        F_attr += (1.0f - V_norm) * grad_W;
+                if (use_exponential) {
+                    potential += std::exp(-distance_squared / (2.0f * sigma * sigma));
+                    model.setVoxelProperty(key, "potential", potential);
+                } else {
+                    potential += distance_squared;
+                }
+            }
+          
+            model.setVoxelProperty(key, "potential", (1.0f - V_norm) * potential);
+        }
     }
+
+
+}
+
+Eigen::Vector3d computeAttractiveForce(
+    const visioncraft::Model& model,
+    const std::shared_ptr<visioncraft::Viewpoint>& viewpoint,
+    float sigma,
+    int V_max)
+{   
+
+    Eigen::Vector3d F_attr = Eigen::Vector3d::Zero();
+    const auto& voxelMap = model.getVoxelMap().getMap();
+
+    for (const auto& kv : voxelMap) {
+        const auto& voxel = kv.second;
+        const auto& key = kv.first;
+
+        // Check if voxel potential was computed
+        float potential = boost::get<float>(model.getVoxelProperty(key, "potential"));
+
+
+        int visibility = boost::get<int>(model.getVoxelProperty(key, "visibility"));
+        float V_norm = static_cast<float>(visibility) / V_max;
+
+        Eigen::Vector3d r = viewpoint->getPosition() - voxel.getPosition();
+
+        // Gradient of the potential with respect to the viewpoint position
+        Eigen::Vector3d grad_U = 2 * (1.0f - V_norm) * r;
+
+        F_attr -= grad_U / sigma;
+    
+    }
+
     return F_attr;
 }
+
+
+
+// Eigen::Vector3d computeAttractiveForce(
+//     const visioncraft::Model& model, 
+//     const std::shared_ptr<visioncraft::Viewpoint>& viewpoint,
+//     float sphere_radius,
+//     float sigma, 
+//     int V_max) 
+// {
+//     Eigen::Vector3d F_attr = Eigen::Vector3d::Zero();
+//     const auto& voxelMap = model.getVoxelMap().getMap();
+
+//     // Precompute D^2 for efficiency, this is the normalization constant squared
+//     float D_squared = sigma;
+
+//     for (const auto& kv : voxelMap) {
+//         const auto& voxel = kv.second;
+//         const auto& key = kv.first;
+
+//         // Get voxel visibility
+//         int visibility = boost::get<int>(model.getVoxelProperty(key, "visibility"));
+//         float V_norm = static_cast<float>(visibility) / V_max;
+
+//         // Only consider under-observed voxels
+//         if (V_norm < 1.0f) {
+//             // Compute the distance vector (r) from the viewpoint to the voxel
+//             Eigen::Vector3d r = viewpoint->getPosition() - voxel.getPosition();
+//             float r_squared = r.squaredNorm();  // r^2
+
+//             // Compute the weight function W(r)
+//             float W = r_squared / D_squared;  // W(r) = r^2 / D^2
+
+//             // Compute the gradient of W(r)
+//             Eigen::Vector3d grad_W = 2.0f * r / D_squared;  // grad_W(r) = 2 * r / D^2
+
+//             // Compute the attractive force contribution for this voxel
+//             F_attr -= (1.0f - V_norm) * grad_W;
+//         }
+//     }
+
+//     return F_attr;
+// }
+
+
 
 // Compute repulsive force
 Eigen::Vector3d computeRepulsiveForce(
@@ -169,18 +295,18 @@ double computeSystemEnergy(
 }
 
 
-double computeAverageForceMagnitude(const visioncraft::Model& model, const std::vector<std::shared_ptr<visioncraft::Viewpoint>>& viewpoints, float sphere_radius, float sigma, float k_repel, float alpha) {
-    double total_force_magnitude = 0.0;
+// double computeAverageForceMagnitude(const visioncraft::Model& model, const std::vector<std::shared_ptr<visioncraft::Viewpoint>>& viewpoints, float sphere_radius, float sigma, float k_repel, float alpha) {
+//     double total_force_magnitude = 0.0;
 
-    for (const auto& viewpoint : viewpoints) {
-        Eigen::Vector3d F_attr = computeAttractiveForce(model, viewpoint, sphere_radius, sigma, viewpoints.size());
-        Eigen::Vector3d F_repel = computeRepulsiveForce(viewpoints, viewpoint, k_repel, alpha);
-        Eigen::Vector3d F_total = F_attr + F_repel;
-        total_force_magnitude += F_total.norm();
-    }
+//     for (const auto& viewpoint : viewpoints) {
+//         Eigen::Vector3d F_attr = computeAttractiveForce(model, viewpoint, sphere_radius, sigma, viewpoints.size());
+//         Eigen::Vector3d F_repel = computeRepulsiveForce(viewpoints, viewpoint, k_repel, alpha);
+//         Eigen::Vector3d F_total = F_attr + F_repel;
+//         total_force_magnitude += F_total.norm();
+//     }
 
-    return total_force_magnitude / viewpoints.size();
-}
+//     return total_force_magnitude / viewpoints.size();
+// }
 
 double computeAverageViewpointMovement(const std::vector<std::shared_ptr<visioncraft::Viewpoint>>& previous_positions, const std::vector<std::shared_ptr<visioncraft::Viewpoint>>& current_positions) {
     double total_movement = 0.0;
@@ -375,9 +501,10 @@ int main() {
     std::cout << "Model loaded successfully." << std::endl;
 
     auto visibilityManager = std::make_shared<visioncraft::VisibilityManager>(model);
+    model.addVoxelProperty("potential", 0.0f);
 
     float sphere_radius = 400.0f;
-    int num_viewpoints = 2;
+    int num_viewpoints = 8;
     auto viewpoints = generateClusteredViewpoints(num_viewpoints, sphere_radius);
 
     for (auto& viewpoint : viewpoints) {
@@ -389,16 +516,23 @@ int main() {
     }
 
     // Simulation parameters
-    float sigma = 50.0f;
+    float sigma = 100.0f;
     float k_repel = 15000.0f;
     float delta_t = 0.2f;
     float alpha = 1.0f;
     int max_iterations = 200;
+    int V_max = num_viewpoints;
 
     // Prepare CSV logging
     std::ofstream csv_file("results.csv");
     csv_file << "Timestep,CoverageScore,SystemEnergy,KineticEnergy,VisibilityHomogeneity,VisibilityEntropy,CoefficientOfVariation,ForceMagnitude,ViewpointMovement,CoverageChange\n";
     csv_file << std::fixed << std::setprecision(6);
+    
+    // Add this to initialize the CSV file for viewpoint positions
+    std::ofstream viewpoint_csv_file("viewpoint_positions.csv");
+
+    // Write header for the viewpoint CSV file
+    viewpoint_csv_file << "Timestep,ViewpointID,X,Y,Z\n";
 
     // Metrics tracking
     double previous_coverage_score = 0.0;
@@ -415,6 +549,13 @@ int main() {
             viewpoint->performRaycastingOnGPU(model);
         }
 
+        // Log viewpoint positions to the CSV file
+        for (size_t i = 0; i < viewpoints.size(); ++i) {
+            Eigen::Vector3d position = viewpoints[i]->getPosition();
+            viewpoint_csv_file << iter << "," << i << ","
+                            << position.x() << "," << position.y() << "," << position.z() << "\n";
+        }
+
         // Compute metrics
         double coverage_score = visibilityManager->computeCoverageScore();
         double system_energy = computeSystemEnergy(model, viewpoints, sigma, k_repel, alpha);
@@ -425,14 +566,14 @@ int main() {
         double coefficient_of_variation = computeCoefficientOfVariation(model); // Coefficient of Variation
        
         // Print metrics
-        std::cout << "Iteration: " << iter << ", "
-                << "Coverage Score: " << coverage_score << ", "
-                << "System Energy: " << system_energy << ", "
-                << "Attractive Potential Energy: " << attractive_potential_energy << ", "
-                << "Kinetic Energy: " << kinetic_energy << ", "
-                << "Visibility Homogeneity: " << visibility_homogeneity << ", "
-                << "Visibility Entropy: " << visibility_entropy << ", "
-                << "Coefficient of Variation: " << coefficient_of_variation << "\n";
+        // std::cout << "Iteration: " << iter << ", "
+        //         << "Coverage Score: " << coverage_score << ", "
+        //         << "System Energy: " << system_energy << ", "
+        //         << "Attractive Potential Energy: " << attractive_potential_energy << ", "
+        //         << "Kinetic Energy: " << kinetic_energy << ", "
+        //         << "Visibility Homogeneity: " << visibility_homogeneity << ", "
+        //         << "Visibility Entropy: " << visibility_entropy << ", "
+        //         << "Coefficient of Variation: " << coefficient_of_variation << "\n";
 
         // Log metrics to CSV
         csv_file << iter << "," << coverage_score << "," << system_energy << ","
@@ -444,16 +585,24 @@ int main() {
             // Update previous positions
             previous_positions[i] = viewpoints[i]->getPosition();
         }
+        bool use_exponential = false; // Set to false for quadratic potential
+
+        computeVoxelPotentials(model, viewpoints, V_max, use_exponential, sigma);
+
         // Update viewpoint positions
         for (auto& viewpoint : viewpoints) {
          
 
-            Eigen::Vector3d F_attr = computeAttractiveForce(model, viewpoint, sphere_radius, sigma, num_viewpoints);
+            // Eigen::Vector3d F_attr = computeAttractiveForce(model, viewpoint, sphere_radius, sigma, num_viewpoints);
+            Eigen::Vector3d F_attr = computeAttractiveForce(model, viewpoint, sigma, V_max);
             Eigen::Vector3d F_repel = computeRepulsiveForce(viewpoints, viewpoint, k_repel, alpha);
+            std::cout << "F_attr: " << F_attr.transpose() << "F_repel: " << F_repel.transpose() << std::endl;
+ 
 
-            Eigen::Vector3d F_total = F_attr + F_repel;
+            Eigen::Vector3d F_total = F_attr + F_repel; //
             Eigen::Vector3d n = viewpoint->getPosition().normalized();
             Eigen::Vector3d F_tangent = F_total - F_total.dot(n) * n;
+            std::cout << "F_tangent: " << F_tangent.transpose() << std::endl;
             Eigen::Vector3d new_position = viewpoint->getPosition() + delta_t * F_tangent;
             updateViewpointState(viewpoint, new_position, sphere_radius);
 
