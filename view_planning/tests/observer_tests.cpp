@@ -34,6 +34,8 @@ std::vector<std::shared_ptr<visioncraft::Viewpoint>> generateClusteredViewpoints
         Eigen::Vector3d look_at(0.0, 0.0, 0.0);
 
         viewpoints.emplace_back(std::make_shared<visioncraft::Viewpoint>(position, look_at));
+
+
     }
     return viewpoints;
 }
@@ -70,9 +72,9 @@ void computeVoxelPotentials(
             } else {
                 potential += distance_squared;
             }
-        }
+        } 
         model.setVoxelProperty(key, "potential",  (1.0f - V_norm) * potential);
-        
+        // std::cout << "Potential: " << (1.0f - V_norm) * potential << std::endl;
     }
 
 
@@ -168,8 +170,7 @@ Eigen::Vector3d computeRepulsiveForce(
     for (const auto& other_viewpoint : viewpoints) {
         if (viewpoint != other_viewpoint) {
             Eigen::Vector3d r = viewpoint->getPosition() - other_viewpoint->getPosition();
-          
-            float distance = std::max(static_cast<double>(r.norm()), 1e-02);  // Clamp minimum distance to a small positive value to avoid excessively large values
+            double distance = r.norm() + 1e-5;
             Eigen::Vector3d force = k_repel * r / std::pow(distance, alpha + 1.0f);
             F_repel += force;
         }
@@ -329,6 +330,63 @@ void addNewViewpoint(
 }
 
 
+std::vector<std::pair<Eigen::Vector3d, float>> projectPotentialsToSphere(
+    const visioncraft::Model& model,
+    float sphere_radius)
+{
+    std::vector<std::pair<Eigen::Vector3d, float>> projected_points;
+    const auto& voxelMap = model.getVoxelMap().getMap();
+
+    for (const auto& kv : voxelMap) {
+        const auto& voxel = kv.second;
+        const auto& key = kv.first;
+
+        float potential = boost::get<float>(model.getVoxelProperty(key, "potential"));
+
+        // Project voxel center onto sphere
+        Eigen::Vector3d position = voxel.getPosition().normalized() * sphere_radius;
+
+        projected_points.emplace_back(position, potential);
+    }
+    return projected_points;
+}
+
+std::vector<std::tuple<Eigen::Vector3d, float>> interpolateSphereGrid(
+    const std::vector<std::pair<Eigen::Vector3d, float>>& projected_points,
+    int N_phi, int N_theta, float sphere_radius)
+{
+    std::vector<std::tuple<Eigen::Vector3d, float>> grid_points;
+
+    for (int i = 0; i <= N_phi; ++i) {
+        float phi = M_PI * i / N_phi; // Polar angle
+        for (int j = 0; j < N_theta; ++j) {
+            float theta = 2 * M_PI * j / N_theta; // Azimuthal angle
+
+            Eigen::Vector3d grid_point(
+                sphere_radius * sin(phi) * cos(theta),
+                sphere_radius * sin(phi) * sin(theta),
+                sphere_radius * cos(phi));
+
+            // Find nearby points and interpolate potential
+            float total_potential = 0.0f;
+            float weight_sum = 0.0f;
+
+            for (const auto& [position, potential] : projected_points) {
+                float distance = (grid_point - position).norm();
+                float weight = 1.0f / (distance + 1e-5f); // Weight by inverse distance
+                total_potential += weight * potential;
+                weight_sum += weight;
+            }
+
+            float interpolated_potential = (weight_sum > 0) ? total_potential / weight_sum : 0.0f;
+            grid_points.emplace_back(grid_point, interpolated_potential);
+        }
+    }
+    return grid_points;
+}
+
+
+
 int main() {
     srand(time(nullptr));
 
@@ -344,7 +402,7 @@ int main() {
     model.addVoxelProperty("potential", 0.0f);
 
     float sphere_radius = 400.0f;
-    int num_viewpoints = 1;
+    int num_viewpoints = 8;
     auto viewpoints = generateClusteredViewpoints(num_viewpoints, sphere_radius);
 
     for (auto& viewpoint : viewpoints) {
@@ -358,7 +416,7 @@ int main() {
     // Simulation parameters
     float sigma = 100.0f;
     float k_repel = 15000.0f;
-    float delta_t = 0.2f;
+    float delta_t = 0.04f;
     float alpha = 1.0f;
     int max_iterations = 100;
     int V_max = 1; //num_viewpoints
@@ -389,7 +447,7 @@ int main() {
         for (auto& viewpoint : viewpoints) {
             viewpoint->performRaycastingOnGPU(model);
         }
-
+        visualizer.visualizePotentialOnSphere(model, sphere_radius, "potential");
         // Log viewpoint positions to the CSV file
         for (size_t i = 0; i < viewpoints.size(); ++i) {
             Eigen::Vector3d position = viewpoints[i]->getPosition();
@@ -449,7 +507,7 @@ int main() {
             visualizer.updateViewpoint(*viewpoint, false, true);
         }
 
-        visualizer.addVoxelMapProperty(model, "visibility");
+        visualizer.addVoxelMapProperty(model, "potential");
         visualizer.render();
         // visualizer.removeViewpoints();
         visualizer.removeVoxelMapProperty();
@@ -457,19 +515,19 @@ int main() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
 
-        if (iter % 10 == 0 && iter != 0) { // Add a new viewpoint every 10 iterations
-            Eigen::Vector3d random_position(
-                static_cast<float>(rand()) / RAND_MAX * sphere_radius,
-                static_cast<float>(rand()) / RAND_MAX * sphere_radius,
-                static_cast<float>(rand()) / RAND_MAX * sphere_radius);
-            Eigen::Vector3d look_at(0.0, 0.0, 0.0);
+        // if (iter % 1 == 0 && iter != 0 && iter <=20) { // Add a new viewpoint every 10 iterations
+        //     Eigen::Vector3d random_position(
+        //         static_cast<float>(rand()) / RAND_MAX * sphere_radius,
+        //         static_cast<float>(rand()) / RAND_MAX * sphere_radius,
+        //         static_cast<float>(rand()) / RAND_MAX * sphere_radius);
+        //     Eigen::Vector3d look_at(0.0, 0.0, 0.0);
 
-            // Add the new viewpoint
-            addNewViewpoint(viewpoints, visibilityManager, visualizer, random_position, look_at, sphere_radius);
+        //     // Add the new viewpoint
+        //     addNewViewpoint(viewpoints, visibilityManager, visualizer, random_position, look_at, sphere_radius);
 
-            // Initialize its previous position
-            previous_positions.push_back(viewpoints.back()->getPosition());
-        }
+        //     // Initialize its previous position
+        //     previous_positions.push_back(viewpoints.back()->getPosition());
+        // }
 
 
     }

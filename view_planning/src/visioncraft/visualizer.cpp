@@ -22,7 +22,7 @@
 #include <vtkLine.h>  
 #include <vtkVoxel.h>
 #include <vtkGlyph3D.h>
-
+#include <vtkArrowSource.h>
 
 #include <vtkInteractorStyleTrackballCamera.h>
 #include <vtkInteractorStyleTrackballActor.h>
@@ -100,6 +100,9 @@ void visioncraft::Visualizer::stopAsyncRendering() {
 
 void visioncraft::Visualizer::addViewpoint(const visioncraft::Viewpoint& viewpoint, bool showFrustum, bool showAxes) {
     std::vector<vtkSmartPointer<vtkActor>> actors;
+
+    showArrow(viewpoint);
+    showSphere(viewpoint);
 
     if (showAxes) {
         auto axesActors = this->showAxes(viewpoint.getPosition(), viewpoint.getOrientationMatrix());
@@ -942,6 +945,58 @@ std::vector<vtkSmartPointer<vtkActor>> Visualizer::showAxes(const Eigen::Vector3
     return axesActors;
 }
 
+std::vector<vtkSmartPointer<vtkActor>> Visualizer::showSphere(const visioncraft::Viewpoint& viewpoint) {
+    std::vector<vtkSmartPointer<vtkActor>> sphereActors;
+
+    Eigen::Vector3d position = viewpoint.getPosition();
+    double radius = 5.0;
+
+    vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
+    sphereSource->SetCenter(position(0), position(1), position(2));
+    sphereSource->SetRadius(radius);
+
+    vtkSmartPointer<vtkPolyDataMapper> sphereMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    sphereMapper->SetInputConnection(sphereSource->GetOutputPort());
+
+    vtkSmartPointer<vtkActor> sphereActor = vtkSmartPointer<vtkActor>::New();
+    sphereActor->SetMapper(sphereMapper);
+    sphereActor->GetProperty()->SetColor(0.0, 0.0, 0.0); // Black color
+
+    renderer->AddActor(sphereActor);
+    sphereActors.push_back(sphereActor);
+
+    return sphereActors;
+}
+
+std::vector<vtkSmartPointer<vtkActor>> Visualizer::showArrow(const visioncraft::Viewpoint& viewpoint) {
+    std::vector<vtkSmartPointer<vtkActor>> arrowActors;
+
+    Eigen::Vector3d position = viewpoint.getPosition();
+    Eigen::Vector3d zAxisDirection = viewpoint.getOrientationMatrix().col(2).normalized();
+    double arrowLength = 20.0;
+
+    Eigen::Vector3d arrowEnd = position + arrowLength * zAxisDirection;
+
+    vtkSmartPointer<vtkArrowSource> arrowSource = vtkSmartPointer<vtkArrowSource>::New();
+
+    vtkSmartPointer<vtkLineSource> arrowLine = vtkSmartPointer<vtkLineSource>::New();
+    arrowLine->SetPoint1(position(0), position(1), position(2));
+    arrowLine->SetPoint2(arrowEnd(0), arrowEnd(1), arrowEnd(2));
+
+    vtkSmartPointer<vtkPolyDataMapper> arrowMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    arrowMapper->SetInputConnection(arrowLine->GetOutputPort());
+
+    vtkSmartPointer<vtkActor> arrowActor = vtkSmartPointer<vtkActor>::New();
+    arrowActor->SetMapper(arrowMapper);
+    arrowActor->GetProperty()->SetColor(1.0, 1.0, 1.0); // White color
+
+    renderer->AddActor(arrowActor);
+    arrowActors.push_back(arrowActor);
+
+    return arrowActors;
+}
+
+
 
 void Visualizer::addOverlayText(const std::string& text, double x, double y, int fontSize, const Eigen::Vector3d& color) {
     // Create a text actor for the overlay text
@@ -971,6 +1026,183 @@ void Visualizer::removeOverlayTexts() {
         renderer->RemoveActor2D(actor);
     }
     overlayTextActors_.clear(); // Clear the vector to remove all references
+}
+
+
+static Eigen::Vector3d rainbowColorMap(float normalizedValue) {
+    // Compute RGB using a rainbow color scheme (Blue -> Green -> Red)
+    float r = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.75f) + 1.5f));
+    float g = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.5f) + 1.5f));
+    float b = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.25f) + 1.5f));
+    return Eigen::Vector3d(r, g, b);
+}
+
+#include <chrono>  // Include this for timing
+
+void Visualizer::visualizePotentialOnSphere(
+    const visioncraft::Model& model,
+    float sphere_radius,
+    const std::string& property_name)
+{
+    using namespace std::chrono;
+
+    const auto& voxelMap = model.getVoxelMap().getMap();
+    if (voxelMap.empty()) {
+        std::cerr << "[ERROR] No voxels available in the model." << std::endl;
+        return;
+    }
+
+    // Step 1: Find the maximum potential value
+    auto start = high_resolution_clock::now();
+    float maxPotential = std::numeric_limits<float>::lowest();
+    for (const auto& kv : voxelMap) {
+        try {
+            float potential = boost::get<float>(model.getVoxelProperty(kv.first, property_name));
+            maxPotential = std::max(maxPotential, potential);
+        } catch (const boost::bad_get&) {
+            // Skip voxels without the property
+        }
+    }
+    maxPotential = 450.0f * 450.0f * 8;  // Hard-coded for the current dataset
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
+    std::cout << "Step 1 (Find max potential) took: " << duration.count() << " ms" << std::endl;
+
+    if (maxPotential <= 0.0f) {
+        std::cerr << "[ERROR] Invalid or zero maximum potential." << std::endl;
+        return;
+    }
+
+    // Step 2: Map voxel positions to keys and associate them with sphere points
+    start = high_resolution_clock::now();
+    std::unordered_map<int, octomap::OcTreeKey> spherePointToKeyMap;
+    open3d::geometry::PointCloud spherePointCloud;
+
+    for (const auto& kv : voxelMap) {
+        const Eigen::Vector3d& voxelPosition = kv.second.getPosition();
+        const octomap::OcTreeKey& key = kv.first;
+
+        // Project voxel position onto the sphere
+        Eigen::Vector3d spherePoint = voxelPosition.normalized() * sphere_radius;
+
+        // Add to Open3D PointCloud
+        spherePointCloud.points_.emplace_back(spherePoint.x(), spherePoint.y(), spherePoint.z());
+        spherePointToKeyMap[spherePointCloud.points_.size() - 1] = key; // Map point ID to voxel key
+    }
+    stop = high_resolution_clock::now();
+    duration = duration_cast<milliseconds>(stop - start);
+    std::cout << "Step 2 (Map voxel positions to keys) took: " << duration.count() << " ms" << std::endl;
+
+    // Step 3: Build KD-tree for nearest neighbor search
+    start = high_resolution_clock::now();
+    open3d::geometry::KDTreeFlann kdtree(spherePointCloud);
+    stop = high_resolution_clock::now();
+    duration = duration_cast<milliseconds>(stop - start);
+    std::cout << "Step 3 (Build KD-Tree) took: " << duration.count() << " ms" << std::endl;
+
+    // Step 4: Create a VTK sphere and initialize colors
+    start = high_resolution_clock::now();
+    vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
+    sphereSource->SetRadius(sphere_radius);
+    sphereSource->SetThetaResolution(100);
+    sphereSource->SetPhiResolution(100);
+    sphereSource->Update();
+
+    vtkSmartPointer<vtkPolyData> spherePolyData = sphereSource->GetOutput();
+    vtkSmartPointer<vtkPoints> sphereVertices = spherePolyData->GetPoints();
+
+    vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
+    colors->SetNumberOfComponents(3);
+    colors->SetName("Colors");
+    stop = high_resolution_clock::now();
+    duration = duration_cast<milliseconds>(stop - start);
+    std::cout << "Step 4 (Create VTK sphere) took: " << duration.count() << " ms" << std::endl;
+
+    // Step 5: Color the sphere vertices based on proximity to mapped points
+   // Step 5: Color the sphere vertices based on proximity to mapped points
+    start = high_resolution_clock::now();
+    auto rainbowColorMap = [](float normalizedValue) -> Eigen::Vector3d {
+        float r = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.75f) + 1.5f));
+        float g = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.5f) + 1.5f));
+        float b = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.25f) + 1.5f));
+        return Eigen::Vector3d(r, g, b);
+    };
+
+    for (vtkIdType i = 0; i < sphereVertices->GetNumberOfPoints(); ++i) {
+        double sphereVertex[3];
+        sphereVertices->GetPoint(i, sphereVertex);
+
+        Eigen::Vector3d vertexPosition(sphereVertex[0], sphereVertex[1], sphereVertex[2]);
+        std::vector<int> indices;
+        std::vector<double> distances;
+
+        // Query KD-tree for the nearest 5 neighbors
+        int numFound = kdtree.SearchKNN(vertexPosition, 5, indices, distances);
+
+        float potentialSum = 0.0f;
+        double weightSum = 0.0;
+
+        // Interpolate potential values using inverse distance weighting
+        for (size_t j = 0; j < indices.size(); ++j) {
+            double weight = 1.0 / (distances[j] + 1e-6); // Avoid division by zero
+            const auto& key = spherePointToKeyMap[indices[j]];
+            float potential = 0.0f;
+
+            try {
+                potential = boost::get<float>(model.getVoxelProperty(key, property_name));
+            } catch (const boost::bad_get&) {
+                potential = 0.0f;
+            }
+
+            potentialSum += weight * potential;
+            weightSum += weight;
+        }
+
+        // Compute the interpolated potential
+        float interpolatedPotential = (weightSum > 0) ? potentialSum / weightSum : 0.0f;
+        float normalizedPotential = interpolatedPotential / maxPotential;
+
+        // Map the normalized potential to a color
+        Eigen::Vector3d color = rainbowColorMap(normalizedPotential);
+
+        unsigned char rgb[3] = {
+            static_cast<unsigned char>(color(0) * 255),
+            static_cast<unsigned char>(color(1) * 255),
+            static_cast<unsigned char>(color(2) * 255)};
+        colors->InsertNextTypedTuple(rgb);
+    }
+    stop = high_resolution_clock::now();
+    duration = duration_cast<milliseconds>(stop - start);
+    std::cout << "Step 5 (Color sphere vertices) took: " << duration.count() << " ms" << std::endl;
+
+
+    // Step 6: Assign colors and render
+    start = high_resolution_clock::now();
+    spherePolyData->GetPointData()->SetScalars(colors);
+
+    vtkSmartPointer<vtkPolyDataMapper> sphereMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    sphereMapper->SetInputData(spherePolyData);
+    sphereMapper->ScalarVisibilityOn();
+
+    vtkSmartPointer<vtkActor> sphereActor = vtkSmartPointer<vtkActor>::New();
+    sphereActor->SetMapper(sphereMapper);
+    if (projectedPointsActor) {
+        renderer->RemoveActor(projectedPointsActor);
+    }
+    renderer->AddActor(sphereActor);
+    projectedPointsActor = sphereActor;
+
+    stop = high_resolution_clock::now();
+    duration = duration_cast<milliseconds>(stop - start);
+    std::cout << "Step 6 (Add actor to renderer) took: " << duration.count() << " ms" << std::endl;
+}
+
+
+void Visualizer::removePotentialSphere() {
+    if (potentialSphereActor) {
+        renderer->RemoveActor(potentialSphereActor);
+        potentialSphereActor = nullptr;
+    }
 }
 
 

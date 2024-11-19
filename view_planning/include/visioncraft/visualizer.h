@@ -19,9 +19,21 @@
 
 #include <vtkTextActor.h>
 #include <vtkTextProperty.h>
+#include <vtkSphereSource.h>
 
+#include <open3d/Open3D.h>
 
 namespace visioncraft {
+
+
+struct Vector3dHash {
+    std::size_t operator()(const Eigen::Vector3d& vec) const {
+        std::size_t h1 = std::hash<double>{}(vec.x());
+        std::size_t h2 = std::hash<double>{}(vec.y());
+        std::size_t h3 = std::hash<double>{}(vec.z());
+        return h1 ^ (h2 << 1) ^ (h3 << 2); // Combine hashes
+    }
+};
 
 /**
  * @class Visualizer
@@ -253,8 +265,13 @@ public:
      */
     void removeOverlayTexts();
 
-
-
+    /**
+     * @brief Visualize the potential field on a sphere around the model.
+     * 
+    */
+    void visualizePotentialOnSphere(const visioncraft::Model& model, float sphere_radius, const std::string& property_name);
+    
+    void removePotentialSphere();
 
 
 private:
@@ -273,6 +290,8 @@ private:
      */
     std::vector<vtkSmartPointer<vtkActor>> showAxes(const Eigen::Vector3d& position, const Eigen::Matrix3d& orientation);
 
+    std::vector<vtkSmartPointer<vtkActor>> showSphere(const visioncraft::Viewpoint& viewpoint);
+    std::vector<vtkSmartPointer<vtkActor>> showArrow(const visioncraft::Viewpoint& viewpoint);
     vtkSmartPointer<vtkRenderer> renderer; ///< The VTK renderer used for visualization.
     vtkSmartPointer<vtkRenderWindow> renderWindow; ///< The VTK render window.
     vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor; ///< The VTK render window interactor.
@@ -291,6 +310,10 @@ private:
     bool stopRendering_ = false; ///< Flag to control rendering loop termination
 
     std::vector<vtkSmartPointer<vtkTextActor>> overlayTextActors_; ///< Store text actors for overlay text.
+
+    vtkSmartPointer<vtkActor> potentialSphereActor; // Class member to store the actor for removal
+    vtkSmartPointer<vtkActor> projectedPointsActor; // Store the actor for removal later
+
 
 
 };
