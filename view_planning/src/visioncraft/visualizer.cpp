@@ -23,6 +23,7 @@
 #include <vtkVoxel.h>
 #include <vtkGlyph3D.h>
 #include <vtkArrowSource.h>
+#include <vtkTransformPolyDataFilter.h>
 
 #include <vtkInteractorStyleTrackballCamera.h>
 #include <vtkInteractorStyleTrackballActor.h>
@@ -98,11 +99,9 @@ void visioncraft::Visualizer::stopAsyncRendering() {
 }
 
 
-void visioncraft::Visualizer::addViewpoint(const visioncraft::Viewpoint& viewpoint, bool showFrustum, bool showAxes) {
+void visioncraft::Visualizer::addViewpoint(const visioncraft::Viewpoint& viewpoint, bool showFrustum, bool showAxes, bool showPosition, bool showDirection) {
     std::vector<vtkSmartPointer<vtkActor>> actors;
 
-    showArrow(viewpoint);
-    showSphere(viewpoint);
 
     if (showAxes) {
         auto axesActors = this->showAxes(viewpoint.getPosition(), viewpoint.getOrientationMatrix());
@@ -114,20 +113,34 @@ void visioncraft::Visualizer::addViewpoint(const visioncraft::Viewpoint& viewpoi
         actors.insert(actors.end(), frustumActors.begin(), frustumActors.end());
     }
 
+    if (showPosition) {
+        auto positionActors = this->showSphere(viewpoint);
+        actors.insert(actors.end(), positionActors.begin(), positionActors.end());
+    }
+
+    if (showDirection) {
+        auto arrowActors = this->showArrow(viewpoint);
+        actors.insert(actors.end(), arrowActors.begin(), arrowActors.end());
+    }
+
+  
+
     for (auto& actor : actors) {
         renderer->AddActor(actor);  // Add each actor to the renderer
         viewpointActorMap_[viewpoint.getId()].push_back(actor);  // Add actor to the map
     }
+
+
 }
 
 
 
-void visioncraft::Visualizer::updateViewpoint(const visioncraft::Viewpoint& viewpoint, bool updateFrustum, bool updateAxes) {
+void visioncraft::Visualizer::updateViewpoint(const visioncraft::Viewpoint& viewpoint, bool updateFrustum, bool updateAxes, bool updatePosition, bool updateDirection) {
     // Remove the existing viewpoint
     removeViewpoint(viewpoint);
 
     // Add the updated viewpoint
-    addViewpoint(viewpoint, updateFrustum, updateAxes);
+    addViewpoint(viewpoint, updateFrustum, updateAxes, updatePosition, updateDirection);
 }
 
 
@@ -968,33 +981,69 @@ std::vector<vtkSmartPointer<vtkActor>> Visualizer::showSphere(const visioncraft:
     return sphereActors;
 }
 
+
+
 std::vector<vtkSmartPointer<vtkActor>> Visualizer::showArrow(const visioncraft::Viewpoint& viewpoint) {
     std::vector<vtkSmartPointer<vtkActor>> arrowActors;
 
+    // Get the position and orientation of the viewpoint
     Eigen::Vector3d position = viewpoint.getPosition();
-    Eigen::Vector3d zAxisDirection = viewpoint.getOrientationMatrix().col(2).normalized();
-    double arrowLength = 20.0;
+    Eigen::Matrix3d orientation = viewpoint.getOrientationMatrix(); // 3x3 rotation matrix
 
-    Eigen::Vector3d arrowEnd = position + arrowLength * zAxisDirection;
+    // Create a vtkMatrix4x4 for the transformation
+    vtkNew<vtkMatrix4x4> matrix;
+    matrix->Identity();
 
+    // Set the rotation part
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            matrix->SetElement(i, j, orientation(i, j));
+        }
+    }
+
+    // Set the translation part (position)
+    matrix->SetElement(0, 3, position(0));
+    matrix->SetElement(1, 3, position(1));
+    matrix->SetElement(2, 3, position(2));
+
+    // Create the arrow source
     vtkSmartPointer<vtkArrowSource> arrowSource = vtkSmartPointer<vtkArrowSource>::New();
 
-    vtkSmartPointer<vtkLineSource> arrowLine = vtkSmartPointer<vtkLineSource>::New();
-    arrowLine->SetPoint1(position(0), position(1), position(2));
-    arrowLine->SetPoint2(arrowEnd(0), arrowEnd(1), arrowEnd(2));
+    // Apply the transform to match the viewpoint's X-axis
+    vtkNew<vtkTransform> transform;
+    transform->Concatenate(matrix);
+    transform->Scale(20.0, 20.0, 20.0); // Scale the arrow to desired length
 
+    // Rotate the arrow about its base to align with the Z-axis
+    vtkNew<vtkTransform> rotationTransform;
+    rotationTransform->RotateWXYZ(-90.0, 0.0, 1.0, 0.0); // Rotate 90° around the Y-axis
+
+    // Concatenate the rotation to the existing transform
+    transform->Concatenate(rotationTransform);
+
+    // Transform the arrow geometry
+    vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+    transformFilter->SetTransform(transform);
+    transformFilter->SetInputConnection(arrowSource->GetOutputPort());
+
+    // Map the transformed arrow geometry
     vtkSmartPointer<vtkPolyDataMapper> arrowMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    arrowMapper->SetInputConnection(arrowLine->GetOutputPort());
+    arrowMapper->SetInputConnection(transformFilter->GetOutputPort());
 
+    // Create the arrow actor
     vtkSmartPointer<vtkActor> arrowActor = vtkSmartPointer<vtkActor>::New();
     arrowActor->SetMapper(arrowMapper);
-    arrowActor->GetProperty()->SetColor(1.0, 1.0, 1.0); // White color
+    arrowActor->GetProperty()->SetColor(1.0, 1.0, 1.0); // Blue color for visibility
 
+    // Add the arrow actor to the renderer
     renderer->AddActor(arrowActor);
     arrowActors.push_back(arrowActor);
 
     return arrowActors;
 }
+
+
+
 
 
 
@@ -1186,6 +1235,9 @@ void Visualizer::visualizePotentialOnSphere(
 
     vtkSmartPointer<vtkActor> sphereActor = vtkSmartPointer<vtkActor>::New();
     sphereActor->SetMapper(sphereMapper);
+
+    sphereActor->GetProperty()->SetOpacity(0.2); // 0.5 for 50% opacity
+
     if (projectedPointsActor) {
         renderer->RemoveActor(projectedPointsActor);
     }

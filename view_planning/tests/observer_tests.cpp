@@ -59,7 +59,7 @@ void computeVoxelPotentials(
         int visibility = boost::get<int>(model.getVoxelProperty(key, "visibility"));
         float V_norm = static_cast<float>(visibility) / V_max;
 
-        V_norm > 1.0f ? V_norm = 1.0f : V_norm;
+        // V_norm > 1.0f ? V_norm = 1.0f : V_norm;
 
         float potential = 0.0f;
         for (const auto& viewpoint : viewpoints) {
@@ -102,7 +102,7 @@ Eigen::Vector3d computeAttractiveForce(
         int visibility = boost::get<int>(model.getVoxelProperty(key, "visibility"));
         float V_norm = static_cast<float>(visibility) / V_max;
 
-        V_norm > 1.0f ? V_norm = 1.0f : V_norm;
+        // V_norm > 1.0f ? V_norm = 1.0f : V_norm;
 
         Eigen::Vector3d r = viewpoint->getPosition() - voxel.getPosition();
 
@@ -419,7 +419,7 @@ int main() {
     float delta_t = 0.04f;
     float alpha = 1.0f;
     int max_iterations = 100;
-    int V_max = 1; //num_viewpoints
+    int V_max = num_viewpoints; //num_viewpoints
 
     // Prepare CSV logging
     std::ofstream csv_file("results.csv");
@@ -504,7 +504,7 @@ int main() {
             updateViewpointState(viewpoint, new_position, sphere_radius);
 
             // visualizer.addViewpoint(*viewpoint, false, true);
-            visualizer.updateViewpoint(*viewpoint, false, true);
+            visualizer.updateViewpoint(*viewpoint, false, true, true, true);
         }
 
         visualizer.addVoxelMapProperty(model, "potential");

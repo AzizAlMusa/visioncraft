@@ -26,8 +26,8 @@ inline void bind_visualizer(py::module& m) {
         .def("getRenderer", &visioncraft::Visualizer::getRenderer)
 
         // Viewpoint Management
-        .def("addViewpoint", &visioncraft::Visualizer::addViewpoint, py::arg("viewpoint"), py::arg("showFrustum") = true, py::arg("showAxes") = true)
-        .def("updateViewpoint", &visioncraft::Visualizer::updateViewpoint, py::arg("viewpoint"), py::arg("updateFrustum"), py::arg("updateAxes"))
+        .def("addViewpoint", &visioncraft::Visualizer::addViewpoint, py::arg("viewpoint"), py::arg("showFrustum") = true, py::arg("showAxes") = true, py::arg("showPosition") = false, py::arg("showDirection") = false)
+        .def("updateViewpoint", &visioncraft::Visualizer::updateViewpoint, py::arg("viewpoint"), py::arg("updateFrustum"), py::arg("updateAxes"), py::arg("updatePosition"), py::arg("updateDirection"))
         .def("addMultipleViewpoints", &visioncraft::Visualizer::addMultipleViewpoints)
         .def("removeViewpoints", &visioncraft::Visualizer::removeViewpoints)
         .def("removeViewpoint", &visioncraft::Visualizer::removeViewpoint)

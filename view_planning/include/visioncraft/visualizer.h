@@ -74,9 +74,9 @@ public:
      * @param showFrustum Whether to show the frustum for the viewpoint (default is true).
      * @param showAxes Whether to show the axes for the viewpoint (default is true).
      */
-    void addViewpoint(const visioncraft::Viewpoint& viewpoint, bool showFrustum = true, bool showAxes = true);
+    void addViewpoint(const visioncraft::Viewpoint& viewpoint, bool showFrustum = true, bool showAxes = true,  bool showPosition = false, bool showDirection = false);
 
-    void updateViewpoint(const visioncraft::Viewpoint& viewpoint, bool updateFrustum, bool updateAxes);
+    void updateViewpoint(const visioncraft::Viewpoint& viewpoint, bool updateFrustum = true, bool updateAxes = true , bool updatePosition = false, bool updateDirection = false);
 
     /**
      * @brief Add multiple viewpoints to the visualization.
