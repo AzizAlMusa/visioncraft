@@ -13,6 +13,7 @@
 #include <fstream>
 #include <iomanip>
 #include <memory>
+#include <open3d/Open3D.h>
 
 // Generate viewpoints clustered near a specific region
 std::vector<std::shared_ptr<visioncraft::Viewpoint>> generateClusteredViewpoints(int num_viewpoints, float sphere_radius) {
@@ -40,6 +41,142 @@ std::vector<std::shared_ptr<visioncraft::Viewpoint>> generateClusteredViewpoints
     return viewpoints;
 }
 
+// Function to map voxels to sphere positions
+// Function to map voxels to sphere positions
+// Function to map voxels to sphere positions
+// Function to map voxels to sphere positions
+void mapVoxelsToSphere(
+    visioncraft::Model& model,
+    float sphere_radius,
+    std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap
+)
+{
+    const auto& voxelMap = model.getVoxelMap().getMap();
+    if (voxelMap.empty()) {
+        std::cerr << "[ERROR] No voxels available in the model." << std::endl;
+        return;
+    }
+    std::cout << "[INFO] Number of voxels in the model: " << voxelMap.size() << std::endl;
+
+    auto octree = model.getSurfaceShellOctomap();
+    if (!octree) {
+        std::cerr << "[ERROR] Octree is null. Cannot perform raycasting." << std::endl;
+        return;
+    }
+
+    double voxelSize = model.getVoxelSize(); // Assume this returns the edge length of the voxel cube
+    double diagonalLength = voxelSize * std::sqrt(3.0); // Diagonal length of the voxel cube
+
+    std::vector<Eigen::Vector3d> unoccludedPositions;
+    std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash> selfOccludedVoxels;
+
+    int numUnoccluded = 0;
+    int numSelfOccluded = 0;
+
+    // For each voxel
+    for (const auto& kv : voxelMap) {
+        const auto& voxel = kv.second;
+        const auto& key = kv.first;
+
+        Eigen::Vector3d voxelPosition = voxel.getPosition();
+        Eigen::Vector3d normal;
+        try {
+            normal = boost::get<Eigen::Vector3d>(model.getVoxelProperty(key, "normal"));
+        } catch (const boost::bad_get&) {
+            std::cerr << "[WARNING] Voxel at key " << key.k[0] << ", " << key.k[1] << ", " << key.k[2]
+                      << " does not have a normal property. Skipping." << std::endl;
+            continue;
+        }
+        normal.normalize(); // Ensure the normal is unit length
+
+        // Compute the intersection point of the ray from voxelPosition along normal with the sphere
+        double a = 1.0; // normal is normalized
+        double b = 2.0 * voxelPosition.dot(normal);
+        double c = voxelPosition.squaredNorm() - sphere_radius * sphere_radius;
+
+        double discriminant = b * b - 4.0 * a * c;
+        if (discriminant < 0) {
+            std::cerr << "[DEBUG] No intersection for voxel at " << voxelPosition.transpose() << std::endl;
+            continue;
+        }
+
+        double sqrt_disc = std::sqrt(discriminant);
+        double t1 = (-b + sqrt_disc) / (2.0 * a);
+        double t2 = (-b - sqrt_disc) / (2.0 * a);
+
+        double t = std::max(t1, t2); // Choose the larger t to ensure the ray goes outward
+        if (t <= 0) {
+            std::cerr << "[DEBUG] Intersection is behind the voxel at " << voxelPosition.transpose() << std::endl;
+            continue;
+        }
+
+        Eigen::Vector3d spherePoint = voxelPosition + t * normal;
+
+        // Adjust the starting point of the ray to avoid self-occlusion
+        Eigen::Vector3d rayStart = voxelPosition + diagonalLength * normal; // Start raycasting after the diagonal
+
+        bool occluded = false;
+        octomap::point3d origin(rayStart.x(), rayStart.y(), rayStart.z());
+        octomap::point3d direction(normal.x(), normal.y(), normal.z());
+        double maxRange = t - diagonalLength; // Reduce range to account for starting offset
+
+        octomap::point3d end;
+        bool hit = octree->castRay(origin, direction, end, true, maxRange);
+
+        if (hit) {
+            std::cerr << "[DEBUG] Voxel at " << voxelPosition.transpose() 
+                      << " is occluded by another voxel at " << end << std::endl;
+            occluded = true;
+            numSelfOccluded++;
+        }
+
+        if (!occluded) {
+            voxelToSphereMap[key] = spherePoint;
+            unoccludedPositions.push_back(voxelPosition);
+            numUnoccluded++;
+        } else {
+            selfOccludedVoxels[key] = spherePoint;
+        }
+    }
+
+    std::cout << "[INFO] Number of unoccluded voxels: " << numUnoccluded << std::endl;
+    std::cout << "[INFO] Number of self-occluded voxels: " << numSelfOccluded << std::endl;
+
+    // Use KD-tree for finding the nearest unoccluded neighbor for self-occluded voxels
+    if (!unoccludedPositions.empty()) {
+        auto kdtree = std::make_shared<open3d::geometry::KDTreeFlann>();
+        auto pointCloud = std::make_shared<open3d::geometry::PointCloud>();
+        pointCloud->points_ = unoccludedPositions;
+        kdtree->SetGeometry(*pointCloud);
+
+        int numMapped = 0;
+
+        for (const auto& kv : selfOccludedVoxels) {
+            const auto& key = kv.first;
+            Eigen::Vector3d voxelPosition = model.getVoxel(key)->getPosition();
+
+            std::vector<int> indices;
+            std::vector<double> distances;
+
+            if (kdtree->SearchKNN(voxelPosition, 1, indices, distances) > 0) {
+                int nearestIdx = indices[0];
+                Eigen::Vector3d nearestSpherePoint = unoccludedPositions[nearestIdx];
+                voxelToSphereMap[key] = nearestSpherePoint;
+                numMapped++;
+            } else {
+                std::cerr << "[WARNING] No nearest unoccluded neighbor found for self-occluded voxel at "
+                          << voxelPosition.transpose() << std::endl;
+            }
+        }
+        std::cout << "[INFO] Number of self-occluded voxels mapped to nearest neighbors: " << numMapped << std::endl;
+    } else {
+        std::cerr << "[ERROR] No unoccluded positions available to map self-occluded voxels." << std::endl;
+    }
+
+    std::cout << "[INFO] Total voxels mapped to sphere: " << voxelToSphereMap.size() << std::endl;
+}
+
+
 
 // Compute potential for each voxel based on distances to all viewpoints
 void computeVoxelPotentials(
@@ -63,7 +200,7 @@ void computeVoxelPotentials(
 
         float potential = 0.0f;
         for (const auto& viewpoint : viewpoints) {
-            Eigen::Vector3d r = viewpoint->getPosition() - voxel.getPosition();
+            Eigen::Vector3d r = viewpoint->getPosition() - voxel.getPosition() ;
             float distance_squared = r.squaredNorm();
 
             if (use_exponential) {
@@ -330,60 +467,7 @@ void addNewViewpoint(
 }
 
 
-std::vector<std::pair<Eigen::Vector3d, float>> projectPotentialsToSphere(
-    const visioncraft::Model& model,
-    float sphere_radius)
-{
-    std::vector<std::pair<Eigen::Vector3d, float>> projected_points;
-    const auto& voxelMap = model.getVoxelMap().getMap();
 
-    for (const auto& kv : voxelMap) {
-        const auto& voxel = kv.second;
-        const auto& key = kv.first;
-
-        float potential = boost::get<float>(model.getVoxelProperty(key, "potential"));
-
-        // Project voxel center onto sphere
-        Eigen::Vector3d position = voxel.getPosition().normalized() * sphere_radius;
-
-        projected_points.emplace_back(position, potential);
-    }
-    return projected_points;
-}
-
-std::vector<std::tuple<Eigen::Vector3d, float>> interpolateSphereGrid(
-    const std::vector<std::pair<Eigen::Vector3d, float>>& projected_points,
-    int N_phi, int N_theta, float sphere_radius)
-{
-    std::vector<std::tuple<Eigen::Vector3d, float>> grid_points;
-
-    for (int i = 0; i <= N_phi; ++i) {
-        float phi = M_PI * i / N_phi; // Polar angle
-        for (int j = 0; j < N_theta; ++j) {
-            float theta = 2 * M_PI * j / N_theta; // Azimuthal angle
-
-            Eigen::Vector3d grid_point(
-                sphere_radius * sin(phi) * cos(theta),
-                sphere_radius * sin(phi) * sin(theta),
-                sphere_radius * cos(phi));
-
-            // Find nearby points and interpolate potential
-            float total_potential = 0.0f;
-            float weight_sum = 0.0f;
-
-            for (const auto& [position, potential] : projected_points) {
-                float distance = (grid_point - position).norm();
-                float weight = 1.0f / (distance + 1e-5f); // Weight by inverse distance
-                total_potential += weight * potential;
-                weight_sum += weight;
-            }
-
-            float interpolated_potential = (weight_sum > 0) ? total_potential / weight_sum : 0.0f;
-            grid_points.emplace_back(grid_point, interpolated_potential);
-        }
-    }
-    return grid_points;
-}
 
 
 
@@ -395,14 +479,14 @@ int main() {
 
     visioncraft::Model model;
     std::cout << "Loading model..." << std::endl;
-    model.loadModel("../models/sphere.ply", 100000);
+    model.loadModel("../models/gorilla.ply", 100000);
     std::cout << "Model loaded successfully." << std::endl;
 
     auto visibilityManager = std::make_shared<visioncraft::VisibilityManager>(model);
     model.addVoxelProperty("potential", 0.0f);
 
     float sphere_radius = 400.0f;
-    int num_viewpoints = 8;
+    int num_viewpoints = 2;
     auto viewpoints = generateClusteredViewpoints(num_viewpoints, sphere_radius);
 
     for (auto& viewpoint : viewpoints) {
@@ -416,11 +500,19 @@ int main() {
     // Simulation parameters
     float sigma = 100.0f;
     float k_repel = 15000.0f;
-    float delta_t = 0.04f;
+    float delta_t = 0.2f;
     float alpha = 1.0f;
     int max_iterations = 100;
     int V_max = num_viewpoints; //num_viewpoints
 
+    // Generate manifold mapping
+    std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash> voxelToSphereMap;
+    mapVoxelsToSphere(model, sphere_radius, voxelToSphereMap);
+
+    // print the sphere points
+    for (const auto& kv : voxelToSphereMap) {
+        std::cout << " sphere point: " << kv.second.transpose() << std::endl;
+    }
     // Prepare CSV logging
     std::ofstream csv_file("results.csv");
     csv_file << "Timestep,CoverageScore,SystemEnergy,KineticEnergy,ForceMagnitude,Entropy\n";
@@ -447,7 +539,7 @@ int main() {
         for (auto& viewpoint : viewpoints) {
             viewpoint->performRaycastingOnGPU(model);
         }
-        visualizer.visualizePotentialOnSphere(model, sphere_radius, "potential");
+        visualizer.visualizePotentialOnSphere(model, sphere_radius, "potential", voxelToSphereMap);
         // Log viewpoint positions to the CSV file
         for (size_t i = 0; i < viewpoints.size(); ++i) {
             Eigen::Vector3d position = viewpoints[i]->getPosition();
@@ -492,14 +584,17 @@ int main() {
             // Eigen::Vector3d F_attr = computeAttractiveForce(model, viewpoint, sphere_radius, sigma, num_viewpoints);
             Eigen::Vector3d F_attr = computeAttractiveForce(model, viewpoint, sigma, V_max);
             Eigen::Vector3d F_repel = computeRepulsiveForce(viewpoints, viewpoint, k_repel, alpha);
-            // std::cout << "F_attr: " << F_attr.transpose() << "F_repel: " << F_repel.transpose() << std::endl;
+            std::cout << "F_attr: " << F_attr.transpose() << "F_repel: " << F_repel.transpose() << std::endl;
  
 
             Eigen::Vector3d F_total = F_attr + F_repel ; // + F_repel
             Eigen::Vector3d n = viewpoint->getPosition().normalized();
             Eigen::Vector3d F_tangent = F_total - F_total.dot(n) * n;
+            // compute the percentage of f_tanget over the total force
+            double percentage = F_tangent.norm() / F_total.norm();
+            std::cout << "Percentage: " << percentage << std::endl;
 
-            // std::cout << "F_tangent: " << F_tangent.transpose() << std::endl;
+            std::cout << "F_tangent: " << F_tangent.transpose() << std::endl;
             Eigen::Vector3d new_position = viewpoint->getPosition() + delta_t * F_tangent;
             updateViewpointState(viewpoint, new_position, sphere_radius);
 
@@ -507,7 +602,7 @@ int main() {
             visualizer.updateViewpoint(*viewpoint, false, true, true, true);
         }
 
-        visualizer.addVoxelMapProperty(model, "potential");
+        visualizer.addVoxelMapProperty(model, "visibility");
         visualizer.render();
         // visualizer.removeViewpoints();
         visualizer.removeVoxelMapProperty();

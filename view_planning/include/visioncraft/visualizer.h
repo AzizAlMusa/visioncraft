@@ -269,7 +269,7 @@ public:
      * @brief Visualize the potential field on a sphere around the model.
      * 
     */
-    void visualizePotentialOnSphere(const visioncraft::Model& model, float sphere_radius, const std::string& property_name);
+    void visualizePotentialOnSphere(const visioncraft::Model& model, float sphere_radius, const std::string& property_name, const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap);
     
     void removePotentialSphere();
 

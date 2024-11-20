@@ -777,6 +777,15 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
         return Eigen::Vector3d(r, g, b);
     };
 
+    auto hotColdColorMap = [](float normalizedValue) -> Eigen::Vector3d {
+        // Compute RGB using a hot-cold color scheme (Blue -> Green -> Red)
+        float r = std::max(0.0f, std::min(1.0f, 4.0f * normalizedValue));  // Red increases as value increases
+        float g = std::max(0.0f, std::min(1.0f, 1.0f - 2.0f * std::abs(normalizedValue - 0.5f)));  // Green peaks at the middle value
+        float b = std::max(0.0f, std::min(1.0f, 1.0f - 4.0f * normalizedValue));  // Blue decreases as value increases
+        return Eigen::Vector3d(r, g, b);
+    };
+
+
     for (const auto& kv : metaVoxelMap) {
         const auto& metaVoxel = kv.second;
         const auto& voxelPos = metaVoxel.getPosition();
@@ -799,7 +808,7 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
 
                 float normalizedValue = (propertyValue - minScale) / (maxScale - minScale);
                 normalizedValue = std::max(0.0f, std::min(normalizedValue, 1.0f));
-                color = rainbowColorMap(normalizedValue);
+                color = hotColdColorMap(normalizedValue);
 
             } catch (const boost::bad_get& e) {
                 std::cerr << "Error: Failed to retrieve property " << property_name 
@@ -1091,20 +1100,19 @@ static Eigen::Vector3d rainbowColorMap(float normalizedValue) {
 void Visualizer::visualizePotentialOnSphere(
     const visioncraft::Model& model,
     float sphere_radius,
-    const std::string& property_name)
+    const std::string& property_name,
+    const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap)
 {
     using namespace std::chrono;
 
-    const auto& voxelMap = model.getVoxelMap().getMap();
-    if (voxelMap.empty()) {
-        std::cerr << "[ERROR] No voxels available in the model." << std::endl;
+    if (voxelToSphereMap.empty()) {
+        std::cerr << "[ERROR] No voxels mapped to the sphere." << std::endl;
         return;
     }
 
     // Step 1: Find the maximum potential value
-    auto start = high_resolution_clock::now();
     float maxPotential = std::numeric_limits<float>::lowest();
-    for (const auto& kv : voxelMap) {
+    for (const auto& kv : voxelToSphereMap) {
         try {
             float potential = boost::get<float>(model.getVoxelProperty(kv.first, property_name));
             maxPotential = std::max(maxPotential, potential);
@@ -1113,44 +1121,30 @@ void Visualizer::visualizePotentialOnSphere(
         }
     }
     maxPotential = 450.0f * 450.0f * 8;  // Hard-coded for the current dataset
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
-    std::cout << "Step 1 (Find max potential) took: " << duration.count() << " ms" << std::endl;
 
     if (maxPotential <= 0.0f) {
         std::cerr << "[ERROR] Invalid or zero maximum potential." << std::endl;
         return;
     }
 
-    // Step 2: Map voxel positions to keys and associate them with sphere points
-    start = high_resolution_clock::now();
+    // Step 2: Use `voxelToSphereMap` for sphere point mapping
+    std::vector<Eigen::Vector3d> spherePositions;
     std::unordered_map<int, octomap::OcTreeKey> spherePointToKeyMap;
-    open3d::geometry::PointCloud spherePointCloud;
 
-    for (const auto& kv : voxelMap) {
-        const Eigen::Vector3d& voxelPosition = kv.second.getPosition();
-        const octomap::OcTreeKey& key = kv.first;
-
-        // Project voxel position onto the sphere
-        Eigen::Vector3d spherePoint = voxelPosition.normalized() * sphere_radius;
-
-        // Add to Open3D PointCloud
-        spherePointCloud.points_.emplace_back(spherePoint.x(), spherePoint.y(), spherePoint.z());
-        spherePointToKeyMap[spherePointCloud.points_.size() - 1] = key; // Map point ID to voxel key
+    int pointIndex = 0;
+    for (const auto& kv : voxelToSphereMap) {
+        const Eigen::Vector3d& spherePoint = kv.second;
+        spherePositions.push_back(spherePoint);
+        spherePointToKeyMap[pointIndex++] = kv.first; // Map point ID to voxel key
     }
-    stop = high_resolution_clock::now();
-    duration = duration_cast<milliseconds>(stop - start);
-    std::cout << "Step 2 (Map voxel positions to keys) took: " << duration.count() << " ms" << std::endl;
 
     // Step 3: Build KD-tree for nearest neighbor search
-    start = high_resolution_clock::now();
-    open3d::geometry::KDTreeFlann kdtree(spherePointCloud);
-    stop = high_resolution_clock::now();
-    duration = duration_cast<milliseconds>(stop - start);
-    std::cout << "Step 3 (Build KD-Tree) took: " << duration.count() << " ms" << std::endl;
+    open3d::geometry::KDTreeFlann kdtree;
+    auto pointCloud = std::make_shared<open3d::geometry::PointCloud>();
+    pointCloud->points_ = spherePositions;
+    kdtree.SetGeometry(*pointCloud);
 
     // Step 4: Create a VTK sphere and initialize colors
-    start = high_resolution_clock::now();
     vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
     sphereSource->SetRadius(sphere_radius);
     sphereSource->SetThetaResolution(100);
@@ -1163,17 +1157,13 @@ void Visualizer::visualizePotentialOnSphere(
     vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
     colors->SetNumberOfComponents(3);
     colors->SetName("Colors");
-    stop = high_resolution_clock::now();
-    duration = duration_cast<milliseconds>(stop - start);
-    std::cout << "Step 4 (Create VTK sphere) took: " << duration.count() << " ms" << std::endl;
 
     // Step 5: Color the sphere vertices based on proximity to mapped points
-   // Step 5: Color the sphere vertices based on proximity to mapped points
-    start = high_resolution_clock::now();
-    auto rainbowColorMap = [](float normalizedValue) -> Eigen::Vector3d {
-        float r = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.75f) + 1.5f));
-        float g = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.5f) + 1.5f));
-        float b = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.25f) + 1.5f));
+    auto hotColdColorMap = [](float normalizedValue) -> Eigen::Vector3d {
+        // Compute RGB using a hot-cold color scheme (Blue -> Green -> Red)
+        float r = std::max(0.0f, std::min(1.0f, 4.0f * normalizedValue));  // Red increases as value increases
+        float g = std::max(0.0f, std::min(1.0f, 1.0f - 2.0f * std::abs(normalizedValue - 0.5f)));  // Green peaks at the middle value
+        float b = std::max(0.0f, std::min(1.0f, 1.0f - 4.0f * normalizedValue));  // Blue decreases as value increases
         return Eigen::Vector3d(r, g, b);
     };
 
@@ -1212,7 +1202,7 @@ void Visualizer::visualizePotentialOnSphere(
         float normalizedPotential = interpolatedPotential / maxPotential;
 
         // Map the normalized potential to a color
-        Eigen::Vector3d color = rainbowColorMap(normalizedPotential);
+        Eigen::Vector3d color = hotColdColorMap(normalizedPotential);
 
         unsigned char rgb[3] = {
             static_cast<unsigned char>(color(0) * 255),
@@ -1220,13 +1210,8 @@ void Visualizer::visualizePotentialOnSphere(
             static_cast<unsigned char>(color(2) * 255)};
         colors->InsertNextTypedTuple(rgb);
     }
-    stop = high_resolution_clock::now();
-    duration = duration_cast<milliseconds>(stop - start);
-    std::cout << "Step 5 (Color sphere vertices) took: " << duration.count() << " ms" << std::endl;
-
 
     // Step 6: Assign colors and render
-    start = high_resolution_clock::now();
     spherePolyData->GetPointData()->SetScalars(colors);
 
     vtkSmartPointer<vtkPolyDataMapper> sphereMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -1236,17 +1221,13 @@ void Visualizer::visualizePotentialOnSphere(
     vtkSmartPointer<vtkActor> sphereActor = vtkSmartPointer<vtkActor>::New();
     sphereActor->SetMapper(sphereMapper);
 
-    sphereActor->GetProperty()->SetOpacity(0.2); // 0.5 for 50% opacity
+    sphereActor->GetProperty()->SetOpacity(0.8); // 0.5 for 50% opacity
 
     if (projectedPointsActor) {
         renderer->RemoveActor(projectedPointsActor);
     }
     renderer->AddActor(sphereActor);
     projectedPointsActor = sphereActor;
-
-    stop = high_resolution_clock::now();
-    duration = duration_cast<milliseconds>(stop - start);
-    std::cout << "Step 6 (Add actor to renderer) took: " << duration.count() << " ms" << std::endl;
 }
 
 
