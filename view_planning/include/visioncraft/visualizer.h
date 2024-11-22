@@ -273,6 +273,25 @@ public:
     
     void removePotentialSphere();
 
+    void visualizeVoxelToSphereMapping(
+    visioncraft::Model& model,
+    const octomap::OcTreeKey& key,
+    const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap); 
+
+    void removeVoxelToSphereMapping();
+
+    void visualizeVoxelNormals(
+    visioncraft::Model& model,
+    double normalLength,
+    const Eigen::Vector3d& color,
+    const octomap::OcTreeKey& key);
+
+    void showGeodesic(
+    const visioncraft::Viewpoint& viewpoint,
+    const Eigen::Vector3d& spherePoint,
+    float sphereRadius);
+
+    void removeGeodesic();
 
 private:
 
@@ -313,9 +332,10 @@ private:
 
     vtkSmartPointer<vtkActor> potentialSphereActor; // Class member to store the actor for removal
     vtkSmartPointer<vtkActor> projectedPointsActor; // Store the actor for removal later
-
-
-
+    vtkSmartPointer<vtkActor> voxelToSphereMappingActor_;
+    std::vector<vtkSmartPointer<vtkActor>> voxelToSphereMappingActors_;
+    vtkSmartPointer<vtkActor> voxelNormalsActor_;
+    vtkSmartPointer<vtkActor> geodesicActor_;
 };
 
 } // namespace visioncraft

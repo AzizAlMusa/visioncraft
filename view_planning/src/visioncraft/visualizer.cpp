@@ -1120,7 +1120,7 @@ void Visualizer::visualizePotentialOnSphere(
             // Skip voxels without the property
         }
     }
-    maxPotential = 450.0f * 450.0f * 8;  // Hard-coded for the current dataset
+    // maxPotential = 1256.6f * 1256.6f * 6;  // Hard-coded for the current dataset
 
     if (maxPotential <= 0.0f) {
         std::cerr << "[ERROR] Invalid or zero maximum potential." << std::endl;
@@ -1235,6 +1235,283 @@ void Visualizer::removePotentialSphere() {
     if (potentialSphereActor) {
         renderer->RemoveActor(potentialSphereActor);
         potentialSphereActor = nullptr;
+    }
+}
+
+
+void Visualizer::visualizeVoxelToSphereMapping(
+    visioncraft::Model& model,
+    const octomap::OcTreeKey& key,
+    const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap)
+{
+    auto it = voxelToSphereMap.find(key);
+    if (it == voxelToSphereMap.end()) {
+        std::cerr << "[ERROR] Key not found in the voxel-to-sphere mapping." << std::endl;
+        return;
+    }
+
+    const Eigen::Vector3d& spherePoint = it->second;
+
+    // Get the voxel position
+    Eigen::Vector3d voxelPosition = model.getVoxel(key)->getPosition();
+
+    double voxelSphereRadius = model.getVoxelSize() * 1.5; // Radius for voxel sphere
+    double mappedSphereRadius = model.getVoxelSize() * 0.75; // Radius for mapped sphere
+
+    // Create a sphere for the voxel
+    vtkSmartPointer<vtkSphereSource> voxelSphere = vtkSmartPointer<vtkSphereSource>::New();
+    voxelSphere->SetCenter(voxelPosition.x(), voxelPosition.y(), voxelPosition.z());
+    voxelSphere->SetRadius(voxelSphereRadius);
+    voxelSphere->Update();
+
+    // Create a sphere for the mapped point on the sphere
+    vtkSmartPointer<vtkSphereSource> mappedSphere = vtkSmartPointer<vtkSphereSource>::New();
+    mappedSphere->SetCenter(spherePoint.x(), spherePoint.y(), spherePoint.z());
+    mappedSphere->SetRadius(mappedSphereRadius);
+    mappedSphere->Update();
+
+    // Create a mapper and actor for the voxel sphere (red)
+    vtkSmartPointer<vtkPolyDataMapper> voxelMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    voxelMapper->SetInputData(voxelSphere->GetOutput());
+
+    vtkSmartPointer<vtkActor> voxelActor = vtkSmartPointer<vtkActor>::New();
+    voxelActor->SetMapper(voxelMapper);
+    voxelActor->GetProperty()->SetColor(1.0, 0.0, 0.0); // Red for voxel sphere
+    voxelActor->GetProperty()->SetOpacity(1.0);         // Fully opaque
+
+    // Create a mapper and actor for the sphere point (green)
+    vtkSmartPointer<vtkPolyDataMapper> mappedMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mappedMapper->SetInputData(mappedSphere->GetOutput());
+
+    vtkSmartPointer<vtkActor> mappedActor = vtkSmartPointer<vtkActor>::New();
+    mappedActor->SetMapper(mappedMapper);
+    mappedActor->GetProperty()->SetColor(0.0, 1.0, 0.0); // Green for sphere point
+    mappedActor->GetProperty()->SetOpacity(1.0);         // Fully opaque
+
+    // Add both actors to the renderer
+    renderer->AddActor(voxelActor);
+    renderer->AddActor(mappedActor);
+
+    // Store the actors for later removal
+    voxelToSphereMappingActors_.clear();  // Ensure no leftover actors remain
+    voxelToSphereMappingActors_.push_back(voxelActor);
+    voxelToSphereMappingActors_.push_back(mappedActor);
+
+    std::cout << "[INFO] Visualization of single voxel-to-sphere mapping completed." << std::endl;
+}
+
+
+
+void Visualizer::removeVoxelToSphereMapping() {
+    if (voxelToSphereMappingActor_) {
+        renderer->RemoveActor(voxelToSphereMappingActor_);
+        voxelToSphereMappingActor_ = nullptr;
+    }
+}
+
+
+void Visualizer::visualizeVoxelNormals(
+    visioncraft::Model& model,
+    double normalLength,
+    const Eigen::Vector3d& normalColor,
+    const octomap::OcTreeKey& key) // Specify a single key
+{
+    const auto& voxelMap = model.getVoxelMap().getMap();
+
+    if (voxelMap.empty()) {
+        std::cerr << "[ERROR] No voxels available in the model." << std::endl;
+        return;
+    }
+
+    // Create a vtkPoints object to store all the points
+    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+
+    // Check if the specific key exists in the map
+    if (voxelMap.find(key) != voxelMap.end()) {
+        const auto& voxel = voxelMap.at(key);
+        Eigen::Vector3d voxelPosition = voxel.getPosition();
+
+        Eigen::Vector3d normal;
+        try {
+            normal = boost::get<Eigen::Vector3d>(model.getVoxelProperty(key, "normal"));
+        } catch (const boost::bad_get&) {
+            std::cerr << "[WARNING] Voxel at key " << key.k[0] << ", " << key.k[1] << ", " << key.k[2]
+                      << " does not have a normal property. Skipping." << std::endl;
+            return;
+        }
+
+        normal.normalize(); // Ensure the normal is a unit vector
+
+        // Calculate the end position of the normal line
+        Eigen::Vector3d endPosition = voxelPosition + normalLength * normal;
+
+        // Add points and line to VTK
+        vtkIdType startId = points->InsertNextPoint(voxelPosition.x(), voxelPosition.y(), voxelPosition.z());
+        vtkIdType endId = points->InsertNextPoint(endPosition.x(), endPosition.y(), endPosition.z());
+
+        vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, startId);
+        line->GetPointIds()->SetId(1, endId);
+
+        lines->InsertNextCell(line);
+    } else {
+        std::cerr << "[ERROR] Specified key not found in the voxel map." << std::endl;
+        return;
+    }
+
+    vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+    polyData->SetPoints(points);
+    polyData->SetLines(lines);
+
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper->SetInputData(polyData);
+
+    vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+    actor->SetMapper(mapper);
+    actor->GetProperty()->SetColor(normalColor(0), normalColor(1), normalColor(2)); // Set line color
+    actor->GetProperty()->SetLineWidth(2.0);                                       // Set line thickness
+
+    renderer->AddActor(actor);
+
+    // Store the actor for later removal
+    voxelNormalsActor_ = actor;
+
+    std::cout << "[INFO] Visualized normal for the specified key." << std::endl;
+}
+
+void Visualizer::showGeodesic(
+    const visioncraft::Viewpoint& viewpoint,
+    const Eigen::Vector3d& spherePoint,
+    float sphereRadius)
+{
+    // Get the viewpoint position (start point)
+    Eigen::Vector3d viewpointPosition = viewpoint.getPosition();
+
+    // Normalize both points to lie on the sphere surface
+    Eigen::Vector3d startPoint = sphereRadius * viewpointPosition.normalized();
+    Eigen::Vector3d endPoint = sphereRadius * spherePoint.normalized();
+
+    // Check if points are antipodal
+    double dotProduct = startPoint.normalized().dot(endPoint.normalized());
+    if (std::abs(dotProduct + 1.0) < 1e-6) { // Antipodal case
+        std::cout << "[DEBUG] Points are antipodal. Special handling applied." << std::endl;
+
+        // Choose a helper vector orthogonal to startPoint
+        Eigen::Vector3d helperVector = startPoint.unitOrthogonal(); // Use Eigen's built-in method
+        helperVector *= sphereRadius; // Scale to sphere radius
+
+        // Number of intermediate points
+        const int numPoints = 100;
+        std::vector<Eigen::Vector3d> geodesicPoints;
+        geodesicPoints.push_back(startPoint);
+
+        // Interpolate along the great circle
+        for (int i = 1; i < numPoints; ++i) {
+            float t = static_cast<float>(i) / (numPoints - 1);
+
+            // Rotate startPoint towards endPoint using helperVector
+            Eigen::Vector3d rotatedPoint = 
+                (startPoint * std::cos(t * M_PI) +
+                 helperVector * std::sin(t * M_PI)).normalized() * sphereRadius;
+
+            geodesicPoints.push_back(rotatedPoint);
+        }
+
+        geodesicPoints.push_back(endPoint);
+
+        // Visualization steps follow...
+        vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+        for (const auto& point : geodesicPoints) {
+            points->InsertNextPoint(point(0), point(1), point(2));
+        }
+
+        vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+        for (size_t i = 0; i < geodesicPoints.size() - 1; ++i) {
+            vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+            line->GetPointIds()->SetId(0, i);
+            line->GetPointIds()->SetId(1, i + 1);
+            lines->InsertNextCell(line);
+        }
+
+        vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+        polyData->SetPoints(points);
+        polyData->SetLines(lines);
+
+        vtkSmartPointer<vtkPolyDataMapper> lineMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        lineMapper->SetInputData(polyData);
+
+        vtkSmartPointer<vtkActor> lineActor = vtkSmartPointer<vtkActor>::New();
+        lineActor->SetMapper(lineMapper);
+        lineActor->GetProperty()->SetColor(1.0, 0.0, 1.0); // Magenta
+        lineActor->GetProperty()->SetLineWidth(2.0);
+
+        renderer->AddActor(lineActor);
+        geodesicActor_ = lineActor;
+
+        std::cout << "[INFO] Geodesic visualization for antipodal points added." << std::endl;
+        return;
+    }
+
+    // Handle the general case as before
+    double angle = std::acos(std::max(-1.0, std::min(1.0, dotProduct))); // Clamp to [-1, 1]
+    double geodesicLength = sphereRadius * angle;
+    std::cout << "[DEBUG] Geodesic length: " << geodesicLength << " units" << std::endl;
+
+    const int numPoints = 100;
+    std::vector<Eigen::Vector3d> geodesicPoints;
+    geodesicPoints.push_back(startPoint);
+
+    for (int i = 1; i < numPoints; ++i) {
+        float t = static_cast<float>(i) / (numPoints - 1);
+        Eigen::Vector3d interpolatedPoint = 
+            (startPoint * std::sin((1 - t) * angle) + endPoint * std::sin(t * angle)).normalized() * sphereRadius;
+        geodesicPoints.push_back(interpolatedPoint);
+    }
+
+    geodesicPoints.push_back(endPoint);
+
+    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    for (const auto& point : geodesicPoints) {
+        points->InsertNextPoint(point(0), point(1), point(2));
+    }
+
+    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+    for (size_t i = 0; i < geodesicPoints.size() - 1; ++i) {
+        vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, i);
+        line->GetPointIds()->SetId(1, i + 1);
+        lines->InsertNextCell(line);
+    }
+
+    vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+    polyData->SetPoints(points);
+    polyData->SetLines(lines);
+
+    vtkSmartPointer<vtkPolyDataMapper> lineMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    lineMapper->SetInputData(polyData);
+
+    vtkSmartPointer<vtkActor> lineActor = vtkSmartPointer<vtkActor>::New();
+    lineActor->SetMapper(lineMapper);
+    lineActor->GetProperty()->SetColor(1.0, 0.0, 1.0); // Magenta
+    lineActor->GetProperty()->SetLineWidth(2.0);
+
+
+    renderer->AddActor(lineActor);
+
+    if (geodesicActor_) {
+        renderer->RemoveActor(geodesicActor_);
+    }
+
+    geodesicActor_ = lineActor;
+
+    std::cout << "[INFO] Geodesic curve visualization added." << std::endl;
+}
+
+void Visualizer::removeGeodesic() {
+    if (geodesicActor_) {
+        renderer->RemoveActor(geodesicActor_);
+        geodesicActor_ = nullptr;
     }
 }
 
