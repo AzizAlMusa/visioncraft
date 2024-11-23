@@ -42,6 +42,10 @@ find_package(VTK 9.1 COMPONENTS
     REQUIRED)
 find_package(pybind11 REQUIRED)
 
+find_package(mlpack)
+find_package(Armadillo REQUIRED)
+find_package(Boost 1.65 REQUIRED COMPONENTS serialization)
+
 # Define custom target `Open3D_no_OpenGL` for Open3D without OpenGL-related components
 add_library(Open3D_no_OpenGL STATIC IMPORTED)
 set_target_properties(Open3D_no_OpenGL PROPERTIES
@@ -58,6 +62,8 @@ include_directories(
   ${VTK_INCLUDE_DIRS}
   ${OCTOMAP_INCLUDE_DIRS}
   ${CUDA_INCLUDE_DIRS}
+  ${mlpack_INCLUDE_DIRS}
+  ${ARMADILLO_INCLUDE_DIRS}
   "/home/abdulaziz/playground/open3d/env/lib/python3.6/site-packages/pybind11/include"
   include
   include/visioncraft
@@ -71,8 +77,9 @@ target_include_directories(project_dependencies INTERFACE
   ${VTK_INCLUDE_DIRS}
   ${OCTOMAP_INCLUDE_DIRS}
   ${CUDA_INCLUDE_DIRS}
+  ${mlpack_INCLUDE_DIRS}
 )
-target_link_libraries(project_dependencies INTERFACE ${VTK_LIBRARIES} Open3D_no_OpenGL ${OCTOMAP_LIBRARIES} Threads::Threads)
+target_link_libraries(project_dependencies INTERFACE ${VTK_LIBRARIES} Open3D_no_OpenGL ${OCTOMAP_LIBRARIES} mlpack armadillo Boost::serialization  Threads::Threads)
 
 # CUDA library for raycasting
 add_library(cuda_lib STATIC src/visioncraft/raycasting.cu)

@@ -68,6 +68,8 @@
         "*.txx": "cpp",
         "dense": "cpp",
         "variant": "cpp",
-        "future": "cpp"
+        "future": "cpp",
+        "codecvt": "cpp",
+        "armadillo": "cpp"
     }
 }

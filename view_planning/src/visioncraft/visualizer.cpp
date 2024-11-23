@@ -1120,7 +1120,7 @@ void Visualizer::visualizePotentialOnSphere(
             // Skip voxels without the property
         }
     }
-    // maxPotential = 1256.6f * 1256.6f * 6;  // Hard-coded for the current dataset
+    maxPotential = std::log(1256.6) * 6;  // Hard-coded for the current dataset
 
     if (maxPotential <= 0.0f) {
         std::cerr << "[ERROR] Invalid or zero maximum potential." << std::endl;
@@ -1514,6 +1514,92 @@ void Visualizer::removeGeodesic() {
         geodesicActor_ = nullptr;
     }
 }
+
+
+void Visualizer::visualizePaths(const std::unordered_map<int, std::vector<Eigen::Vector3d>>& paths, float sphereRadius) {
+ vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+
+    for (const auto& path : paths) {
+        const auto& positions = path.second;
+
+        for (size_t i = 1; i < positions.size(); ++i) {
+            // Normalize start and end points to lie on the sphere surface
+            Eigen::Vector3d startPoint = sphereRadius * positions[i - 1].normalized();
+            Eigen::Vector3d endPoint = sphereRadius * positions[i].normalized();
+
+            // Compute the dot product to check for antipodal points
+            double dotProduct = startPoint.normalized().dot(endPoint.normalized());
+
+            // Handle geodesic interpolation
+            const int numIntermediatePoints = 50; // Adjust for smoothness
+            std::vector<Eigen::Vector3d> geodesicPoints;
+            geodesicPoints.push_back(startPoint);
+
+            if (std::abs(dotProduct + 1.0) < 1e-6) {
+                // Antipodal case: use a helper vector
+                Eigen::Vector3d helperVector = startPoint.unitOrthogonal() * sphereRadius;
+                for (int j = 1; j < numIntermediatePoints; ++j) {
+                    float t = static_cast<float>(j) / (numIntermediatePoints - 1);
+                    Eigen::Vector3d rotatedPoint = 
+                        (startPoint * std::cos(t * M_PI) +
+                         helperVector * std::sin(t * M_PI)).normalized() * sphereRadius;
+                    geodesicPoints.push_back(rotatedPoint);
+                }
+            } else {
+                // General case: interpolate along the great circle
+                double angle = std::acos(std::max(-1.0, std::min(1.0, dotProduct))); // Clamp for numerical safety
+                for (int j = 1; j < numIntermediatePoints; ++j) {
+                    float t = static_cast<float>(j) / (numIntermediatePoints - 1);
+                    Eigen::Vector3d interpolatedPoint = 
+                        (startPoint * std::sin((1 - t) * angle) + 
+                         endPoint * std::sin(t * angle)).normalized() * sphereRadius;
+                    geodesicPoints.push_back(interpolatedPoint);
+                }
+            }
+
+            geodesicPoints.push_back(endPoint);
+
+            // Add geodesic points to VTK
+            for (const auto& point : geodesicPoints) {
+                points->InsertNextPoint(point.x(), point.y(), point.z());
+            }
+
+            // Add lines connecting the points
+            for (size_t j = 0; j < geodesicPoints.size() - 1; ++j) {
+                vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+                line->GetPointIds()->SetId(0, points->GetNumberOfPoints() - geodesicPoints.size() + j);
+                line->GetPointIds()->SetId(1, points->GetNumberOfPoints() - geodesicPoints.size() + j + 1);
+                lines->InsertNextCell(line);
+            }
+        }
+    }
+
+    // Create polydata for the paths
+    vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+    polyData->SetPoints(points);
+    polyData->SetLines(lines);
+
+    // Create a mapper and actor for the paths
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper->SetInputData(polyData);
+
+    vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+    actor->SetMapper(mapper);
+    actor->GetProperty()->SetColor(0.0, 1.0, 0.0); // Green for geodesic paths
+    actor->GetProperty()->SetLineWidth(2.0);       // Line thickness
+
+    // Add the actor to the renderer
+    if (pathActor_) {
+        renderer->RemoveActor(pathActor_);
+    }
+    pathActor_ = actor;
+    renderer->AddActor(pathActor_);
+
+    std::cout << "[INFO] Geodesic paths visualization added." << std::endl;
+
+}
+
 
 
 } // namespace visioncraft

@@ -15,15 +15,6 @@
 #include <memory>
 #include <open3d/Open3D.h>
 
-#include <mlpack/methods/dbscan/dbscan.hpp>
-#include <mlpack/methods/gmm/gmm.hpp>
-
-#include <mlpack/core.hpp>
-#include <armadillo>
-
-
-
-
 // Generate viewpoints clustered near a specific region
 std::vector<std::shared_ptr<visioncraft::Viewpoint>> generateClusteredViewpoints(int num_viewpoints, float sphere_radius) {
     std::vector<std::shared_ptr<visioncraft::Viewpoint>> viewpoints;
@@ -84,130 +75,9 @@ struct Vector3dHash {
     }
 };
 
-// Helper function to initialize Gaussian parameters
-struct GaussianParameters {
-    Eigen::Vector3d mean;
-    Eigen::Matrix3d covariance;
-    double weight;
-};
-
-// Function to initialize Gaussian parameters randomly
-std::vector<GaussianParameters> initializeGaussians(const std::vector<Eigen::Vector3d>& data, int num_clusters) {
-    std::vector<GaussianParameters> gaussians(num_clusters);
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dist(0, data.size() - 1);
-
-    // Initialize means randomly from data points
-    for (int i = 0; i < num_clusters; ++i) {
-        gaussians[i].mean = data[dist(gen)];
-        gaussians[i].covariance = Eigen::Matrix3d::Identity(); // Start with identity covariance
-        gaussians[i].weight = 1.0 / num_clusters;             // Equal weights initially
-    }
-
-    return gaussians;
-}
-
-// Function to compute Gaussian PDF
-double gaussianPDF(const Eigen::Vector3d& point, const GaussianParameters& gaussian) {
-    const Eigen::Vector3d diff = point - gaussian.mean;
-    const Eigen::Matrix3d inv_cov = gaussian.covariance.inverse();
-    const double det_cov = gaussian.covariance.determinant();
-
-    double exponent = -0.5 * diff.transpose() * inv_cov * diff;
-    double normalization = std::pow(2 * M_PI, -1.5) * std::pow(det_cov, -0.5);
-
-    return normalization * std::exp(exponent);
-}
-
-// Function to fit GMM using EM
-std::vector<GaussianParameters> fitGMM(
-    const std::vector<Eigen::Vector3d>& data,
-    int num_clusters,
-    int max_iterations = 100,
-    double tolerance = 1e-4) {
-
-    int n = data.size();
-    if (n == 0 || num_clusters <= 0) {
-        throw std::invalid_argument("Invalid data or number of clusters.");
-    }
-
-    // Initialize Gaussians
-    auto gaussians = initializeGaussians(data, num_clusters);
-
-    for (int iter = 0; iter < max_iterations; ++iter) {
-        // E-step: Calculate responsibilities
-        std::vector<std::vector<double>> responsibilities(n, std::vector<double>(num_clusters, 0.0));
-        for (int i = 0; i < n; ++i) {
-            double sum = 0.0;
-            for (int k = 0; k < num_clusters; ++k) {
-                double pdf = gaussianPDF(data[i], gaussians[k]);
-                if (std::isnan(pdf) || pdf < 1e-10) {
-                    pdf = 1e-10; // Numerical safeguard
-                }
-                responsibilities[i][k] = gaussians[k].weight * pdf;
-                sum += responsibilities[i][k];
-            }
-            if (sum == 0) {
-                std::cerr << "[ERROR] Responsibilities sum to zero for point " << i << ".\n";
-                sum = 1e-10; // Numerical safeguard
-            }
-            for (int k = 0; k < num_clusters; ++k) {
-                responsibilities[i][k] /= sum;
-            }
-        }
-
-        // M-step: Update Gaussian parameters
-        for (int k = 0; k < num_clusters; ++k) {
-            double Nk = 0.0;
-            Eigen::Vector3d new_mean = Eigen::Vector3d::Zero();
-            Eigen::Matrix3d new_covariance = Eigen::Matrix3d::Zero();
-
-            for (int i = 0; i < n; ++i) {
-                Nk += responsibilities[i][k];
-                new_mean += responsibilities[i][k] * data[i];
-            }
-
-            if (Nk == 0) {
-                std::cerr << "[ERROR] Cluster " << k << " has no points assigned.\n";
-                continue; // Skip this cluster
-            }
-
-            new_mean /= Nk;
-
-            for (int i = 0; i < n; ++i) {
-                Eigen::Vector3d diff = data[i] - new_mean;
-                new_covariance += responsibilities[i][k] * (diff * diff.transpose());
-            }
-
-            new_covariance /= Nk;
-
-            // Safeguards for covariance matrix
-            if (new_covariance.determinant() < 1e-10) {
-                std::cerr << "[WARNING] Covariance determinant is too small for cluster " << k << ". Regularizing...\n";
-                new_covariance += Eigen::Matrix3d::Identity() * 1e-6; // Add small value to diagonal
-            }
-
-            gaussians[k].mean = new_mean;
-            gaussians[k].covariance = new_covariance;
-            gaussians[k].weight = Nk / n;
-
-            if (std::isnan(gaussians[k].mean.sum()) || std::isnan(gaussians[k].weight)) {
-                std::cerr << "[ERROR] NaN detected in Gaussian parameters for cluster " << k << ".\n";
-            }
-        }
-
-        // Check for convergence
-        if (iter > 0 && std::abs(gaussians[0].weight - gaussians[1].weight) < tolerance) {
-            std::cout << "Convergence reached at iteration " << iter << ".\n";
-            break;
-        }
-    }
-
-    return gaussians;
-}
 
 
+// Function to map voxels to sphere positions
 // Function to map voxels to sphere positions
 void mapVoxelsToSphere(
     visioncraft::Model& model,
@@ -290,7 +160,8 @@ void mapVoxelsToSphere(
         bool hit = octree->castRay(origin, direction, end, true, maxRange);
 
         if (hit) {
-
+            std::cerr << "[DEBUG] Voxel at " << voxelPosition.transpose() 
+                      << " is occluded by another voxel at " << end << std::endl;
             occluded = true;
             numSelfOccluded++;
         }
@@ -416,193 +287,6 @@ void mapVoxelsToSphere(
 //         // std::cout << "Potential: " << potential << std::endl;
 //     }
 // }
-
-// Function to compute the mean and standard deviation of potential values
-void computePotentialStatistics(
-    const visioncraft::Model& model,
-    const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
-    double& mean, double& std_dev)
-{
-     // Step 1: Extract potential values
-    std::vector<float> potentials;
-    for (const auto& kv : voxelToSphereMap) {
-        const auto& key = kv.first;
-        float potential = boost::get<float>(model.getVoxelProperty(key, "potential"));
-        potentials.push_back(potential);
-    }
-
-    // Step 2: Calculate mean and standard deviation manually
-    double sum = 0.0, sum_squared = 0.0;
-    for (float potential : potentials) {
-        sum += potential;
-        sum_squared += potential * potential;
-    }
-
-    mean = sum / potentials.size();
-    double variance = (sum_squared / potentials.size()) - (mean * mean);
-    std_dev = std::sqrt(variance);
-
-    // Step 3: Print out results
-    std::cout << "Manual Calculation of Mean: " << mean << std::endl;
-    std::cout << "Manual Calculation of Standard Deviation: " << std_dev << std::endl;
-
-    // Step 4: Optional - Print all potentials
-    std::cout << "Potentials: ";
-    for (float potential : potentials) {
-        std::cout << potential << " ";
-    }
-    std::cout << std::endl;
-
-    // Step 5: Analyze distribution
-    std::cout << "Number of Potentials: " << potentials.size() << std::endl;
-    std::cout << "Max Potential: " << *std::max_element(potentials.begin(), potentials.end()) << std::endl;
-    std::cout << "Min Potential: " << *std::min_element(potentials.begin(), potentials.end()) << std::endl;
-}
-
-// Function to find cluster centroids using GMM
-// Function to find cluster centroids
-std::vector<Eigen::Vector3d> findClusterCentroids(
-    visioncraft::Model& model,
-    const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
-    int num_clusters)
-{
-    // Step 1: Collect data points (positions) and their corresponding potential values
-    std::vector<Eigen::Vector3d> positions;
-
-    for (const auto& kv : voxelToSphereMap) {
-        const auto& key = kv.first;
-        const auto& sphere_position = kv.second;
-
-        // Query potential value dynamically from the model
-        float potential = boost::get<float>(model.getVoxelProperty(key, "potential"));
-        
-        if (potential > 0.0f) {  // Consider only non-zero potentials
-            positions.push_back(sphere_position);
-        }
-    }
-
-    if (positions.empty()) {
-        std::cerr << "[WARNING] No high-potential points found." << std::endl;
-        return {};
-    }
-
-    // Step 2: Fit GMM
-    auto gaussians = fitGMM(positions, num_clusters);
-
-    // Step 3: Extract centroids from fitted GMM
-    std::vector<Eigen::Vector3d> centroids;
-    for (const auto& gaussian : gaussians) {
-        centroids.push_back(gaussian.mean.normalized() * 400.0f); // Project back to sphere radius
-    }
-
-    return centroids;
-}
-
-
-// // Function to extract high-potential points based on a dynamic threshold
-// std::vector<Eigen::Vector3d> extractHighPotentialPoints(
-//     const visioncraft::Model& model,
-//     const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
-//     double potential_threshold)
-// {
-//     std::vector<Eigen::Vector3d> high_potential_points;
-
-//     for (const auto& kv : voxelToSphereMap) {
-//         const auto& key = kv.first;
-//         float potential = boost::get<float>(model.getVoxelProperty(key, "potential"));
-
-//         if (potential > potential_threshold) {
-//             high_potential_points.push_back(kv.second.normalized()); // Ensure points are on the sphere
-//         }
-//     }
-
-//     return high_potential_points;
-// }
-
-
-// // Function to cluster high-potential points using mlpack DBSCAN
-// std::vector<std::vector<Eigen::Vector3d>> clusterHighPotentialPoints(
-//     const std::vector<Eigen::Vector3d>& high_potential_points,
-//     double cluster_distance_threshold,
-//     int min_cluster_size)
-// {
-//     // Convert Eigen::Vector3d points to Armadillo matrix (mlpack format)
-//     arma::mat data(3, high_potential_points.size());
-//     for (size_t i = 0; i < high_potential_points.size(); ++i) {
-//         data(0, i) = high_potential_points     data(1, i) = high_potential_points ;
-//   data(2, i) = high_potential_points ;
-//     }
-
-//  Define a custom geodesic distance function
-//     auto geodesicDistance = [](const arma::vec& p1, const arma::vec& p2) -> double {
-//         double dot_product = arma::dot(p1, p2);
-//         return std::acos(std::clamp(dot_product, -1.0, 1.0));
-//     };
-
-//     // Apply DBSCAN
-//     arma::Row<size_t> assignments;
-//     mlpack::dbscan::DBSCAN<> dbscan(cluster_distance_threshold, min_cluster_size, geodesicDistance);
-//     dbscan.Cluster(data, assignments);
-
-//     // Convert clusters back to Eigen::Vector3d format
-//     std::vector<std::vector<Eigen::Vector3d>> clusters;
-//     std::unordered_map<size_t, std::vector<Eigen::Vector3d>> cluster_map;
-
-//     for (size_t i = 0; i < assignments.n_elem; ++i) {
-//         if (assignments[i] != SIZE_MAX) { // Ignore noise points
-//             cluster_map[assignments[i]].push_back(Eigen::Vector3d(data(0, i), data(1, i), data(2, i)));
-//         }
-//     }
-
-//     for (const auto& cluster : cluster_map) {
-//         clusters.push_back(cluster.second);
-//     }
-
-//     return clusters;
-// }
-
-
-// // Function to compute spherical centroids for clusters
-// std::vector<Eigen::Vector3d> computeClusterCentroids(const std::vector<std::vector<Eigen::Vector3d>>& clusters) {
-//     std::vector<Eigen::Vector3d> centroids;
-
-//     for (const auto& cluster : clusters) {
-//         Eigen::Vector3d weighted_sum = Eigen::Vector3d::Zero();
-//         for (const auto& point : cluster) {
-//             weighted_sum += point.normalized();
-//         }
-//         centroids.push_back(weighted_sum.normalized()); // Normalize to get the centroid on the sphere
-//     }
-
-//     return centroids;
-// }
-
-// std::vector<Eigen::Vector3d> findClusterCentroids(
-//     visioncraft::Model& model,
-//     const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
-//     double potential_factor,             // Factor for thresholding potential
-//     double cluster_distance_threshold,   // Geodesic distance threshold for clustering
-//     int min_cluster_size                 // Minimum size for clusters
-// ) {
-//     // Step 1: Compute potential statistics
-//     double mean_potential, std_dev_potential;
-//     computePotentialStatistics(model, voxelToSphereMap, mean_potential, std_dev_potential);
-
-//     // Step 2: Compute the dynamic potential threshold
-//     double potential_threshold = mean_potential + potential_factor * std_dev_potential;
-
-//     // Step 3: Extract high-potential points
-//     auto high_potential_points = extractHighPotentialPoints(model, voxelToSphereMap, potential_threshold);
-
-//     // Step 4: Cluster high-potential points
-//     auto clusters = clusterHighPotentialPoints(high_potential_points, cluster_distance_threshold, min_cluster_size);
-
-//     // Step 5: Compute centroids for the clusters
-//     auto centroids = computeClusterCentroids(clusters);
-
-//     return centroids; // Return centroids for further use
-// }
-
 
 void computeVoxelPotentials(
     visioncraft::Model& model,
@@ -998,40 +682,13 @@ void addNewViewpoint(
 }
 
 
-// Function to cluster both zero and non-zero potential points using GMM
-std::vector<GaussianParameters> clusterPotentials(
-    visioncraft::Model& model,
-    const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
-    int num_clusters)
-{
-    // Step 1: Collect data points (positions) for GMM clustering
-    std::vector<Eigen::Vector3d> data;
 
-    for (const auto& kv : voxelToSphereMap) {
-        const auto& key = kv.first;
-        const auto& sphere_position = kv.second;
-
-        // Query potential value dynamically from the model
-        float potential = boost::get<float>(model.getVoxelProperty(key, "potential"));
-
-        // Include all points regardless of potential value
-        data.push_back(sphere_position);
-    }
-
-    if (data.empty()) {
-        throw std::runtime_error("No valid data points found for clustering.");
-    }
-
-    // Step 2: Fit GMM to the data
-    std::vector<GaussianParameters> gaussians = fitGMM(data, num_clusters);
-
-    return gaussians;
-}
 
 
 
 int main() {
     srand(time(nullptr));
+
     visioncraft::Visualizer visualizer;
     visualizer.setBackgroundColor(Eigen::Vector3d(0.0, 0.0, 0.0));
 
@@ -1193,21 +850,7 @@ int main() {
         computeVoxelPotentials(model, voxelToSphereMap, viewpoints, sphere_radius, V_max, use_exponential, sigma);
 
         visualizer.visualizePotentialOnSphere(model, sphere_radius, "potential", voxelToSphereMap);
-        
-        int num_clusters = 2;  // Example: Separate into two clusters
-        try {
-            auto gaussians = clusterPotentials(model, voxelToSphereMap, num_clusters);
 
-            // Print results
-            for (int i = 0; i < gaussians.size(); ++i) {
-                std::cout << "Gaussian " << i + 1 << ":\n";
-                std::cout << "  Mean: " << gaussians[i].mean.transpose() << "\n";
-                std::cout << "  Covariance:\n" << gaussians[i].covariance << "\n";
-                std::cout << "  Weight: " << gaussians[i].weight << "\n";
-            }
-        } catch (const std::exception& e) {
-            std::cerr << "[ERROR] Clustering failed: " << e.what() << std::endl;
-        }
         // Compute metrics
         double coverage_score = visibilityManager->computeCoverageScore();
   

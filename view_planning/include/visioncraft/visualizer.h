@@ -293,6 +293,8 @@ public:
 
     void removeGeodesic();
 
+    void visualizePaths(const std::unordered_map<int, std::vector<Eigen::Vector3d>>& paths, float sphereRadius);
+
 private:
 
     /**
@@ -336,6 +338,8 @@ private:
     std::vector<vtkSmartPointer<vtkActor>> voxelToSphereMappingActors_;
     vtkSmartPointer<vtkActor> voxelNormalsActor_;
     vtkSmartPointer<vtkActor> geodesicActor_;
+    vtkSmartPointer<vtkActor> pathActor_;
+
 };
 
 } // namespace visioncraft
