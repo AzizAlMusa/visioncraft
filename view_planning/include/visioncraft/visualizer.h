@@ -23,6 +23,13 @@
 
 #include <open3d/Open3D.h>
 
+struct PositionCluster {
+    Eigen::Vector3d centroid;
+    std::vector<octomap::OcTreeKey> members;
+};
+
+
+
 namespace visioncraft {
 
 
@@ -34,6 +41,8 @@ struct Vector3dHash {
         return h1 ^ (h2 << 1) ^ (h3 << 2); // Combine hashes
     }
 };
+
+
 
 /**
  * @class Visualizer
@@ -269,7 +278,7 @@ public:
      * @brief Visualize the potential field on a sphere around the model.
      * 
     */
-    void visualizePotentialOnSphere(const visioncraft::Model& model, float sphere_radius, const std::string& property_name, const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap);
+    void visualizePotentialOnSphere(vtkSmartPointer<vtkPolyData> spherePolyData, float MAX_POTENTIAL);
     
     void removePotentialSphere();
 
@@ -294,6 +303,16 @@ public:
     void removeGeodesic();
 
     void visualizePaths(const std::unordered_map<int, std::vector<Eigen::Vector3d>>& paths, float sphereRadius);
+    
+    void visualizeInjectionRegionsOnSphere(
+    visioncraft::Model& model,
+    const std::vector<PositionCluster>& injection_regions,
+    const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap);
+    
+    void visualizeBlobCentroidsOnSphere(
+    const visioncraft::Model& model,
+    const std::vector<Eigen::Vector3d>& blobCentroids,
+    float sphereRadius);
 
 private:
 
@@ -339,6 +358,8 @@ private:
     vtkSmartPointer<vtkActor> voxelNormalsActor_;
     vtkSmartPointer<vtkActor> geodesicActor_;
     vtkSmartPointer<vtkActor> pathActor_;
+    std::vector<vtkSmartPointer<vtkActor>> clusterActors_;
+    vtkSmartPointer<vtkActor> centroidActor_;
 
 };
 

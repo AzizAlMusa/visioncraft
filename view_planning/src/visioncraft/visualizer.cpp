@@ -24,6 +24,7 @@
 #include <vtkGlyph3D.h>
 #include <vtkArrowSource.h>
 #include <vtkTransformPolyDataFilter.h>
+#include <vtkFloatArray.h>
 
 #include <vtkInteractorStyleTrackballCamera.h>
 #include <vtkInteractorStyleTrackballActor.h>
@@ -1097,111 +1098,39 @@ static Eigen::Vector3d rainbowColorMap(float normalizedValue) {
 
 #include <chrono>  // Include this for timing
 
-void Visualizer::visualizePotentialOnSphere(
-    const visioncraft::Model& model,
-    float sphere_radius,
-    const std::string& property_name,
-    const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap)
+void Visualizer::visualizePotentialOnSphere(vtkSmartPointer<vtkPolyData> spherePolyData, float MAX_POTENTIAL)
 {
-    using namespace std::chrono;
+    vtkSmartPointer<vtkFloatArray> potentials = vtkFloatArray::SafeDownCast(
+        spherePolyData->GetPointData()->GetArray("potential"));
 
-    if (voxelToSphereMap.empty()) {
-        std::cerr << "[ERROR] No voxels mapped to the sphere." << std::endl;
+    if (!potentials) {
+        std::cerr << "[ERROR] Potentials data not found on sphere." << std::endl;
         return;
     }
-
-    // Step 1: Find the maximum potential value
-    float maxPotential = std::numeric_limits<float>::lowest();
-    for (const auto& kv : voxelToSphereMap) {
-        try {
-            float potential = boost::get<float>(model.getVoxelProperty(kv.first, property_name));
-            maxPotential = std::max(maxPotential, potential);
-        } catch (const boost::bad_get&) {
-            // Skip voxels without the property
-        }
-    }
-    maxPotential = std::log(1256.6) * 6;  // Hard-coded for the current dataset
-
-    if (maxPotential <= 0.0f) {
-        std::cerr << "[ERROR] Invalid or zero maximum potential." << std::endl;
-        return;
-    }
-
-    // Step 2: Use `voxelToSphereMap` for sphere point mapping
-    std::vector<Eigen::Vector3d> spherePositions;
-    std::unordered_map<int, octomap::OcTreeKey> spherePointToKeyMap;
-
-    int pointIndex = 0;
-    for (const auto& kv : voxelToSphereMap) {
-        const Eigen::Vector3d& spherePoint = kv.second;
-        spherePositions.push_back(spherePoint);
-        spherePointToKeyMap[pointIndex++] = kv.first; // Map point ID to voxel key
-    }
-
-    // Step 3: Build KD-tree for nearest neighbor search
-    open3d::geometry::KDTreeFlann kdtree;
-    auto pointCloud = std::make_shared<open3d::geometry::PointCloud>();
-    pointCloud->points_ = spherePositions;
-    kdtree.SetGeometry(*pointCloud);
-
-    // Step 4: Create a VTK sphere and initialize colors
-    vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
-    sphereSource->SetRadius(sphere_radius);
-    sphereSource->SetThetaResolution(100);
-    sphereSource->SetPhiResolution(100);
-    sphereSource->Update();
-
-    vtkSmartPointer<vtkPolyData> spherePolyData = sphereSource->GetOutput();
-    vtkSmartPointer<vtkPoints> sphereVertices = spherePolyData->GetPoints();
 
     vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
     colors->SetNumberOfComponents(3);
     colors->SetName("Colors");
 
-    // Step 5: Color the sphere vertices based on proximity to mapped points
     auto hotColdColorMap = [](float normalizedValue) -> Eigen::Vector3d {
-        // Compute RGB using a hot-cold color scheme (Blue -> Green -> Red)
-        float r = std::max(0.0f, std::min(1.0f, 4.0f * normalizedValue));  // Red increases as value increases
-        float g = std::max(0.0f, std::min(1.0f, 1.0f - 2.0f * std::abs(normalizedValue - 0.5f)));  // Green peaks at the middle value
-        float b = std::max(0.0f, std::min(1.0f, 1.0f - 4.0f * normalizedValue));  // Blue decreases as value increases
+        // Hot-Cold Color Mapping (Blue -> Green -> Red)
+        float r = std::max(0.0f, std::min(1.0f, 4.0f * normalizedValue));
+        float g = std::max(0.0f, std::min(1.0f, 1.0f - 2.0f * std::abs(normalizedValue - 0.5f)));
+        float b = std::max(0.0f, std::min(1.0f, 1.0f - 4.0f * normalizedValue));
         return Eigen::Vector3d(r, g, b);
     };
 
+    vtkSmartPointer<vtkPoints> sphereVertices = spherePolyData->GetPoints();
+
     for (vtkIdType i = 0; i < sphereVertices->GetNumberOfPoints(); ++i) {
-        double sphereVertex[3];
-        sphereVertices->GetPoint(i, sphereVertex);
+        // Normalize the potential value by dividing by MAX_POTENTIAL
+        float potential = potentials->GetValue(i);
 
-        Eigen::Vector3d vertexPosition(sphereVertex[0], sphereVertex[1], sphereVertex[2]);
-        std::vector<int> indices;
-        std::vector<double> distances;
+        // Thresholding visualization
+        // potential = (potential >= 15.0f) ? potential : 0.0f;
 
-        // Query KD-tree for the nearest 5 neighbors
-        int numFound = kdtree.SearchKNN(vertexPosition, 5, indices, distances);
-
-        float potentialSum = 0.0f;
-        double weightSum = 0.0;
-
-        // Interpolate potential values using inverse distance weighting
-        for (size_t j = 0; j < indices.size(); ++j) {
-            double weight = 1.0 / (distances[j] + 1e-6); // Avoid division by zero
-            const auto& key = spherePointToKeyMap[indices[j]];
-            float potential = 0.0f;
-
-            try {
-                potential = boost::get<float>(model.getVoxelProperty(key, property_name));
-            } catch (const boost::bad_get&) {
-                potential = 0.0f;
-            }
-
-            potentialSum += weight * potential;
-            weightSum += weight;
-        }
-
-        // Compute the interpolated potential
-        float interpolatedPotential = (weightSum > 0) ? potentialSum / weightSum : 0.0f;
-        float normalizedPotential = interpolatedPotential / maxPotential;
-
-        // Map the normalized potential to a color
+        float normalizedPotential = (MAX_POTENTIAL > 0) ? potential / MAX_POTENTIAL : 0.0f;
+        // Generate color using the normalized value
         Eigen::Vector3d color = hotColdColorMap(normalizedPotential);
 
         unsigned char rgb[3] = {
@@ -1211,7 +1140,6 @@ void Visualizer::visualizePotentialOnSphere(
         colors->InsertNextTypedTuple(rgb);
     }
 
-    // Step 6: Assign colors and render
     spherePolyData->GetPointData()->SetScalars(colors);
 
     vtkSmartPointer<vtkPolyDataMapper> sphereMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -1220,8 +1148,7 @@ void Visualizer::visualizePotentialOnSphere(
 
     vtkSmartPointer<vtkActor> sphereActor = vtkSmartPointer<vtkActor>::New();
     sphereActor->SetMapper(sphereMapper);
-
-    sphereActor->GetProperty()->SetOpacity(0.8); // 0.5 for 50% opacity
+    sphereActor->GetProperty()->SetOpacity(0.8);
 
     if (projectedPointsActor) {
         renderer->RemoveActor(projectedPointsActor);
@@ -1229,6 +1156,7 @@ void Visualizer::visualizePotentialOnSphere(
     renderer->AddActor(sphereActor);
     projectedPointsActor = sphereActor;
 }
+
 
 
 void Visualizer::removePotentialSphere() {
@@ -1600,6 +1528,118 @@ void Visualizer::visualizePaths(const std::unordered_map<int, std::vector<Eigen:
 
 }
 
+void Visualizer::visualizeInjectionRegionsOnSphere(
+    visioncraft::Model& model,
+    const std::vector<PositionCluster>& injection_regions,
+    const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap)
+{
+    // Define colors for each cluster (add more if necessary)
+    std::vector<std::vector<double>> clusterColors = {
+        {1.0, 0.0, 0.0}, // Red
+        {0.0, 1.0, 0.0}, // Green
+        {0.0, 0.0, 1.0}, // Blue
+        {1.0, 1.0, 0.0}, // Yellow
+        {1.0, 0.0, 1.0}, // Magenta
+        {0.0, 1.0, 1.0}  // Cyan
+    };
+
+    // Loop through each cluster in the injection regions
+    for (size_t clusterIndex = 0; clusterIndex < injection_regions.size(); ++clusterIndex) {
+        const PositionCluster& cluster = injection_regions[clusterIndex];
+
+        // Determine the color for the current cluster
+        std::vector<double> clusterColor = clusterColors[clusterIndex % clusterColors.size()]; // Wrap around if more clusters than colors
+
+        if (clusterActors_.size() > 0){
+            for (auto& actor : clusterActors_) {
+                renderer->RemoveActor(actor);
+            }
+            clusterActors_.clear();
+        }
+        // Loop through each member in the current cluster
+        for (size_t memberIndex = 0; memberIndex < cluster.members.size(); ++memberIndex) {
+            const auto& key = cluster.members[memberIndex];
+
+      
+            const Eigen::Vector3d& spherePoint = voxelToSphereMap.at(key);
+
+            // Create a sphere for the cluster member
+            vtkSmartPointer<vtkSphereSource> sphere = vtkSmartPointer<vtkSphereSource>::New();
+            sphere->SetCenter(spherePoint.x(), spherePoint.y(), spherePoint.z());
+            sphere->SetRadius(model.getVoxelSize() * 0.75);  // Radius for mapped sphere
+            sphere->Update();
+
+            // Create a mapper and actor for the sphere
+            vtkSmartPointer<vtkPolyDataMapper> sphereMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+            sphereMapper->SetInputData(sphere->GetOutput());
+
+            vtkSmartPointer<vtkActor> sphereActor = vtkSmartPointer<vtkActor>::New();
+            sphereActor->SetMapper(sphereMapper);
+            sphereActor->GetProperty()->SetColor(clusterColor[0], clusterColor[1], clusterColor[2]); // Set color for the current cluster
+
+            // Add the sphere actor to the renderer
+            renderer->AddActor(sphereActor);
+
+            // Store the actor for later removal
+            clusterActors_.push_back(sphereActor);
+        }
+    }
+
+    std::cout << "[INFO] Visualization of injection regions completed." << std::endl;
+}
+
+
+void Visualizer::visualizeBlobCentroidsOnSphere(
+    const visioncraft::Model& model,
+    const std::vector<Eigen::Vector3d>& blobCentroids,
+    float sphereRadius)
+{
+    if (blobCentroids.empty()) {
+        std::cerr << "[ERROR] No blob centroids to visualize." << std::endl;
+        return;
+    }
+
+    // Create a single VTK polydata object to hold all spheres
+    vtkSmartPointer<vtkAppendPolyData> appendFilter = vtkSmartPointer<vtkAppendPolyData>::New();
+
+    // Loop through each centroid and create a sphere
+    for (const auto& centroid : blobCentroids) {
+        // Create a sphere for each blob centroid
+        vtkSmartPointer<vtkSphereSource> sphere = vtkSmartPointer<vtkSphereSource>::New();
+        sphere->SetCenter(centroid.x(), centroid.y(), centroid.z());
+        sphere->SetRadius(sphereRadius * 0.05); // Adjust the size of the centroid sphere as needed
+        sphere->Update();
+
+        // Add the sphere to the append filter
+        appendFilter->AddInputData(sphere->GetOutput());
+    }
+
+    // Combine all spheres into a single polydata
+    appendFilter->Update();
+
+    // Create a mapper for the combined polydata
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper->SetInputData(appendFilter->GetOutput());
+
+    // Create a single actor for all centroids
+    vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+    actor->SetMapper(mapper);
+    actor->GetProperty()->SetColor(0.0, 1.0, 0.0); // Green color for all centroids
+    actor->GetProperty()->SetOpacity(0.8); // Optional: Adjust opacity
+
+    // Remove previous blob centroid actor if it exists
+    if (centroidActor_) {
+        renderer->RemoveActor(centroidActor_);
+    }
+
+    // Add the new actor to the renderer
+    renderer->AddActor(actor);
+
+    // Store the actor for later removal or updates
+    centroidActor_ = actor;
+
+    std::cout << "[INFO] Visualization of blob centroids completed." << std::endl;
+}
 
 
 } // namespace visioncraft

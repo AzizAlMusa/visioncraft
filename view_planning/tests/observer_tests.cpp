@@ -13,7 +13,13 @@
 #include <fstream>
 #include <iomanip>
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
+#include <queue>
+
 #include <open3d/Open3D.h>
+
+#include <mlpack/methods/kmeans/kmeans.hpp>
 
 #include <mlpack/methods/dbscan/dbscan.hpp>
 #include <mlpack/methods/gmm/gmm.hpp>
@@ -21,6 +27,182 @@
 #include <mlpack/core.hpp>
 #include <armadillo>
 
+#include <vtkSmartPointer.h>
+#include <vtkPolyData.h>
+#include <vtkPointData.h>
+#include <vtkFloatArray.h>
+#include <vtkUnsignedCharArray.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkActor.h>
+#include <vtkProperty.h>
+#include <vtkSphereSource.h>
+#include <vtkIdTypeArray.h>
+
+
+// GaussianParameters struct to hold the result
+struct GaussianParameters {
+    Eigen::Vector4d mean;
+    Eigen::Matrix4d covariance;
+    double weight;
+};
+
+// ClusterParameters struct to hold the result
+struct ClusterParameters {
+    double centroid;                     // Cluster center (potential value)
+    std::vector<octomap::OcTreeKey> members; // Voxels belonging to this cluster
+};
+
+
+
+// struct PositionCluster {
+//     Eigen::Vector3d centroid;
+//     std::vector<octomap::OcTreeKey> members;
+// };
+
+struct Blob {
+    Eigen::Vector3d centroid;
+    double weightedSum; // Weighted sum of potentials
+    std::vector<int> vertexIndices; // Indices of points in the blob
+};
+
+std::vector<ClusterParameters> fitKMeansToPotentials(
+    const visioncraft::Model& model,
+    const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
+    int num_clusters
+) {
+    // Step 1: Extract potential values
+    std::vector<float> potentials;
+    std::vector<octomap::OcTreeKey> voxelKeys;
+
+    for (const auto& kv : voxelToSphereMap) {
+        const auto& key = kv.first;
+
+        // Get the potential value from the model
+        float potential = boost::get<float>(model.getVoxelProperty(key, "potential"));
+
+        potentials.push_back(potential);
+        voxelKeys.push_back(key);
+    }
+
+    if (potentials.empty()) {
+        throw std::runtime_error("No valid potential values found for clustering.");
+    }
+
+    // Step 2: Convert potentials to Armadillo matrix
+    arma::mat data(1, potentials.size()); // 1 row (potential), N columns
+    for (size_t i = 0; i < potentials.size(); ++i) {
+        data(0, i) = potentials[i];
+    }
+
+    std::cout << "Data matrix size: " << data.n_rows << "x" << data.n_cols << std::endl;
+
+    // Step 3: Apply KMeans
+    arma::Row<size_t> assignments; // Cluster assignments for each potential
+    arma::mat centroids;           // Centroids of the clusters
+
+    mlpack::kmeans::KMeans<> kmeans;
+    kmeans.Cluster(data, num_clusters, assignments, centroids);
+
+    // Step 4: Extract cluster parameters
+    std::vector<ClusterParameters> clusters(num_clusters);
+    for (size_t i = 0; i < num_clusters; ++i) {
+        clusters[i].centroid = centroids(0, i); // Centroid of potential values
+    }
+
+    // Step 5: Group voxels by cluster
+    for (size_t i = 0; i < assignments.n_elem; ++i) {
+        size_t cluster_id = assignments[i];
+        clusters[cluster_id].members.push_back(voxelKeys[i]);
+    }
+
+    return clusters;
+}
+
+std::vector<PositionCluster> clusterHighPotentialVoxels(
+    const visioncraft::Model& model,
+    const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
+    const ClusterParameters& highPotentialCluster,
+    int minClusterSize = 10 // Minimum size to remove noise
+) {
+    // Step 1: Filter high-potential voxels
+    std::vector<Eigen::Vector3d> positions;
+    std::vector<octomap::OcTreeKey> keys;
+
+    for (const auto& kv : voxelToSphereMap) {
+        const auto& key = kv.first;
+        float potential = boost::get<float>(model.getVoxelProperty(key, "potential"));
+
+        if (potential >= highPotentialCluster.centroid) {
+            positions.push_back(kv.second); // Sphere position
+            keys.push_back(key);
+        }
+    }
+
+    if (positions.empty()) {
+        throw std::runtime_error("No high-potential voxels found for clustering.");
+    }
+
+    // Step 2: Convert positions to Armadillo matrix
+    arma::mat data(3, positions.size());
+    for (size_t i = 0; i < positions.size(); ++i) {
+        data(0, i) = positions[i].x();
+        data(1, i) = positions[i].y();
+        data(2, i) = positions[i].z();
+    }
+
+    // Step 3: Apply DBSCAN
+    arma::Row<size_t> assignments; // Cluster assignments for each voxel
+    mlpack::dbscan::DBSCAN<> dbscan(50.0, minClusterSize); // Epsilon: 0.1 (adjust as needed)
+    dbscan.Cluster(data, assignments);
+
+    // Step 4: Extract clusters
+    std::unordered_map<size_t, PositionCluster> clustersMap;
+    for (size_t i = 0; i < assignments.n_elem; ++i) {
+        size_t cluster_id = assignments[i];
+        if (cluster_id == (size_t)-1) {
+            continue; // Skip noise
+        }
+
+        if (clustersMap.find(cluster_id) == clustersMap.end()) {
+            clustersMap[cluster_id] = PositionCluster{Eigen::Vector3d::Zero(), {}};
+        }
+
+        clustersMap[cluster_id].members.push_back(keys[i]);
+        clustersMap[cluster_id].centroid += positions[i];
+    }
+
+    // Finalize centroids
+    std::vector<PositionCluster> clusters;
+    for (auto& kv : clustersMap) {
+        auto& cluster = kv.second;
+        cluster.centroid /= cluster.members.size();
+        clusters.push_back(cluster);
+    }
+
+    return clusters;
+}
+
+
+
+#include <vtkSmartPointer.h>
+#include <vtkSphereSource.h>
+#include <vtkPolyData.h>
+#include <vtkPoints.h>
+#include <vtkPointData.h>
+#include <vtkPolyDataMapper.h>
+#include <unordered_map>
+#include <unordered_set>
+#include <queue>
+#include <Eigen/Dense>
+
+
+struct SphereBlob {
+    Eigen::Vector3d centroid;
+    double weightedPotential;
+    std::vector<Eigen::Vector3d> points;
+    Eigen::Vector3d highestPotentialVertex; // Vertex with the highest potential
+    double highestPotentialValue = 0.0;    // Highest potential value
+};
 
 
 
@@ -84,128 +266,6 @@ struct Vector3dHash {
     }
 };
 
-// Helper function to initialize Gaussian parameters
-struct GaussianParameters {
-    Eigen::Vector3d mean;
-    Eigen::Matrix3d covariance;
-    double weight;
-};
-
-// Function to initialize Gaussian parameters randomly
-std::vector<GaussianParameters> initializeGaussians(const std::vector<Eigen::Vector3d>& data, int num_clusters) {
-    std::vector<GaussianParameters> gaussians(num_clusters);
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dist(0, data.size() - 1);
-
-    // Initialize means randomly from data points
-    for (int i = 0; i < num_clusters; ++i) {
-        gaussians[i].mean = data[dist(gen)];
-        gaussians[i].covariance = Eigen::Matrix3d::Identity(); // Start with identity covariance
-        gaussians[i].weight = 1.0 / num_clusters;             // Equal weights initially
-    }
-
-    return gaussians;
-}
-
-// Function to compute Gaussian PDF
-double gaussianPDF(const Eigen::Vector3d& point, const GaussianParameters& gaussian) {
-    const Eigen::Vector3d diff = point - gaussian.mean;
-    const Eigen::Matrix3d inv_cov = gaussian.covariance.inverse();
-    const double det_cov = gaussian.covariance.determinant();
-
-    double exponent = -0.5 * diff.transpose() * inv_cov * diff;
-    double normalization = std::pow(2 * M_PI, -1.5) * std::pow(det_cov, -0.5);
-
-    return normalization * std::exp(exponent);
-}
-
-// Function to fit GMM using EM
-std::vector<GaussianParameters> fitGMM(
-    const std::vector<Eigen::Vector3d>& data,
-    int num_clusters,
-    int max_iterations = 100,
-    double tolerance = 1e-4) {
-
-    int n = data.size();
-    if (n == 0 || num_clusters <= 0) {
-        throw std::invalid_argument("Invalid data or number of clusters.");
-    }
-
-    // Initialize Gaussians
-    auto gaussians = initializeGaussians(data, num_clusters);
-
-    for (int iter = 0; iter < max_iterations; ++iter) {
-        // E-step: Calculate responsibilities
-        std::vector<std::vector<double>> responsibilities(n, std::vector<double>(num_clusters, 0.0));
-        for (int i = 0; i < n; ++i) {
-            double sum = 0.0;
-            for (int k = 0; k < num_clusters; ++k) {
-                double pdf = gaussianPDF(data[i], gaussians[k]);
-                if (std::isnan(pdf) || pdf < 1e-10) {
-                    pdf = 1e-10; // Numerical safeguard
-                }
-                responsibilities[i][k] = gaussians[k].weight * pdf;
-                sum += responsibilities[i][k];
-            }
-            if (sum == 0) {
-                std::cerr << "[ERROR] Responsibilities sum to zero for point " << i << ".\n";
-                sum = 1e-10; // Numerical safeguard
-            }
-            for (int k = 0; k < num_clusters; ++k) {
-                responsibilities[i][k] /= sum;
-            }
-        }
-
-        // M-step: Update Gaussian parameters
-        for (int k = 0; k < num_clusters; ++k) {
-            double Nk = 0.0;
-            Eigen::Vector3d new_mean = Eigen::Vector3d::Zero();
-            Eigen::Matrix3d new_covariance = Eigen::Matrix3d::Zero();
-
-            for (int i = 0; i < n; ++i) {
-                Nk += responsibilities[i][k];
-                new_mean += responsibilities[i][k] * data[i];
-            }
-
-            if (Nk == 0) {
-                std::cerr << "[ERROR] Cluster " << k << " has no points assigned.\n";
-                continue; // Skip this cluster
-            }
-
-            new_mean /= Nk;
-
-            for (int i = 0; i < n; ++i) {
-                Eigen::Vector3d diff = data[i] - new_mean;
-                new_covariance += responsibilities[i][k] * (diff * diff.transpose());
-            }
-
-            new_covariance /= Nk;
-
-            // Safeguards for covariance matrix
-            if (new_covariance.determinant() < 1e-10) {
-                std::cerr << "[WARNING] Covariance determinant is too small for cluster " << k << ". Regularizing...\n";
-                new_covariance += Eigen::Matrix3d::Identity() * 1e-6; // Add small value to diagonal
-            }
-
-            gaussians[k].mean = new_mean;
-            gaussians[k].covariance = new_covariance;
-            gaussians[k].weight = Nk / n;
-
-            if (std::isnan(gaussians[k].mean.sum()) || std::isnan(gaussians[k].weight)) {
-                std::cerr << "[ERROR] NaN detected in Gaussian parameters for cluster " << k << ".\n";
-            }
-        }
-
-        // Check for convergence
-        if (iter > 0 && std::abs(gaussians[0].weight - gaussians[1].weight) < tolerance) {
-            std::cout << "Convergence reached at iteration " << iter << ".\n";
-            break;
-        }
-    }
-
-    return gaussians;
-}
 
 
 // Function to map voxels to sphere positions
@@ -344,78 +404,6 @@ void mapVoxelsToSphere(
     std::cout << "[INFO] Total voxels mapped to sphere: " << voxelToSphereMap.size() << std::endl;
 }
 
-// // Compute potential for each voxel based on distances to all viewpoints
-// void computeVoxelPotentials(
-//     visioncraft::Model& model,
-//     const std::vector<std::shared_ptr<visioncraft::Viewpoint>>& viewpoints,
-//     int V_max,
-//     bool use_exponential,
-//     float sigma = 1.0f) // Default value; adjust as needed
-// {
-//     const auto& voxelMap = model.getVoxelMap().getMap();
-
-//     // Loop over each voxel in the map
-//     for (const auto& kv : voxelMap) {
-//         const auto& voxel = kv.second;
-//         const auto& key = kv.first;
-        
-//         int visibility = boost::get<int>(model.getVoxelProperty(key, "visibility"));
-//         float V_norm = static_cast<float>(visibility) / V_max;
-
-//         // V_norm > 1.0f ? V_norm = 1.0f : V_norm;
-
-//         float potential = 0.0f;
-//         for (const auto& viewpoint : viewpoints) {
-//             Eigen::Vector3d r = viewpoint->getPosition() - voxel.getPosition() ;
-//             float distance_squared = r.squaredNorm();
-
-//             if (use_exponential) {
-//                 potential += std::exp(-distance_squared / (2.0f * sigma * sigma));
-//                 model.setVoxelProperty(key, "potential", potential);
-//             } else {
-//                 potential += distance_squared;
-//             }
-//         } 
-//         model.setVoxelProperty(key, "potential",  (1.0f - V_norm) * potential);
-//         // std::cout << "Potential: " << (1.0f - V_norm) * potential << std::endl;
-//     }
-
-
-// }
-
-// Compute potential for each voxel based on geodesic distances to all viewpoints
-// void computeVoxelPotentials(
-//     visioncraft::Model& model,
-//     const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
-//     const std::vector<std::shared_ptr<visioncraft::Viewpoint>>& viewpoints,
-//     float sphere_radius,
-//     int V_max,
-//     bool use_exponential,
-//     float sigma = 1.0f) // Default value; adjust as needed
-// {
-//     // Loop over each voxel in the map
-    
-//     for (const auto& kv : voxelToSphereMap) {
-//         const auto& key = kv.first;
-//         const Eigen::Vector3d& voxel_position = kv.second;
-
-//         int visibility = boost::get<int>(model.getVoxelProperty(key, "visibility"));
-//         float V_norm = static_cast<float>(visibility) / V_max;
-
-//         float potential = 0.0f;
-
-//         for (const auto& viewpoint : viewpoints) {
-//             Eigen::Vector3d viewpoint_position = viewpoint->getPosition().normalized() * sphere_radius;
-
-//             float geodesic_distance = computeGeodesicDistance(viewpoint_position, voxel_position, sphere_radius);
-
-//             potential += (1 - computeSigmoid(visibility) ) * std::exp(-geodesic_distance * geodesic_distance / (2.0f * sigma * sigma));
-//         }
-
-//         model.setVoxelProperty(key, "potential", potential);
-//         // std::cout << "Potential: " << potential << std::endl;
-//     }
-// }
 
 // Function to compute the mean and standard deviation of potential values
 void computePotentialStatistics(
@@ -459,149 +447,6 @@ void computePotentialStatistics(
     std::cout << "Min Potential: " << *std::min_element(potentials.begin(), potentials.end()) << std::endl;
 }
 
-// Function to find cluster centroids using GMM
-// Function to find cluster centroids
-std::vector<Eigen::Vector3d> findClusterCentroids(
-    visioncraft::Model& model,
-    const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
-    int num_clusters)
-{
-    // Step 1: Collect data points (positions) and their corresponding potential values
-    std::vector<Eigen::Vector3d> positions;
-
-    for (const auto& kv : voxelToSphereMap) {
-        const auto& key = kv.first;
-        const auto& sphere_position = kv.second;
-
-        // Query potential value dynamically from the model
-        float potential = boost::get<float>(model.getVoxelProperty(key, "potential"));
-        
-        if (potential > 0.0f) {  // Consider only non-zero potentials
-            positions.push_back(sphere_position);
-        }
-    }
-
-    if (positions.empty()) {
-        std::cerr << "[WARNING] No high-potential points found." << std::endl;
-        return {};
-    }
-
-    // Step 2: Fit GMM
-    auto gaussians = fitGMM(positions, num_clusters);
-
-    // Step 3: Extract centroids from fitted GMM
-    std::vector<Eigen::Vector3d> centroids;
-    for (const auto& gaussian : gaussians) {
-        centroids.push_back(gaussian.mean.normalized() * 400.0f); // Project back to sphere radius
-    }
-
-    return centroids;
-}
-
-
-// // Function to extract high-potential points based on a dynamic threshold
-// std::vector<Eigen::Vector3d> extractHighPotentialPoints(
-//     const visioncraft::Model& model,
-//     const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
-//     double potential_threshold)
-// {
-//     std::vector<Eigen::Vector3d> high_potential_points;
-
-//     for (const auto& kv : voxelToSphereMap) {
-//         const auto& key = kv.first;
-//         float potential = boost::get<float>(model.getVoxelProperty(key, "potential"));
-
-//         if (potential > potential_threshold) {
-//             high_potential_points.push_back(kv.second.normalized()); // Ensure points are on the sphere
-//         }
-//     }
-
-//     return high_potential_points;
-// }
-
-
-// // Function to cluster high-potential points using mlpack DBSCAN
-// std::vector<std::vector<Eigen::Vector3d>> clusterHighPotentialPoints(
-//     const std::vector<Eigen::Vector3d>& high_potential_points,
-//     double cluster_distance_threshold,
-//     int min_cluster_size)
-// {
-//     // Convert Eigen::Vector3d points to Armadillo matrix (mlpack format)
-//     arma::mat data(3, high_potential_points.size());
-//     for (size_t i = 0; i < high_potential_points.size(); ++i) {
-//         data(0, i) = high_potential_points     data(1, i) = high_potential_points ;
-//   data(2, i) = high_potential_points ;
-//     }
-
-//  Define a custom geodesic distance function
-//     auto geodesicDistance = [](const arma::vec& p1, const arma::vec& p2) -> double {
-//         double dot_product = arma::dot(p1, p2);
-//         return std::acos(std::clamp(dot_product, -1.0, 1.0));
-//     };
-
-//     // Apply DBSCAN
-//     arma::Row<size_t> assignments;
-//     mlpack::dbscan::DBSCAN<> dbscan(cluster_distance_threshold, min_cluster_size, geodesicDistance);
-//     dbscan.Cluster(data, assignments);
-
-//     // Convert clusters back to Eigen::Vector3d format
-//     std::vector<std::vector<Eigen::Vector3d>> clusters;
-//     std::unordered_map<size_t, std::vector<Eigen::Vector3d>> cluster_map;
-
-//     for (size_t i = 0; i < assignments.n_elem; ++i) {
-//         if (assignments[i] != SIZE_MAX) { // Ignore noise points
-//             cluster_map[assignments[i]].push_back(Eigen::Vector3d(data(0, i), data(1, i), data(2, i)));
-//         }
-//     }
-
-//     for (const auto& cluster : cluster_map) {
-//         clusters.push_back(cluster.second);
-//     }
-
-//     return clusters;
-// }
-
-
-// // Function to compute spherical centroids for clusters
-// std::vector<Eigen::Vector3d> computeClusterCentroids(const std::vector<std::vector<Eigen::Vector3d>>& clusters) {
-//     std::vector<Eigen::Vector3d> centroids;
-
-//     for (const auto& cluster : clusters) {
-//         Eigen::Vector3d weighted_sum = Eigen::Vector3d::Zero();
-//         for (const auto& point : cluster) {
-//             weighted_sum += point.normalized();
-//         }
-//         centroids.push_back(weighted_sum.normalized()); // Normalize to get the centroid on the sphere
-//     }
-
-//     return centroids;
-// }
-
-// std::vector<Eigen::Vector3d> findClusterCentroids(
-//     visioncraft::Model& model,
-//     const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
-//     double potential_factor,             // Factor for thresholding potential
-//     double cluster_distance_threshold,   // Geodesic distance threshold for clustering
-//     int min_cluster_size                 // Minimum size for clusters
-// ) {
-//     // Step 1: Compute potential statistics
-//     double mean_potential, std_dev_potential;
-//     computePotentialStatistics(model, voxelToSphereMap, mean_potential, std_dev_potential);
-
-//     // Step 2: Compute the dynamic potential threshold
-//     double potential_threshold = mean_potential + potential_factor * std_dev_potential;
-
-//     // Step 3: Extract high-potential points
-//     auto high_potential_points = extractHighPotentialPoints(model, voxelToSphereMap, potential_threshold);
-
-//     // Step 4: Cluster high-potential points
-//     auto clusters = clusterHighPotentialPoints(high_potential_points, cluster_distance_threshold, min_cluster_size);
-
-//     // Step 5: Compute centroids for the clusters
-//     auto centroids = computeClusterCentroids(clusters);
-
-//     return centroids; // Return centroids for further use
-// }
 
 
 void computeVoxelPotentials(
@@ -614,7 +459,6 @@ void computeVoxelPotentials(
     float sigma = 1.0f
 ) {
     float epsilon = 1e-6;  // Prevents division by zero
-
     for (const auto& kv : voxelToSphereMap) {
         const auto& key = kv.first;
         const Eigen::Vector3d& voxel_position = kv.second;
@@ -632,55 +476,10 @@ void computeVoxelPotentials(
 
             potential += (1.0f - computeSigmoid(visibility)) * std::log(geodesic_distance + epsilon);
         }
-
         model.setVoxelProperty(key, "potential", potential);
     }
 }
 
-
-
-// Eigen::Vector3d computeAttractiveForce(
-//     visioncraft::Model& model,
-//     const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
-//     const std::shared_ptr<visioncraft::Viewpoint>& viewpoint,
-//     float sphere_radius,
-//     float sigma,
-//     int max_visibility,
-//     bool use_exponential = false)
-// {
-//     Eigen::Vector3d total_force = Eigen::Vector3d::Zero();
-//     Eigen::Vector3d viewpoint_position = viewpoint->getPosition().normalized() * sphere_radius;
-
-//     for (const auto& kv : voxelToSphereMap) {
-//         const auto& key = kv.first;
-//         const Eigen::Vector3d& voxel_position = kv.second;
-
-//         int visibility = boost::get<int>(model.getVoxelProperty(key, "visibility"));
-//         float V_norm = static_cast<float>(visibility) / max_visibility;
-
-//         float geodesic_distance = computeGeodesicDistance(viewpoint_position, voxel_position, sphere_radius);
-//         if (geodesic_distance < 1e-8) continue;
-
-//         // Compute direction of geodesic tangent vector
-//         Eigen::Vector3d d = voxel_position - viewpoint_position;
-//         Eigen::Vector3d tangent_vector = d - (d.dot(viewpoint_position.normalized())) * viewpoint_position.normalized();
-//         tangent_vector.normalize();
-
-//         // Compute weight based on visibility and distance
-//         float weight = (1 - computeSigmoid(visibility)) * geodesic_distance / (sigma * sigma) *
-//                        std::exp(-geodesic_distance * geodesic_distance / (2.0f * sigma * sigma));
-
-//         total_force += weight * tangent_vector  * 1000.0f;
-        
-//         float voxel_force = static_cast<float>(((weight * tangent_vector * 1000.0f).norm()));
-//         std::cout << "Voxel force: " << voxel_force << std::endl;
-//         model.setVoxelProperty(key, "force",  voxel_force);
-        
-  
-//     }
-
-//     return total_force ;
-// }
 
 Eigen::Vector3d computeAttractiveForce(
     const visioncraft::Model& model,
@@ -719,82 +518,6 @@ Eigen::Vector3d computeAttractiveForce(
 
     return total_force;
 }
-
-
-
-// Eigen::Vector3d computeAttractiveForce(
-//     const visioncraft::Model& model,
-//     const std::shared_ptr<visioncraft::Viewpoint>& viewpoint,
-//     float sigma,
-//     int V_max)
-// {   
-
-//     Eigen::Vector3d F_attr = Eigen::Vector3d::Zero();
-//     const auto& voxelMap = model.getVoxelMap().getMap();
-
-//     for (const auto& kv : voxelMap) {
-//         const auto& voxel = kv.second;
-//         const auto& key = kv.first;
-
-//         // Check if voxel potential was computed
-//         float potential = boost::get<float>(model.getVoxelProperty(key, "potential"));
-        
-
-
-//         int visibility = boost::get<int>(model.getVoxelProperty(key, "visibility"));
-//         float V_norm = static_cast<float>(visibility) / V_max;
-
-//         // V_norm > 1.0f ? V_norm = 1.0f : V_norm;
-
-//         Eigen::Vector3d r = viewpoint->getPosition() - voxel.getPosition();
-
-//         // Gradient of the potential with respect to the viewpoint position
-//         Eigen::Vector3d grad_U = 2 * (1.0f - V_norm) * r ;
-
-//         F_attr -= grad_U / sigma;
-    
-//     }
-
-//     return F_attr;
-// }
-
-// Eigen::Vector3d computeAttractiveForce(
-//     const visioncraft::Model& model,
-//     const std::shared_ptr<visioncraft::Viewpoint>& viewpoint,
-//     float sigma,
-//     int V_max)
-// {
-//     Eigen::Vector3d F_attr = Eigen::Vector3d::Zero();
-//     const auto& voxelMap = model.getVoxelMap().getMap();
-//     float sigma_squared = sigma * sigma;
-
-//     for (const auto& kv : voxelMap) {
-//         const auto& voxel = kv.second;
-//         const auto& key = kv.first;
-
-//         // Retrieve potential directly from the voxel properties
-//         float potential = boost::get<float>(model.getVoxelProperty(key, "potential"));
-
-//         // Retrieve visibility and normalize it
-//         int visibility = boost::get<int>(model.getVoxelProperty(key, "visibility"));
-//         float V_norm = static_cast<float>(visibility) / V_max;
-
-//         // Compute vector from viewpoint to voxel
-//         Eigen::Vector3d r = viewpoint->getPosition() - voxel.getPosition();
-//         float distance_squared = r.squaredNorm();
-
-//         // Exponential term for distance weighting
-//         float exp_term = std::exp(-distance_squared / (2.0f * sigma_squared));
-
-//         // Compute gradient of potential with respect to viewpoint position
-//         Eigen::Vector3d grad_U =  (1.0f - V_norm) * exp_term * r / sigma_squared;
-
-//         // Accumulate the attractive force
-//         F_attr -= grad_U;
-//     }
-
-//     return F_attr;
-// }
 
 
 
@@ -998,36 +721,217 @@ void addNewViewpoint(
 }
 
 
-// Function to cluster both zero and non-zero potential points using GMM
-std::vector<GaussianParameters> clusterPotentials(
-    visioncraft::Model& model,
-    const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
-    int num_clusters)
-{
-    // Step 1: Collect data points (positions) for GMM clustering
-    std::vector<Eigen::Vector3d> data;
+std::vector<PositionCluster> getHighPotentialClusters(const visioncraft::Model& model,  std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap) {
+    
+    std::vector<PositionCluster> positionClusters;  // To store the resulting clusters
+    
+    try {
+        int num_clusters = 2; // We assume 2 clusters for the first pass on potentials
 
-    for (const auto& kv : voxelToSphereMap) {
-        const auto& key = kv.first;
-        const auto& sphere_position = kv.second;
+        // Fit K-means to potentials
+        auto clusters = fitKMeansToPotentials(model, voxelToSphereMap, num_clusters);
 
-        // Query potential value dynamically from the model
-        float potential = boost::get<float>(model.getVoxelProperty(key, "potential"));
+        // Select the cluster with the highest centroid value (assuming the centroid is a vector)
+        const auto& highPotentialCluster = (clusters[0].centroid > clusters[1].centroid) ? clusters[0] : clusters[1];
+        
+        // Cluster high-potential voxels based on their position
+        positionClusters = clusterHighPotentialVoxels(model, voxelToSphereMap, highPotentialCluster, 3);
 
-        // Include all points regardless of potential value
-        data.push_back(sphere_position);
+  
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] " << e.what() << std::endl;
     }
 
-    if (data.empty()) {
-        throw std::runtime_error("No valid data points found for clustering.");
-    }
-
-    // Step 2: Fit GMM to the data
-    std::vector<GaussianParameters> gaussians = fitGMM(data, num_clusters);
-
-    return gaussians;
+    return positionClusters;  // Return the position clusters
 }
 
+
+vtkSmartPointer<vtkPolyData> computeInterpolatedPotentialsOnSphere(
+    const visioncraft::Model& model,
+    const std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
+    const std::string& property_name,
+    float sphere_radius)
+{
+    vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
+    sphereSource->SetRadius(sphere_radius);
+    sphereSource->SetThetaResolution(100);
+    sphereSource->SetPhiResolution(100);
+    sphereSource->Update();
+
+    vtkSmartPointer<vtkPolyData> spherePolyData = sphereSource->GetOutput();
+    vtkSmartPointer<vtkPoints> sphereVertices = spherePolyData->GetPoints();
+
+    if (!sphereVertices) {
+        throw std::runtime_error("Failed to generate sphere vertices.");
+    }
+
+    // Prepare KD-tree and mapping
+    std::vector<Eigen::Vector3d> mappedPositions;
+    std::unordered_map<int, octomap::OcTreeKey> spherePointToKeyMap;
+
+    int pointIndex = 0;
+    for (const auto& kv : voxelToSphereMap) {
+        mappedPositions.push_back(kv.second);
+        spherePointToKeyMap[pointIndex++] = kv.first;
+    }
+
+    auto kdtree = std::make_shared<open3d::geometry::KDTreeFlann>();
+    auto pointCloud = std::make_shared<open3d::geometry::PointCloud>();
+    pointCloud->points_ = mappedPositions;
+    kdtree->SetGeometry(*pointCloud);
+
+    vtkSmartPointer<vtkFloatArray> interpolatedPotentials = vtkSmartPointer<vtkFloatArray>::New();
+    interpolatedPotentials->SetName("potential");
+
+    float maxPotential = std::numeric_limits<float>::lowest();
+
+    for (vtkIdType i = 0; i < sphereVertices->GetNumberOfPoints(); ++i) {
+        double sphereVertex[3];
+        sphereVertices->GetPoint(i, sphereVertex);
+
+        Eigen::Vector3d vertexPosition(sphereVertex[0], sphereVertex[1], sphereVertex[2]);
+        std::vector<int> indices;
+        std::vector<double> distances;
+
+        // Query KD-tree
+        int numFound = kdtree->SearchKNN(vertexPosition, 5, indices, distances);
+
+        float potentialSum = 0.0f;
+        double weightSum = 0.0;
+
+        for (size_t j = 0; j < indices.size(); ++j) {
+            double weight = 1.0 / (std::sqrt(distances[j]) + 1e-6);
+            const auto& key = spherePointToKeyMap[indices[j]];
+            float potential = 0.0f;
+
+            try {
+                potential = boost::get<float>(model.getVoxelProperty(key, property_name));
+            } catch (const boost::bad_get&) {
+                potential = 0.0f;
+            }
+            potentialSum += weight * potential;
+            weightSum += weight;
+           
+       
+        }
+      
+        float interpolatedPotential = (weightSum > 0) ? potentialSum / weightSum : 0.0f;
+        interpolatedPotentials->InsertNextValue(interpolatedPotential);
+        maxPotential = std::max(maxPotential, interpolatedPotential);
+
+    }
+    std::cout << "Max Potential: " << maxPotential << std::endl;
+    // Normalize potentials
+    // for (vtkIdType i = 0; i < interpolatedPotentials->GetNumberOfTuples(); ++i) {
+    //     interpolatedPotentials->SetValue(i, interpolatedPotentials->GetValue(i) / maxPotential);
+    // }
+
+    spherePolyData->GetPointData()->AddArray(interpolatedPotentials);
+    return spherePolyData;
+}
+
+
+// Function to compute interpolated potentials and extract blobs
+std::vector<SphereBlob> computeInterpolatedBlobs(
+    vtkSmartPointer<vtkPolyData> spherePolyData,
+    float potential_threshold = 0.5,
+    int min_blob_size = 10)
+{
+    // Step 1: Get potential values and validate data
+    vtkSmartPointer<vtkFloatArray> potentials = vtkFloatArray::SafeDownCast(
+        spherePolyData->GetPointData()->GetArray("potential"));
+    if (!potentials) {
+        throw std::runtime_error("Potentials data not found on sphere.");
+    }
+
+    vtkSmartPointer<vtkPoints> sphereVertices = spherePolyData->GetPoints();
+    vtkSmartPointer<vtkCellArray> polys = spherePolyData->GetPolys();
+    if (!sphereVertices || !polys) {
+        throw std::runtime_error("Invalid vtkPolyData structure. Ensure points and polys are initialized.");
+    }
+
+    vtkIdType numVertices = sphereVertices->GetNumberOfPoints();
+
+    // Step 2: Build adjacency list
+    std::vector<std::vector<int>> adjacencyList(numVertices);
+    polys->InitTraversal();
+    vtkIdType npts;
+    const vtkIdType* pts;
+    while (polys->GetNextCell(npts, pts)) {
+        for (vtkIdType i = 0; i < npts; ++i) {
+            int v1 = pts[i];
+            int v2 = pts[(i + 1) % npts];
+            adjacencyList[v1].push_back(v2);
+            adjacencyList[v2].push_back(v1);
+        }
+    }
+
+    // Step 3: Identify high-potential vertices
+    std::vector<bool> isHighPotential(numVertices, false);
+    for (vtkIdType i = 0; i < numVertices; ++i) {
+        if (potentials->GetValue(i) >= potential_threshold) {
+            isHighPotential[i] = true;
+        }
+    }
+
+    // Step 4: Perform clustering
+    std::vector<SphereBlob> blobs;
+    std::vector<bool> visited(numVertices, false);
+
+    for (vtkIdType startIdx = 0; startIdx < numVertices; ++startIdx) {
+        if (!isHighPotential[startIdx] || visited[startIdx]) continue;
+
+        // New blob for the current cluster
+        SphereBlob blob;
+        std::queue<int> toVisit;
+        toVisit.push(startIdx);
+
+        Eigen::Vector3d sumPosition(0.0, 0.0, 0.0);
+        double sumPotential = 0.0;
+        size_t pointCount = 0;
+
+        while (!toVisit.empty()) {
+            int current = toVisit.front();
+            toVisit.pop();
+
+            if (visited[current]) continue;
+            visited[current] = true;
+
+            // Add current point to blob
+            Eigen::Vector3d point(
+                sphereVertices->GetPoint(current)[0],
+                sphereVertices->GetPoint(current)[1],
+                sphereVertices->GetPoint(current)[2]);
+            blob.points.push_back(point);
+
+            double currentPotential = potentials->GetValue(current);
+            sumPosition += point;
+            sumPotential += currentPotential;
+            ++pointCount;
+
+            if (currentPotential > blob.highestPotentialValue) {
+                blob.highestPotentialValue = currentPotential;
+                blob.highestPotentialVertex = point;
+            }
+
+            // Enqueue neighbors
+            for (int neighbor : adjacencyList[current]) {
+                if (isHighPotential[neighbor] && !visited[neighbor]) {
+                    toVisit.push(neighbor);
+                }
+            }
+        }
+
+        // Skip blobs smaller than the minimum size
+        if (pointCount >= static_cast<size_t>(min_blob_size)) {
+            blob.centroid = sumPosition / pointCount;
+            blob.weightedPotential = sumPotential / pointCount;
+            blobs.push_back(blob);
+        }
+    }
+
+    return blobs;
+}
 
 
 int main() {
@@ -1046,7 +950,7 @@ int main() {
     model.addVoxelProperty("force", 0.0f);
 
     float sphere_radius = 400.0f;
-    int num_viewpoints = 8;
+    int num_viewpoints = 5;
     auto viewpoints = generateClusteredViewpoints(num_viewpoints, sphere_radius);
 
     for (auto& viewpoint : viewpoints) {
@@ -1121,53 +1025,7 @@ int main() {
     Eigen::Vector3d look_at(0.0, 0.0, 0.0);
 
     auto viewpoint = std::make_shared<visioncraft::Viewpoint>(position, look_at);
-
-    // #include <random>
-    // for (int i = 0; i < 100; i++) {
-    //     float sphere_radius = 400.0f;
-
-    //     // Create random number generators for theta and phi
-    //     std::random_device rd;
-    //     std::mt19937 gen(rd());
-    //     std::uniform_real_distribution<float> dist_theta(0.0f, 2 * M_PI);  // theta from 0 to 2π
-    //     std::uniform_real_distribution<float> dist_phi(0.0f, M_PI);         // phi from 0 to π
-
-    //     // Generate random theta and phi
-    //     float theta = dist_theta(gen);
-    //     float phi = dist_phi(gen);
-
-    //     // Convert spherical coordinates to Cartesian coordinates
-    //     float x = sphere_radius * sin(phi) * cos(theta);
-    //     float y = sphere_radius * sin(phi) * sin(theta);
-    //     float z = sphere_radius * cos(phi);  // z is calculated from phi
-
-    //     Eigen::Vector3d spherePoint(x, y, z);
-
-    //     // Show geodesic and calculate distance
-    //     visualizer.showGeodesic(*viewpoint, spherePoint, sphere_radius);
-    //     auto geo_dist = computeGeodesicDistance(viewpoint->getPosition(), spherePoint, sphere_radius);
-    //     std::cout << "Geodesic distance: " << geo_dist << std::endl;
-
-    //     // Render and wait for the next iteration
-    //     visualizer.render();
-    //     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    // }
-
-
-    //generate random point on the sphere
-    // Eigen::Vector3d spherePoint(-399.0f, 0.0f, 0.0f);  // Example point on the sphere
-    
-    // Eigen::Vector3d position(400.0f, 0.0f, 0.0f);
-    // Eigen::Vector3d look_at(0.0, 0.0, 0.0);
-
-    // auto viewpoint = std::make_shared<visioncraft::Viewpoint>(position, look_at);
-    // get the first viewpoint
-    
-    // visualizer.showGeodesic(*viewpoint, spherePoint, sphere_radius);  // Visualize the geodesic curve
-    // computeGeodesicDistance(viewpoint->getPosition(), spherePoint, sphere_radius);  // Compute the geodesic distance
-    // std::cout << "Geodesic distance: " << computeGeodesicDistance(viewpoint->getPosition(), spherePoint, sphere_radius) << std::endl;
   
-   
 
     for (int iter = 0; iter < max_iterations; ++iter) {
 
@@ -1192,22 +1050,37 @@ int main() {
 
         computeVoxelPotentials(model, voxelToSphereMap, viewpoints, sphere_radius, V_max, use_exponential, sigma);
 
-        visualizer.visualizePotentialOnSphere(model, sphere_radius, "potential", voxelToSphereMap);
+        // visualizer.visualizePotentialOnSphere(model, sphere_radius, "potential", voxelToSphereMap);
         
-        int num_clusters = 2;  // Example: Separate into two clusters
-        try {
-            auto gaussians = clusterPotentials(model, voxelToSphereMap, num_clusters);
+        // std::vector<PositionCluster> injection_regions = getHighPotentialClusters(model, voxelToSphereMap);
+        // visualizer.visualizeInjectionRegionsOnSphere(model, injection_regions, voxelToSphereMap);
 
-            // Print results
-            for (int i = 0; i < gaussians.size(); ++i) {
-                std::cout << "Gaussian " << i + 1 << ":\n";
-                std::cout << "  Mean: " << gaussians[i].mean.transpose() << "\n";
-                std::cout << "  Covariance:\n" << gaussians[i].covariance << "\n";
-                std::cout << "  Weight: " << gaussians[i].weight << "\n";
-            }
-        } catch (const std::exception& e) {
-            std::cerr << "[ERROR] Clustering failed: " << e.what() << std::endl;
+        float potential_threshold = 15.0f;
+        int min_blob_size = 10;
+
+        vtkSmartPointer<vtkPolyData> spherePolyData = computeInterpolatedPotentialsOnSphere(
+            model, voxelToSphereMap, "potential", sphere_radius);
+
+        // Step 3: Compute blobs based on interpolated potentials
+        std::vector<SphereBlob> blobs = computeInterpolatedBlobs(
+            spherePolyData, potential_threshold, min_blob_size);
+        // Find the blob with the highest weight
+
+        float MAX_POTENTIAL = std::log(M_PI * sphere_radius) * num_viewpoints;
+        visualizer.visualizePotentialOnSphere(spherePolyData, MAX_POTENTIAL);
+
+        // // Prepare a vector to store the centroids
+        std::vector<Eigen::Vector3d> blobCentroids;
+
+        // Extract the centroids from the blobs
+        for (const auto& blob : blobs) {
+            blobCentroids.push_back(blob.centroid); // Assuming each SphereBlob has a member `centroid`
         }
+
+        // Visualize the blob centroids
+        visualizer.visualizeBlobCentroidsOnSphere(model, blobCentroids, sphere_radius);
+
+  
         // Compute metrics
         double coverage_score = visibilityManager->computeCoverageScore();
   
@@ -1269,12 +1142,12 @@ int main() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
 
-        // if (iter % 10 == 0 && iter != 0) { // Add a new viewpoint every 10 iterations
-        //     Eigen::Vector3d random_position(
-        //         static_cast<float>(rand()) / RAND_MAX * sphere_radius,
-        //         static_cast<float>(rand()) / RAND_MAX * sphere_radius,
-        //         static_cast<float>(rand()) / RAND_MAX * sphere_radius);
-        //     Eigen::Vector3d look_at(0.0, 0.0, 0.0);
+        // if (iter % 30 == 0 && iter != 0) { // Add a new viewpoint every 10 iterations
+        //     // Eigen::Vector3d random_position(
+        //     //     static_cast<float>(rand()) / RAND_MAX * sphere_radius,
+        //     //     static_cast<float>(rand()) / RAND_MAX * sphere_radius,
+        //     //     static_cast<float>(rand()) / RAND_MAX * sphere_radius);
+        //     // Eigen::Vector3d look_at(0.0, 0.0, 0.0);
 
         //     // Add the new viewpoint
         //     addNewViewpoint(viewpoints, visibilityManager, visualizer, random_position, look_at, sphere_radius);
@@ -1282,6 +1155,33 @@ int main() {
         //     // Initialize its previous position
         //     previous_positions.push_back(viewpoints.back()->getPosition());
         // }
+
+        Eigen::Vector3d next_candidate;
+
+        // // // Find the blob with the highest weight and its highest potential vertex if blobs exist
+        if (!blobs.empty()) {
+            const SphereBlob& highestWeightBlob = *std::max_element(
+                blobs.begin(), blobs.end(),
+                [](const SphereBlob& a, const SphereBlob& b) {
+                    return a.weightedPotential < b.weightedPotential;
+                });
+
+            next_candidate = highestWeightBlob.highestPotentialVertex;
+            std::cout << "Next candidate vertex: [" << next_candidate.x() << ", "
+                    << next_candidate.y() << ", " << next_candidate.z() << "]" << std::endl;
+
+            if (iter % 30 == 0 && iter != 0){
+            
+                Eigen::Vector3d look_at(0.0, 0.0, 0.0);
+                // Add the new viewpoint
+                addNewViewpoint(viewpoints, visibilityManager, visualizer, next_candidate, look_at, sphere_radius);
+
+                // Initialize its previous position
+                previous_positions.push_back(viewpoints.back()->getPosition());
+
+            }
+                
+        }
 
 
     }
