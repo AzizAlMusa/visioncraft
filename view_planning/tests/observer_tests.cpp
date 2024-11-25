@@ -93,6 +93,30 @@ std::vector<std::shared_ptr<visioncraft::Viewpoint>> generateClusteredViewpoints
 }
 
 
+std::vector<std::shared_ptr<visioncraft::Viewpoint>> generateRandomViewpoints(int num_viewpoints, float sphere_radius) {
+    std::vector<std::shared_ptr<visioncraft::Viewpoint>> viewpoints;
+
+    for (int i = 0; i < num_viewpoints; ++i) {
+        // Uniformly sample theta between 0 and 2*pi (azimuthal angle)
+        float theta = static_cast<float>(rand()) / RAND_MAX * 2.0f * M_PI;
+
+        // Uniformly sample phi between 0 and pi (polar angle)
+        float phi = static_cast<float>(rand()) / RAND_MAX * M_PI;
+
+        // Convert spherical coordinates (radius, theta, phi) to Cartesian coordinates
+        float x = sphere_radius * sin(phi) * cos(theta);
+        float y = sphere_radius * sin(phi) * sin(theta);
+        float z = sphere_radius * cos(phi);
+
+        Eigen::Vector3d position(x, y, z);
+        Eigen::Vector3d look_at(0.0, 0.0, 0.0);
+
+        viewpoints.emplace_back(std::make_shared<visioncraft::Viewpoint>(position, look_at));
+    }
+    return viewpoints;
+}
+
+
 // Helper function to compute the geodesic distance between two points on a sphere
 float computeGeodesicDistance(const Eigen::Vector3d& point1, const Eigen::Vector3d& point2, float sphere_radius)
 {
@@ -229,24 +253,70 @@ void mapVoxelsToSphere(
         int numMapped = 0;
 
         for (const auto& kv : selfOccludedVoxels) {
-            const auto& key = kv.first;
-            Eigen::Vector3d voxelPosition = model.getVoxel(key)->getPosition();
+    const auto& key = kv.first;
+    Eigen::Vector3d occludedPosition = model.getVoxel(key)->getPosition();
+    Eigen::Vector3d occludedNormal = boost::get<Eigen::Vector3d>(model.getVoxelProperty(key, "normal"));
+    occludedNormal.normalize();
 
-            std::vector<int> indices;
-            std::vector<double> distances;
+    std::vector<int> indices;
+    std::vector<double> distances;
 
-            if (kdtree->SearchKNN(voxelPosition, 1, indices, distances) > 0) {
-                int nearestIdx = indices[0];
-                auto nearestVoxelPosition = unoccludedPositions[nearestIdx];
-                auto nearestVoxelKey = unoccludedPositionsToKeys[nearestVoxelPosition];
-                Eigen::Vector3d nearestSpherePoint = voxelToSphereMap[nearestVoxelKey];
-                voxelToSphereMap[key] = nearestSpherePoint;
-                numMapped++;
-            } else {
-                std::cerr << "[WARNING] No nearest unoccluded neighbor found for self-occluded voxel at "
-                          << voxelPosition.transpose() << std::endl;
+    if (kdtree->SearchKNN(occludedPosition, 1, indices, distances) > 0) {
+        int nearestIdx = indices[0];
+        auto nearestVoxelPosition = unoccludedPositions[nearestIdx];
+        auto nearestVoxelKey = unoccludedPositionsToKeys[nearestVoxelPosition];
+        Eigen::Vector3d nearestNormal = boost::get<Eigen::Vector3d>(model.getVoxelProperty(nearestVoxelKey, "normal"));
+        nearestNormal.normalize();
+
+        bool successfullyMapped = false;
+        Eigen::Vector3d spherePoint;
+
+        for (double alpha = 0.1; alpha <= 1.0; alpha += 0.1) {
+            Eigen::Vector3d modifiedNormal = (1.0 - alpha) * occludedNormal + alpha * nearestNormal;
+            modifiedNormal.normalize();
+
+            double a = 1.0;
+            double b = 2.0 * occludedPosition.dot(modifiedNormal);
+            double c = occludedPosition.squaredNorm() - sphere_radius * sphere_radius;
+
+            double discriminant = b * b - 4.0 * a * c;
+            if (discriminant < 0) continue;
+
+            double sqrt_disc = std::sqrt(discriminant);
+            double t1 = (-b + sqrt_disc) / (2.0 * a);
+            double t2 = (-b - sqrt_disc) / (2.0 * a);
+
+            double t = std::max(t1, t2);
+            if (t <= 0) continue;
+
+            spherePoint = occludedPosition + t * modifiedNormal;
+
+            Eigen::Vector3d rayStart = occludedPosition + diagonalLength * modifiedNormal;
+            octomap::point3d origin(rayStart.x(), rayStart.y(), rayStart.z());
+            octomap::point3d direction(modifiedNormal.x(), modifiedNormal.y(), modifiedNormal.z());
+            double maxRange = t - diagonalLength;
+
+            octomap::point3d end;
+            bool hit = octree->castRay(origin, direction, end, true, maxRange);
+
+            if (!hit) {
+                successfullyMapped = true;
+                break;
             }
+            }
+
+        if (successfullyMapped) {
+            voxelToSphereMap[key] = spherePoint;
+        } else {
+            // Fallback to old method
+            voxelToSphereMap[key] = voxelToSphereMap[nearestVoxelKey];
         }
+        } else {
+            std::cerr << "[WARNING] No nearest unoccluded neighbor found for self-occluded voxel at "
+                    << occludedPosition.transpose() << std::endl;
+        }
+    }
+
         std::cout << "[INFO] Number of self-occluded voxels mapped to nearest neighbors: " << numMapped << std::endl;
     } else {
         std::cerr << "[ERROR] No unoccluded positions available to map self-occluded voxels." << std::endl;
@@ -254,6 +324,53 @@ void mapVoxelsToSphere(
 
     std::cout << "[INFO] Total voxels mapped to sphere: " << voxelToSphereMap.size() << std::endl;
 }
+
+
+
+
+/**
+ * FIELD POTENTIAL AND DYNAMICS FUNCTIONS
+*/
+
+//reset potential
+void resetPotentials(visioncraft::Model& model) {
+    const auto& voxelMap = model.getVoxelMap().getMap();
+    for (const auto& kv : voxelMap) {
+        const auto& key = kv.first;
+        model.setVoxelProperty(key, "potential", 0.0f);
+    }
+}
+
+void resetTorquePotential(visioncraft::Model& model) {
+    const auto& voxelMap = model.getVoxelMap().getMap();
+    for (const auto& kv : voxelMap) {
+        const auto& key = kv.first;
+        model.setVoxelProperty(key, "torque", 0.0f);
+    }
+}
+
+
+void resetAlignmentVisibility(visioncraft::Model& model) {
+    // Get the voxel map from the model
+    const auto& voxelMap = model.getVoxelMap().getMap();
+
+    // Reset the alignment_visibility property for all voxels
+    for (const auto& kv : voxelMap) {
+        const auto& voxelKey = kv.first;
+
+        try {
+            // Reset alignment_visibility to 0
+            model.setVoxelProperty(voxelKey, "alignment_visibility", 0);
+        } catch (const std::exception& e) {
+            // Handle potential exceptions during reset
+            std::cerr << "[WARNING] Failed to reset alignment_visibility for voxel at key ("
+                      << voxelKey.k[0] << ", " << voxelKey.k[1] << ", " << voxelKey.k[2]
+                      << "): " << e.what() << std::endl;
+        }
+    }
+    std::cout << "[INFO] Reset alignment_visibility for all voxels to 0." << std::endl;
+}
+
 
 void computeVisibilityAlignment(
     visioncraft::Model& model,
@@ -263,6 +380,9 @@ void computeVisibilityAlignment(
 {
     // Get the visibility map from the visibility manager
     const auto& visibility_map = visibilityManager->getVisibilityMap();
+
+    // Reset the alignment visibility counts for all voxels
+    resetAlignmentVisibility(model);
 
     // Initialize the visibility alignment counts for each voxel
     std::unordered_map<octomap::OcTreeKey, int, octomap::OcTreeKey::KeyHash> visibilityCounts;
@@ -317,20 +437,6 @@ void computeVisibilityAlignment(
 }
 
 
-
-/**
- * FIELD POTENTIAL AND DYNAMICS FUNCTIONS
-*/
-
-//reset potential
-void resetPotentials(visioncraft::Model& model) {
-    const auto& voxelMap = model.getVoxelMap().getMap();
-    for (const auto& kv : voxelMap) {
-        const auto& key = kv.first;
-        model.setVoxelProperty(key, "potential", 0.0f);
-    }
-}
-
 void computeVoxelPotentials(
     visioncraft::Model& model,
     std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
@@ -358,7 +464,8 @@ void computeVoxelPotentials(
 
             float geodesic_distance = computeGeodesicDistance(viewpoint_position, sphere_position, sphere_radius);
 
-            potential += (1.0f - computeSigmoid(alignment_visibility, 1000.0f, 0.5)) * std::log(geodesic_distance + epsilon);
+            // potential += (1.0f - computeSigmoid(alignment_visibility, 1000.0f, 0.5)) * std::log(geodesic_distance + epsilon);
+            potential += (1.0f - computeSigmoid(visibility)) * std::log(geodesic_distance + epsilon);
         }
         model.setVoxelProperty(key, "potential", potential);
     }
@@ -620,7 +727,7 @@ Eigen::Vector3d computeAttractiveForce(
 
 
 Eigen::Vector3d computeAttractiveTorque(
-    const visioncraft::Model& model,
+    visioncraft::Model& model,
     std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash>& voxelToSphereMap,
     const std::shared_ptr<visioncraft::Viewpoint>& viewpoint,
     float sphere_radius,
@@ -630,6 +737,9 @@ Eigen::Vector3d computeAttractiveTorque(
 ) {
     Eigen::Vector3d total_torque = Eigen::Vector3d::Zero();
 
+    // reset torque
+    resetTorquePotential(model);
+    
     // Get the viewpoint's forward direction
     Eigen::Matrix3d orientation = viewpoint->getOrientationMatrix();
     Eigen::Vector3d forwardDirection = orientation.col(2);
@@ -640,6 +750,8 @@ Eigen::Vector3d computeAttractiveTorque(
 
         // Get voxel normal
         Eigen::Vector3d normal = boost::get<Eigen::Vector3d>(model.getVoxelProperty(key, "normal"));
+        int alignment_visibility = boost::get<int>(model.getVoxelProperty(key, "alignment_visibility"));
+        int needs_alignment = (alignment_visibility < 1) ? 1 : 0;
         normal.normalize();
 
         // Compute geodesic distance
@@ -652,7 +764,10 @@ Eigen::Vector3d computeAttractiveTorque(
         Eigen::Vector3d torque_direction = forwardDirection.cross(normal);
 
         // Update total torque
-        total_torque -= (spatial_weight * alpha) * torque_direction;
+        total_torque -= (spatial_weight * alpha) * torque_direction / 10000.0f * needs_alignment;
+        float voxel_torque = spatial_weight * alpha;
+        // std::cout << "voxel torque: " << voxel_torque << std::endl;
+        model.setVoxelProperty(key, "torque", voxel_torque);
     }
 
     return total_torque;
@@ -712,6 +827,46 @@ Eigen::Vector3d computeRepulsiveForce(
 double computeCoverageScoreChange(double current_score, double previous_score) {
     return std::abs(current_score - previous_score);
 }
+
+float computeAlignedVoxelPercentage(visioncraft::Model& model) {
+    // Get the voxel map from the model
+    const auto& voxelMap = model.getVoxelMap().getMap();
+
+    if (voxelMap.empty()) {
+        std::cerr << "[ERROR] No voxels available in the model." << std::endl;
+        return 0.0f;
+    }
+
+    int alignedVoxelCount = 0;
+
+    // Iterate over all voxels
+    for (const auto& kv : voxelMap) {
+        const auto& voxelKey = kv.first;
+
+        try {
+            // Retrieve the alignment visibility count for the voxel
+            int alignmentCount = boost::get<int>(model.getVoxelProperty(voxelKey, "alignment_visibility"));
+
+            // Check if the alignment count is 1 or more
+            if (alignmentCount >= 1) {
+                alignedVoxelCount++;
+            }
+        } catch (const boost::bad_get&) {
+            // Handle missing alignment_visibility property
+            std::cerr << "[WARNING] Voxel at key (" << voxelKey.k[0] << ", " << voxelKey.k[1] << ", " << voxelKey.k[2]
+                      << ") does not have an alignment_visibility property. Skipping." << std::endl;
+            continue;
+        }
+    }
+
+    // Calculate the percentage of aligned voxels
+    float totalVoxels = static_cast<float>(voxelMap.size());
+    float alignedVoxelPercentage = (alignedVoxelCount / totalVoxels) * 100.0f;
+
+    std::cout << "[INFO] Aligned Voxel Percentage: " << alignedVoxelPercentage << "%" << std::endl;
+    return alignedVoxelPercentage;
+}
+
 
 
 // Function to compute the total system energy
@@ -836,11 +991,15 @@ double computeEntropy(const visioncraft::Model& model)
 void updateViewpointState(
     const std::shared_ptr<visioncraft::Viewpoint>& viewpoint,
     const Eigen::Vector3d& new_position,
-    float sphere_radius) 
+    float sphere_radius,
+    bool set_orientation = false) 
 {
     Eigen::Vector3d normalized_position = sphere_radius * new_position.normalized();
     viewpoint->setPosition(normalized_position);
-    // viewpoint->setLookAt(Eigen::Vector3d(0.0, 0.0, 0.0), -Eigen::Vector3d::UnitZ());
+    if (set_orientation){
+        viewpoint->setLookAt(Eigen::Vector3d(0.0, 0.0, 0.0), -Eigen::Vector3d::UnitZ());
+    }
+    
 }
 
 
@@ -1101,7 +1260,7 @@ int main() {
     visioncraft::Model model;
     
     std::cout << "Loading model..." << std::endl;
-    model.loadModel("../models/cat.ply", 100000);
+    model.loadModel("../models/large_pot.ply", 100000);
     std::cout << "Model loaded successfully." << std::endl;
 
     auto visibilityManager = std::make_shared<visioncraft::VisibilityManager>(model);
@@ -1109,28 +1268,30 @@ int main() {
     model.addVoxelProperty("force", 0.0f);
     model.addVoxelProperty("alignment_visibility", 0);
     model.addVoxelProperty("alignment_potential", 0.0f);
+    model.addVoxelProperty("torque", 0.0f);
 
 
     float sphere_radius = 400.0f;
     int num_viewpoints = 8;
-    auto viewpoints = generateClusteredViewpoints(num_viewpoints, sphere_radius);
+    // auto viewpoints = generateClusteredViewpoints(num_viewpoints, sphere_radius);
+    auto viewpoints = generateRandomViewpoints(num_viewpoints, sphere_radius);
 
     for (auto& viewpoint : viewpoints) {
         viewpoint->setDownsampleFactor(8.0);
         visibilityManager->trackViewpoint(viewpoint);
         viewpoint->setFarPlane(900);
-        viewpoint->setNearPlane(300);
+        viewpoint->setNearPlane(50);
         
     }
     std::unordered_map<int, std::vector<Eigen::Vector3d>> viewpointPaths;
 
     // Simulation parameters
-    float sigma = 400.0f;
+    float sigma = 223.0f;
     float k_attr = 1000.0f;
     float k_repel = 50000.0f;
     float delta_t = 0.04f;
     float alpha = 1.0f;
-    float c = 0.02f;
+    float c = 100.0f;
     int max_iterations = 100;
     int V_max = num_viewpoints; //num_viewpoints
 
@@ -1231,22 +1392,31 @@ int main() {
         vtkSmartPointer<vtkPolyData> spherePolyAlignmentData = computeInterpolatedPotentialsOnSphere(
             model, voxelToSphereMap, "alignment_potential", sphere_radius);
 
+        vtkSmartPointer<vtkPolyData> forcePolyAlignmentData = computeInterpolatedPotentialsOnSphere(
+            model, voxelToSphereMap, "torque", sphere_radius);
+
 
         // Step 3: Compute blobs based on interpolated potentials
         std::vector<SphereBlob> blobs = clusterHighPotentialRegions(
             spherePolyData, potential_threshold, min_blob_size);
+
+         // Step 3: Compute blobs based on interpolated potentials
+        std::vector<SphereBlob> Alignmentblobs = clusterHighPotentialRegions(
+            spherePolyAlignmentData, potential_threshold, min_blob_size);
         // Find the blob with the highest weight
 
         float MAX_POTENTIAL = std::log(M_PI * sphere_radius) * num_viewpoints;
         // visualizer.visualizePotentialOnSphere(spherePolyData, MAX_POTENTIAL);
-        MAX_POTENTIAL = c / 2.0f * num_viewpoints;
-        visualizer.visualizePotentialOnSphere(spherePolyAlignmentData, MAX_POTENTIAL);
+        MAX_POTENTIAL = 100.0f ;
+        // visualizer.visualizePotentialOnSphere(spherePolyAlignmentData, MAX_POTENTIAL);
+
+        visualizer.visualizePotentialOnSphere(forcePolyAlignmentData, MAX_POTENTIAL);
 
         // // Prepare a vector to store the centroids
         std::vector<Eigen::Vector3d> blobCentroids;
 
         // Extract the centroids from the blobs
-        for (const auto& blob : blobs) {
+        for (const auto& blob : Alignmentblobs) {
             blobCentroids.push_back(blob.centroid); // Assuming each SphereBlob has a member `centroid`
         }
 
@@ -1262,7 +1432,7 @@ int main() {
         double kinetic_energy = computeKineticEnergy(viewpoints, previous_positions, delta_t);
         double average_force = computeAverageForce(model, voxelToSphereMap, viewpoints, sphere_radius, k_repel, alpha, sigma, V_max);
         double system_entropy = computeEntropy(model);
-
+        double quality_coverage_score = computeAlignedVoxelPercentage(model);
 
         // Log metrics to CSV
         csv_file << iter << "," << coverage_score << "," << system_energy << "," << kinetic_energy << "," << average_force << "," << system_entropy <<"\n";
@@ -1273,7 +1443,8 @@ int main() {
                   << ", System Energy: " << system_energy
                   << ", Kinetic Energy: " << kinetic_energy 
                   << ", Average Force: " << average_force 
-                  << ", Entropy: " << system_entropy <<"\n";
+                  << ", Entropy: " << system_entropy 
+                  << ", Quality Coverage: " << quality_coverage_score << "\n";
 
          for (size_t i = 0; i < viewpoints.size(); ++i) {
             // Update previous positions
@@ -1299,9 +1470,18 @@ int main() {
             // std::cout << "percentage: " << percentage << std::endl;
 
             // std::cout << "F_tangent: " << F_tangent.transpose() << std::endl;
-            Eigen::Vector3d new_position = viewpoint->getPosition() + delta_t * F_tangent; // delta_t *
-            updateViewpointState(viewpoint, new_position, sphere_radius);
-            updateViewpointOrientation(viewpoint, Torque, delta_t);
+            if (coverage_score < 0.99) {
+                Eigen::Vector3d new_position = viewpoint->getPosition() + delta_t * F_tangent; // delta_t *
+                updateViewpointState(viewpoint, new_position, sphere_radius, true);
+            } else {
+                
+                Eigen::Vector3d new_position = viewpoint->getPosition() + 0.01f * delta_t * F_tangent;
+                updateViewpointState(viewpoint, new_position, sphere_radius);
+                updateViewpointOrientation(viewpoint, Torque, 0.2f);
+
+
+            }
+          
 
             // visualizer.addViewpoint(*viewpoint, false, true);
             visualizer.updateViewpoint(*viewpoint, false, true, true, true);
@@ -1333,7 +1513,7 @@ int main() {
 
         Eigen::Vector3d next_candidate;
 
-        // // // Find the blob with the highest weight and its highest potential vertex if blobs exist
+        // // Find the blob with the highest weight and its highest potential vertex if blobs exist
         // if (!blobs.empty()) {
         //     const SphereBlob& highestWeightBlob = *std::max_element(
         //         blobs.begin(), blobs.end(),
