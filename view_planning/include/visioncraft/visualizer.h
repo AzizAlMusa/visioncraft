@@ -278,7 +278,7 @@ public:
      * @brief Visualize the potential field on a sphere around the model.
      * 
     */
-    void visualizePotentialOnSphere(vtkSmartPointer<vtkPolyData> spherePolyData, float MAX_POTENTIAL);
+    void visualizePotentialOnSphere(vtkSmartPointer<vtkPolyData> spherePolyData, float MAX_POTENTIAL, float opacity = 0.8);
     
     void removePotentialSphere();
 

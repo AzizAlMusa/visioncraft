@@ -786,6 +786,26 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
         return Eigen::Vector3d(r, g, b);
     };
 
+    auto redGreenColorMap = [](float normalizedValue) -> Eigen::Vector3d {
+        // Ensure the normalized value is between 0 and 1
+        normalizedValue = std::sin(std::pow(normalizedValue, 0.5f) * M_PI_2); ;
+
+        normalizedValue = std::max(0.0f, std::min(1.0f, normalizedValue));
+
+      
+        // Red decreases as the value increases
+        float r = 1.0f - normalizedValue; 
+
+        // Green increases as the value increases
+        float g = normalizedValue;
+
+        // No blue component needed for this map
+        float b = 0.0f;
+
+        return Eigen::Vector3d(r, g, b);
+    };
+
+
 
     for (const auto& kv : metaVoxelMap) {
         const auto& metaVoxel = kv.second;
@@ -809,7 +829,7 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
 
                 float normalizedValue = (propertyValue - minScale) / (maxScale - minScale);
                 normalizedValue = std::max(0.0f, std::min(normalizedValue, 1.0f));
-                color = hotColdColorMap(normalizedValue);
+                color = redGreenColorMap(normalizedValue);
 
             } catch (const boost::bad_get& e) {
                 std::cerr << "Error: Failed to retrieve property " << property_name 
@@ -1098,7 +1118,7 @@ static Eigen::Vector3d rainbowColorMap(float normalizedValue) {
 
 #include <chrono>  // Include this for timing
 
-void Visualizer::visualizePotentialOnSphere(vtkSmartPointer<vtkPolyData> spherePolyData, float MAX_POTENTIAL)
+void Visualizer::visualizePotentialOnSphere(vtkSmartPointer<vtkPolyData> spherePolyData, float MAX_POTENTIAL, float opacity)
 {
     vtkSmartPointer<vtkFloatArray> potentials = vtkFloatArray::SafeDownCast(
         spherePolyData->GetPointData()->GetArray("potential"));
@@ -1148,7 +1168,7 @@ void Visualizer::visualizePotentialOnSphere(vtkSmartPointer<vtkPolyData> sphereP
 
     vtkSmartPointer<vtkActor> sphereActor = vtkSmartPointer<vtkActor>::New();
     sphereActor->SetMapper(sphereMapper);
-    sphereActor->GetProperty()->SetOpacity(0.8);
+    sphereActor->GetProperty()->SetOpacity(opacity);
 
     if (projectedPointsActor) {
         renderer->RemoveActor(projectedPointsActor);

@@ -1291,7 +1291,7 @@ int main() {
 
 
     float sphere_radius = 400.0f;
-    int num_viewpoints = 2;
+    int num_viewpoints = 8;
     auto viewpoints = generateClusteredViewpoints(num_viewpoints, sphere_radius);
     // auto viewpoints = generateRandomViewpoints(num_viewpoints, sphere_radius);
 
@@ -1507,7 +1507,7 @@ int main() {
                 
                 Eigen::Vector3d new_position = viewpoint->getPosition() + 0.1f * delta_t * F_tangent;
                 updateViewpointState(viewpoint, new_position, sphere_radius);
-                updateViewpointOrientation(viewpoint, Torque, 0.2f);
+                // updateViewpointOrientation(viewpoint, Torque, 0.2f);
 
 
             }
