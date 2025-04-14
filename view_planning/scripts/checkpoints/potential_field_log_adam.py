@@ -2,25 +2,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.gridspec import GridSpec
 
 # Number of particles and grid size
 grid_size = 100
-frames = 200
-
-# When to add/remove viewpoints (frame number)
-REMOVE_FRAMES = []       # Frames to add viewpoints
-ADD_FRAMES = []   # Frames to remove viewpoints
-NEW_PARTICLES = 1  # Number of new viewpoints to add
+frames = 120
 
 
 # Initial positions of particles
-num_particles = 6
-# particles = np.random.rand(num_particles, 2) * grid_size
+num_particles = 4
+particles = np.random.rand(num_particles, 2) * grid_size
 
-particles = 50 + np.random.rand(num_particles, 2) 
-# particles = np.zeros((num_particles, 2))
+
 # Create a mesh grid for the potential field
 # Note: X, Y will be shaped (grid_size, grid_size).
 # X[i,j] = j, Y[i,j] = i by default for np.meshgrid(x, y).
@@ -54,32 +46,6 @@ class Field:
         # (num_particles, num_particles, 2)
         self.repulsive_forces = np.zeros((num_particles, num_particles, 2), dtype=np.float64)
 
-    def compute_coverage_monte_carlo(self, num_samples=10000, sigma=10, threshold=0.0):
-        """
-        Computes coverage using Monte Carlo sampling.
-        Instead of relying on a grid, it samples random points and checks their visibility.
-        """
-        # Sample random points in the space
-        random_points = np.random.rand(num_samples, 2) * self.grid_size  # Shape: (num_samples, 2)
-
-        # Compute visibility at sampled points
-        diff = random_points[:, None, :] - particles[None, :, :]
-        wrapped_diff = self.wrap_distance(diff)
-        distances = np.linalg.norm(wrapped_diff, axis=-1) + epsilon
-
-        # Gaussian-based visibility function
-        # visibility_values = np.exp(-distances**2 / (2 * sigma**2))  # Using sigma=10
-        visibility_values = (distances <= self.fov_radius).astype(float)
-        # Aggregate visibility per sampled point
-        sampled_visibility = np.clip(np.sum(visibility_values, axis=1), 0, 1)
-
-        # Count how many sampled points exceed threshold
-        covered_samples = np.sum(sampled_visibility > threshold)
-        coverage_fraction = covered_samples / num_samples
-
-        return coverage_fraction
-
-    
     def wrap_distance(self, diff):
         """
         Compute toroidal wrapping so distance remains within [-grid_size/2, grid_size/2].
@@ -94,24 +60,6 @@ class Field:
             diff
         )
 
-    # def update_visibility(self, particles, sigma=10):
-    #     """
-    #     Compute Gaussian visibility instead of a binary 0 or 1 visibility.
-    #     Visibility will smoothly transition from 1 near a particle to 0 far away.
-    #     """
-    #     self.visibility.fill(0)
-    #     diff = self.field_points[:, None, :] - particles[None, :, :]
-    #     wrapped_diff = self.wrap_distance(diff)
-    #     distances = np.linalg.norm(wrapped_diff, axis=-1) + epsilon  # Avoid div by 0
-
-    #     # Gaussian-based visibility function
-    #     gaussian_visibility = np.exp(-distances**2 / (2 * sigma**2))
-
-    #     # Take the maximum visibility contribution from all particles
-    #     # self.visibility.ravel()[:] = np.clip(np.sum(gaussian_visibility, axis=1), 0, 1)
-    #     self.visibility.ravel()[:] = np.max(gaussian_visibility, axis=1)
-
-
     def update_visibility(self, particles):
         """
         Mark each grid point as visible if it is within self.fov_radius
@@ -125,7 +73,6 @@ class Field:
         # If a grid point is within fov_radius of at least one particle -> visible
         visibility_mask = np.any(distances <= self.fov_radius, axis=1)
         self.visibility.ravel()[visibility_mask] = 1
-
 
     def compute_potential(self, particles, alpha=1.0):
         """
@@ -185,9 +132,6 @@ class Field:
         total_attractive = self.attractive_forces.sum(axis=(0, 1))
         return total_attractive
 
-
-
-
     def compute_repelling_force(self, particles, sigma=10, amplitude=100):
         """
         Particle-particle repulsion. Gaussian-based, so it decays softly
@@ -211,7 +155,7 @@ class Field:
         return total_repelling
 
     def compute_force(self, particles, sigma=10, amplitude=100,
-                      k_attr=0.4, k_rep=0, alpha=1.0):
+                      k_attr=0.4, k_rep=0.05, alpha=1.0):
         """
         Combine coverage-based log attraction and Gaussian repulsion:
           F_total = k_attr * F_attr + k_rep * F_rep
@@ -224,61 +168,25 @@ class Field:
 # Initialize the field
 field = Field(grid_size, num_particles, fov_radius=20)
 
+# Set up figure
+fig, ax = plt.subplots(figsize=(12, 9))
+ax.set_xlim(0, grid_size)
+ax.set_ylim(0, grid_size)
+ax.set_aspect('equal')
+ax.set_title("Log Potential + Coverage + Gaussian Repulsion")
 
-# === FIGURE SETUP ===
-# fig, (ax_main, ax_line) = plt.subplots(1, 2, figsize=(14, 6), dpi=150, )
-
-fig = plt.figure(figsize=(14, 6), dpi=150)
-gs = GridSpec(1, 2, width_ratios=[1, 1])  # Equal space allocation for both plots
-
-ax_main = fig.add_subplot(gs[0, 0])
-ax_line = fig.add_subplot(gs[0, 1])
-plt.subplots_adjust(wspace=0.5)  # Adjust the space between plots (increase the value)
-
-# === LEFT PLOT: Field Visualization ===
-ax_main.set_xlim(0, grid_size - 1)
-ax_main.set_ylim(0, grid_size - 1)
-# ax_main.set_aspect("equal")  # Ensures square aspect ratio
-ax_main.set_title("Field Potential & Coverage", fontsize=12)
-ax_main.set_aspect("equal")  # This allows the layout to adjust naturally
-
-
-# Contour plot with automatic colorbar
-contour = ax_main.contourf(
-    X, Y, field.potential, 
-    levels=100, cmap="viridis", alpha=0.9, origin="lower"
-)
-
-# Particle styling
-scatter = ax_main.scatter(
-    particles[:, 0], particles[:, 1],
-    c="deepskyblue", s=50,  zorder=5
-)
-
-
-# === RIGHT PLOT: Coverage Growth Over Time ===
-ax_line.set_xlim(0, frames)
-ax_line.set_ylim(0, 1)
-# ax_line.set_box_aspect(1)  # **NEW FIX: Prevents aspect ratio distortion**
-ax_line.set_xlabel("Time Step", fontsize=10)
-ax_line.set_ylabel("Coverage", fontsize=10)
-ax_line.set_title("Coverage Over Time", fontsize=10)
-# ax_line.set_aspect('auto')  # Let it adjust naturally as well
-ax_line.set_position([0.53, 0.225, 0.4, 0.55])  # [left, bottom, width, height]
-
-# Coverage line with blue-purple gradient
-coverage_line, = ax_line.plot([], [], color="#3d03fc" )
-
-
+# Scatter for particle positions
+scatter = ax.scatter(particles[:, 0], particles[:, 1],
+                     c='blue', s=50, zorder=5, label='Particles')
 
 # Initial computations
 field.update_visibility(particles)
 field.compute_potential(particles, alpha=1.0)
 
 # Use origin='lower' so that array index 0 is displayed at Y=0
-contour = ax_main.contourf(
+contour = ax.contourf(
     X, Y, field.potential,
-    levels=100, cmap='viridis', alpha=0.7, origin='lower'
+    levels=50, cmap='plasma', alpha=0.7, origin='lower'
 )
 
 quiver = None
@@ -294,39 +202,11 @@ m = np.zeros_like(particles)
 v = np.zeros_like(particles)
 t = 0  # Time step
 
-coverage_data = []
-cbar = None
-current_text = None
-num_text = None
-
 def update(frame):
-    global particles, quiver, contour, cbar, m, v, t, current_text, num_text
-
-    # Add viewpoints after ADD_AT
-    if frame in ADD_FRAMES:
-        new_pts = np.random.rand(NEW_PARTICLES, 2) * grid_size
-        particles = np.vstack([particles, new_pts])
-        m = np.vstack([m, np.zeros_like(new_pts)])
-        v = np.vstack([v, np.zeros_like(new_pts)])
-        num_particles = particles.shape[0]
-        field.repulsive_forces = np.zeros((num_particles, num_particles, 2))
-        print(f"Frame {frame}: Added {NEW_PARTICLES} viewpoints")
-
-    if frame in REMOVE_FRAMES and particles.shape[0] > NEW_PARTICLES:
-        particles = particles[:-NEW_PARTICLES]
-        m = m[:-NEW_PARTICLES]
-        v = v[:-NEW_PARTICLES]
-        num_particles = particles.shape[0]
-        field.repulsive_forces = np.zeros((num_particles, num_particles, 2))
-        print(f"Frame {frame}: Removed {NEW_PARTICLES} viewpoints")
-
+    global particles, quiver, contour, m, v, t
 
     # 1) Update coverage
     field.update_visibility(particles)
-    coverage = field.compute_coverage_monte_carlo(num_samples=10000, threshold=0.25)
-    print(f"Frame {frame}: Monte Carlo Coverage = {coverage * 100:.2f}%")
-    coverage_data.append(coverage)
-
     # 2) Recompute potential (for visualization)
     field.compute_potential(particles, alpha=1.0)
     # 3) Compute forces
@@ -353,18 +233,10 @@ def update(frame):
         c.remove()
     # Re-draw with updated potential
     # Use origin='lower' to keep array row 0 near the bottom
-    contour = ax_main.contourf(
+    contour = ax.contourf(
         X, Y, field.potential,
-        levels=100, cmap='viridis', alpha=1.0, origin='lower'
+        levels=50, cmap='plasma', alpha=1.0, origin='lower'
     )
-
-    if cbar is not None:
-        cbar.remove()
-    # Create an axes divider for the colorbar positioning
-    divider = make_axes_locatable(ax_main)
-    cax = divider.append_axes("right", size="5%", pad=0.05)
-    cbar = plt.colorbar(contour, cax=cax)
-
 
     # Quiver showing the attractive force of the first particle only, for demonstration
     quiver_step = 5
@@ -378,55 +250,22 @@ def update(frame):
     global quiver
     if quiver is not None:
         quiver.remove()
-    quiver = ax_main.quiver(
+    quiver = ax.quiver(
         xq, yq, u_attr, v_attr,
-        color="#ff1493", scale=1000, width=0.002, pivot="middle", zorder=99
+        color="#ff1493", scale=1, width=0.002, pivot="middle", zorder=99
     )
 
     # Update the particle scatter positions
     scatter.set_offsets(particles)
 
-    # Update the line plot
-    coverage_line.set_data(range(len(coverage_data)), coverage_data)
-
-    # Add marker only for the last data point
-    coverage_line.set_marker('')
-    if len(coverage_data) > 0:
-        coverage_line.set_marker('o')  # Set marker for the last point
-        coverage_line.set_markersize(4)  # Set the size of the marker
-
-        coverage_line.set_markevery([len(coverage_data)-1])  # Only show marker for the last point
-
-    # Remove previous text (if it exists)
-    if current_text is not None:
-        current_text.remove()
-
-    # Overlay the current coverage as text
-    current_text = ax_line.text(0.95, 0.95, f"Coverage: {coverage*100:.2f}%", ha='right', va='top', 
-                 transform=ax_line.transAxes, fontsize=8, color='black',)
-    
-    if num_text is not None:
-        num_text.remove()
-
-    num_text = ax_main.text(
-        -0.25, -0.25, f"Viewpoints: {particles.shape[0]}",
-        ha='left', va='top',
-        transform=ax_main.transAxes,
-        fontsize=8,
-)
-
-    ax_line.set_xlim(0, max(len(coverage_data), frames))  # Adjust X-axis dynamically
-  
-
-    return scatter, contour, quiver, coverage_line
+    return scatter, contour, quiver
 
 
 
 ani = animation.FuncAnimation(fig, update, frames=frames, interval=100, blit=False)
 
+plt.colorbar(contour, ax=ax)
 plt.legend(loc='upper right')
-
 plt.show()
 
-ani.save('gaussian 6.mp4', writer='ffmpeg', fps=24, dpi=300)
-
+ani.save('log_coverage_potential_fixed.mp4', writer='ffmpeg', fps=30, dpi=300)

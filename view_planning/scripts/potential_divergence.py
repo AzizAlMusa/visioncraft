@@ -17,13 +17,9 @@ NEW_PARTICLES = 1  # Number of new viewpoints to add
 
 # Initial positions of particles
 num_particles = 6
-# particles = np.random.rand(num_particles, 2) * grid_size
-
 particles = 50 + np.random.rand(num_particles, 2) 
-# particles = np.zeros((num_particles, 2))
+
 # Create a mesh grid for the potential field
-# Note: X, Y will be shaped (grid_size, grid_size).
-# X[i,j] = j, Y[i,j] = i by default for np.meshgrid(x, y).
 x = np.arange(grid_size)
 y = np.arange(grid_size)
 X, Y = np.meshgrid(x, y)
@@ -53,6 +49,9 @@ class Field:
         )
         # (num_particles, num_particles, 2)
         self.repulsive_forces = np.zeros((num_particles, num_particles, 2), dtype=np.float64)
+        
+        # Divergence field
+        self.divergence = np.zeros((grid_size, grid_size))
 
     def compute_coverage_monte_carlo(self, num_samples=10000, sigma=10, threshold=0.0):
         """
@@ -67,8 +66,7 @@ class Field:
         wrapped_diff = self.wrap_distance(diff)
         distances = np.linalg.norm(wrapped_diff, axis=-1) + epsilon
 
-        # Gaussian-based visibility function
-        # visibility_values = np.exp(-distances**2 / (2 * sigma**2))  # Using sigma=10
+        # Visibility function
         visibility_values = (distances <= self.fov_radius).astype(float)
         # Aggregate visibility per sampled point
         sampled_visibility = np.clip(np.sum(visibility_values, axis=1), 0, 1)
@@ -94,24 +92,6 @@ class Field:
             diff
         )
 
-    # def update_visibility(self, particles, sigma=10):
-    #     """
-    #     Compute Gaussian visibility instead of a binary 0 or 1 visibility.
-    #     Visibility will smoothly transition from 1 near a particle to 0 far away.
-    #     """
-    #     self.visibility.fill(0)
-    #     diff = self.field_points[:, None, :] - particles[None, :, :]
-    #     wrapped_diff = self.wrap_distance(diff)
-    #     distances = np.linalg.norm(wrapped_diff, axis=-1) + epsilon  # Avoid div by 0
-
-    #     # Gaussian-based visibility function
-    #     gaussian_visibility = np.exp(-distances**2 / (2 * sigma**2))
-
-    #     # Take the maximum visibility contribution from all particles
-    #     # self.visibility.ravel()[:] = np.clip(np.sum(gaussian_visibility, axis=1), 0, 1)
-    #     self.visibility.ravel()[:] = np.max(gaussian_visibility, axis=1)
-
-
     def update_visibility(self, particles):
         """
         Mark each grid point as visible if it is within self.fov_radius
@@ -134,9 +114,6 @@ class Field:
 
         potential(point) = alpha * (1 - visibility(point))
                             * sum_{over particles}( log(distance + epsilon) )
-
-        This is just for visualization. The gradient for the force will use
-        the same logic in compute_attractive_force.
         """
         diff = self.field_points[:, None, :] - particles[None, :, :]
         wrapped_diff = self.wrap_distance(diff)
@@ -157,9 +134,6 @@ class Field:
 
         Force on each particle from each grid cell ~
           alpha * (1 - visibility) * sum_over_grid[ (1/distance) * direction ]
-
-        We effectively sum alpha*(1 - vis)*log(distance) across grid cells
-        and take the gradient w.r.t. particle positions.
         """
         diff = self.field_points[:, None, :] - particles[None, :, :]
         wrapped_diff = self.wrap_distance(diff)
@@ -184,9 +158,6 @@ class Field:
         # Sum over all grid points => shape (num_particles, 2)
         total_attractive = self.attractive_forces.sum(axis=(0, 1))
         return total_attractive
-
-
-
 
     def compute_repelling_force(self, particles, sigma=10, amplitude=100):
         """
@@ -219,6 +190,35 @@ class Field:
         total_attractive = self.compute_attractive_force(particles, alpha)
         total_repelling = self.compute_repelling_force(particles, sigma, amplitude)
         return k_attr * total_attractive + k_rep * total_repelling
+    
+    def compute_divergence(self, particles):
+        """
+        Compute the divergence of the vector field.
+        The divergence tells us how much the field is expanding or contracting at each point.
+        
+        For a vector field F = [Fx, Fy], divergence = ∂Fx/∂x + ∂Fy/∂y
+        """
+        # First compute the attractive forces (if not already computed)
+        self.compute_attractive_force(particles, alpha=1.0)
+        
+        # Sum over all particles to get the total field at each point
+        # Shape of attractive_forces: (grid_size, grid_size, num_particles, 2)
+        # After sum: (grid_size, grid_size, 2)
+        total_field = np.sum(self.attractive_forces, axis=2)
+        
+        # Extract x and y components
+        Fx = total_field[:, :, 0]
+        Fy = total_field[:, :, 1]
+        
+        # Compute gradients using numpy's gradient function
+        # gradient returns (∂f/∂y, ∂f/∂x) for a 2D input
+        grad_x = np.gradient(Fx, axis=1)  # ∂Fx/∂x
+        grad_y = np.gradient(Fy, axis=0)  # ∂Fy/∂y
+        
+        # Divergence = ∂Fx/∂x + ∂Fy/∂y
+        self.divergence = grad_x + grad_y
+        
+        return self.divergence
 
 
 # Initialize the field
@@ -226,62 +226,68 @@ field = Field(grid_size, num_particles, fov_radius=20)
 
 
 # === FIGURE SETUP ===
-# fig, (ax_main, ax_line) = plt.subplots(1, 2, figsize=(14, 6), dpi=150, )
-
-fig = plt.figure(figsize=(14, 6), dpi=150)
-gs = GridSpec(1, 2, width_ratios=[1, 1])  # Equal space allocation for both plots
+fig = plt.figure(figsize=(18, 6), dpi=150)
+gs = GridSpec(1, 3, width_ratios=[1, 1, 1])  # Three equal plots
 
 ax_main = fig.add_subplot(gs[0, 0])
-ax_line = fig.add_subplot(gs[0, 1])
-plt.subplots_adjust(wspace=0.5)  # Adjust the space between plots (increase the value)
+ax_div = fig.add_subplot(gs[0, 1])  # New subplot for divergence
+ax_line = fig.add_subplot(gs[0, 2])
+plt.subplots_adjust(wspace=0.3)  # Adjust the space between plots
 
 # === LEFT PLOT: Field Visualization ===
 ax_main.set_xlim(0, grid_size - 1)
 ax_main.set_ylim(0, grid_size - 1)
-# ax_main.set_aspect("equal")  # Ensures square aspect ratio
+ax_main.set_aspect("equal")
 ax_main.set_title("Field Potential & Coverage", fontsize=12)
-ax_main.set_aspect("equal")  # This allows the layout to adjust naturally
 
-
-# Contour plot with automatic colorbar
-contour = ax_main.contourf(
-    X, Y, field.potential, 
-    levels=100, cmap="viridis", alpha=0.9, origin="lower"
-)
-
-# Particle styling
-scatter = ax_main.scatter(
-    particles[:, 0], particles[:, 1],
-    c="deepskyblue", s=50,  zorder=5
-)
-
+# === MIDDLE PLOT: Divergence Visualization ===
+ax_div.set_xlim(0, grid_size - 1)
+ax_div.set_ylim(0, grid_size - 1)
+ax_div.set_aspect("equal")
+ax_div.set_title("Field Divergence", fontsize=12)
 
 # === RIGHT PLOT: Coverage Growth Over Time ===
 ax_line.set_xlim(0, frames)
 ax_line.set_ylim(0, 1)
-# ax_line.set_box_aspect(1)  # **NEW FIX: Prevents aspect ratio distortion**
 ax_line.set_xlabel("Time Step", fontsize=10)
 ax_line.set_ylabel("Coverage", fontsize=10)
 ax_line.set_title("Coverage Over Time", fontsize=10)
-# ax_line.set_aspect('auto')  # Let it adjust naturally as well
-ax_line.set_position([0.53, 0.225, 0.4, 0.55])  # [left, bottom, width, height]
+ax_line.set_position([0.67, 0.225, 0.28, 0.55])  # [left, bottom, width, height]
 
 # Coverage line with blue-purple gradient
-coverage_line, = ax_line.plot([], [], color="#3d03fc" )
-
-
+coverage_line, = ax_line.plot([], [], color="#3d03fc")
 
 # Initial computations
 field.update_visibility(particles)
 field.compute_potential(particles, alpha=1.0)
+field.compute_divergence(particles)
 
-# Use origin='lower' so that array index 0 is displayed at Y=0
+# Contour plot with automatic colorbar for potential
 contour = ax_main.contourf(
     X, Y, field.potential,
     levels=100, cmap='viridis', alpha=0.7, origin='lower'
 )
 
+# Divergence plot - use a diverging colormap
+div_contour = ax_div.contourf(
+    X, Y, field.divergence,
+    levels=100, cmap='RdBu_r', alpha=0.7, origin='lower'
+)
+
+# Particle scatter plots
+scatter = ax_main.scatter(
+    particles[:, 0], particles[:, 1],
+    c="deepskyblue", s=50, zorder=5
+)
+
+scatter_div = ax_div.scatter(
+    particles[:, 0], particles[:, 1],
+    c="deepskyblue", s=50, zorder=5
+)
+
 quiver = None
+div_quiver = None  # For divergence plot
+div_cbar = None    # For divergence colorbar
 
 # Adam optimizer parameters
 beta1 = 0.9
@@ -296,11 +302,14 @@ t = 0  # Time step
 
 coverage_data = []
 cbar = None
+div_cbar = None
 current_text = None
 num_text = None
+div_text = None
 
 def update(frame):
     global particles, quiver, contour, cbar, m, v, t, current_text, num_text
+    global div_contour, div_cbar, div_quiver, div_text
 
     # Add viewpoints after ADD_AT
     if frame in ADD_FRAMES:
@@ -320,7 +329,6 @@ def update(frame):
         field.repulsive_forces = np.zeros((num_particles, num_particles, 2))
         print(f"Frame {frame}: Removed {NEW_PARTICLES} viewpoints")
 
-
     # 1) Update coverage
     field.update_visibility(particles)
     coverage = field.compute_coverage_monte_carlo(num_samples=10000, threshold=0.25)
@@ -329,14 +337,14 @@ def update(frame):
 
     # 2) Recompute potential (for visualization)
     field.compute_potential(particles, alpha=1.0)
+    
     # 3) Compute forces
     total_forces = field.compute_force(particles, alpha=1.0)
+    
+    # 4) Compute divergence for the attraction field
+    divergence = field.compute_divergence(particles)
 
-    # # 4) Move particles with toroidal wrapping
-    # particles += total_forces
-    # particles %= grid_size
-
-    # 4) Adam update for particles
+    # 5) Adam update for particles
     t += 1
     grad = total_forces
     m = beta1 * m + (1 - beta1) * grad
@@ -348,11 +356,11 @@ def update(frame):
     particles += learning_rate * m_hat / (np.sqrt(v_hat) + epsilon)
     particles %= grid_size
 
+    # === UPDATE POTENTIAL PLOT ===
     # Remove old contour
     for c in contour.collections:
         c.remove()
     # Re-draw with updated potential
-    # Use origin='lower' to keep array row 0 near the bottom
     contour = ax_main.contourf(
         X, Y, field.potential,
         levels=100, cmap='viridis', alpha=1.0, origin='lower'
@@ -364,8 +372,46 @@ def update(frame):
     divider = make_axes_locatable(ax_main)
     cax = divider.append_axes("right", size="5%", pad=0.05)
     cbar = plt.colorbar(contour, cax=cax)
+    cbar.set_label('Potential')
 
+    # === UPDATE DIVERGENCE PLOT ===
+    # Remove old divergence contour
+    for c in div_contour.collections:
+        c.remove()
+    
+    # Use a diverging colormap for divergence
+    vmax = max(abs(np.min(divergence)), abs(np.max(divergence)))
+    vmin = -vmax
+    
+    div_contour = ax_div.contourf(
+        X, Y, divergence,
+        levels=100, cmap='RdBu_r', alpha=1.0, origin='lower',
+        vmin=vmin, vmax=vmax
+    )
 
+    if div_cbar is not None:
+        div_cbar.remove()
+    divider_div = make_axes_locatable(ax_div)
+    cax_div = divider_div.append_axes("right", size="5%", pad=0.05)
+    div_cbar = plt.colorbar(div_contour, cax=cax_div)
+    div_cbar.set_label('Divergence')
+
+    # Add divergence annotations
+    # Find locations of high divergence (sources)
+    threshold_high = vmax * 0.7
+    source_locations = np.where(divergence > threshold_high)
+    for i, j in zip(source_locations[0], source_locations[1]):
+        if i % 5 == 0 and j % 5 == 0:  # Only plot every 5th point to avoid clutter
+            ax_div.plot(j, i, 'ko', markersize=1, alpha=0.5)  # Mark sources with black dots
+    
+    # Find locations of low divergence (sinks)
+    threshold_low = vmin * 0.7
+    sink_locations = np.where(divergence < threshold_low)
+    for i, j in zip(sink_locations[0], sink_locations[1]):
+        if i % 5 == 0 and j % 5 == 0:  # Only plot every 5th point to avoid clutter
+            ax_div.plot(j, i, 'wo', markersize=1, alpha=0.5)  # Mark sinks with white dots
+
+    # === VECTOR FIELD VISUALIZATION ===
     # Quiver showing the attractive force of the first particle only, for demonstration
     quiver_step = 5
     xq = X[::quiver_step, ::quiver_step]
@@ -375,7 +421,6 @@ def update(frame):
     v_attr = field.attractive_forces[::quiver_step, ::quiver_step, 0, 1].flatten()
 
     # Remove old quiver entirely, then recreate
-    global quiver
     if quiver is not None:
         quiver.remove()
     quiver = ax_main.quiver(
@@ -383,10 +428,11 @@ def update(frame):
         color="#ff1493", scale=1000, width=0.002, pivot="middle", zorder=99
     )
 
-    # Update the particle scatter positions
+    # === UPDATE PARTICLE POSITIONS ===
     scatter.set_offsets(particles)
+    scatter_div.set_offsets(particles)
 
-    # Update the line plot
+    # === UPDATE COVERAGE PLOT ===
     coverage_line.set_data(range(len(coverage_data)), coverage_data)
 
     # Add marker only for the last data point
@@ -394,9 +440,9 @@ def update(frame):
     if len(coverage_data) > 0:
         coverage_line.set_marker('o')  # Set marker for the last point
         coverage_line.set_markersize(4)  # Set the size of the marker
-
         coverage_line.set_markevery([len(coverage_data)-1])  # Only show marker for the last point
 
+    # === UPDATE TEXT ELEMENTS ===
     # Remove previous text (if it exists)
     if current_text is not None:
         current_text.remove()
@@ -413,20 +459,31 @@ def update(frame):
         ha='left', va='top',
         transform=ax_main.transAxes,
         fontsize=8,
-)
+    )
+
+    # Add divergence explanation text
+    if div_text is not None:
+        div_text.remove()
+    
+    div_min = np.min(divergence)
+    div_max = np.max(divergence)
+    div_text = ax_div.text(
+        0.05, 0.05, 
+        f"Min: {div_min:.2e}\nMax: {div_max:.2e}\n\nRed = Sources\nBlue = Sinks",
+        ha='left', va='bottom',
+        transform=ax_div.transAxes,
+        fontsize=8, bbox=dict(facecolor='white', alpha=0.7)
+    )
 
     ax_line.set_xlim(0, max(len(coverage_data), frames))  # Adjust X-axis dynamically
-  
 
-    return scatter, contour, quiver, coverage_line
+    return scatter, contour, quiver, coverage_line, div_contour
 
-
-
+# Create the animation
 ani = animation.FuncAnimation(fig, update, frames=frames, interval=100, blit=False)
 
-plt.legend(loc='upper right')
-
+plt.tight_layout()
 plt.show()
 
-ani.save('gaussian 6.mp4', writer='ffmpeg', fps=24, dpi=300)
-
+# Save the animation with a descriptive name
+ani.save('field_divergence_visualization.mp4', writer='ffmpeg', fps=24, dpi=300)
