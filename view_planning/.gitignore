@@ -1,2 +1,5 @@
 models/
 build/
+*.mp4
+*.mp3
+scripts/*.mp4

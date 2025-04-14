@@ -1291,7 +1291,7 @@ int main() {
 
 
     float sphere_radius = 400.0f;
-    int num_viewpoints = 8;
+    int num_viewpoints = 6;
     auto viewpoints = generateClusteredViewpoints(num_viewpoints, sphere_radius);
     // auto viewpoints = generateRandomViewpoints(num_viewpoints, sphere_radius);
 
@@ -1500,13 +1500,13 @@ int main() {
             // std::cout << "percentage: " << percentage << std::endl;
 
             // std::cout << "F_tangent: " << F_tangent.transpose() << std::endl;
-            if (coverage_score < 0.98) {
+            if (coverage_score < 1.0) {
                 Eigen::Vector3d new_position = viewpoint->getPosition() + delta_t * F_tangent; // delta_t *
                 updateViewpointState(viewpoint, new_position, sphere_radius, true);
             } else {
                 
                 Eigen::Vector3d new_position = viewpoint->getPosition() + 0.1f * delta_t * F_tangent;
-                updateViewpointState(viewpoint, new_position, sphere_radius);
+                // updateViewpointState(viewpoint, new_position, sphere_radius);
                 // updateViewpointOrientation(viewpoint, Torque, 0.2f);
 
 
@@ -1589,18 +1589,18 @@ int main() {
         // }
 
         // Add the position and orientation in each timestep
-        for (int iter = 0; iter < max_iterations; ++iter) {
-            // Log the positions and orientations of viewpoints
-            for (size_t i = 0; i < viewpoints.size(); ++i) {
-                Eigen::Vector3d position = viewpoints[i]->getPosition();
-                Eigen::Quaterniond orientation = viewpoints[i]->getOrientationQuaternion();
-                
-                viewpoint_csv_file << iter << "," << i << ","
-                                    << position.x() << "," << position.y() << "," << position.z() << ","
-                                    << orientation.x() << "," << orientation.y() << ","
-                                    << orientation.z() << "," << orientation.w() << "\n";
-            }
+
+        // Log the positions and orientations of viewpoints
+        for (size_t i = 0; i < viewpoints.size(); ++i) {
+            Eigen::Vector3d position = viewpoints[i]->getPosition();
+            Eigen::Quaterniond orientation = viewpoints[i]->getOrientationQuaternion();
+            
+            viewpoint_csv_file << iter << "," << i << ","
+                                << position.x() << "," << position.y() << "," << position.z() << ","
+                                << orientation.x() << "," << orientation.y() << ","
+                                << orientation.z() << "," << orientation.w() << "\n";
         }
+        
 
 
 

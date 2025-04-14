@@ -15,10 +15,12 @@
 void updateViewpointState(
     const std::shared_ptr<visioncraft::Viewpoint>& viewpoint,
     const Eigen::Vector3d& new_position,
+    const Eigen::Quaterniond& orientation,
     float sphere_radius) 
 {
     Eigen::Vector3d normalized_position = sphere_radius * new_position.normalized();
     viewpoint->setPosition(normalized_position);
+    viewpoint->setOrientation(orientation);
     viewpoint->setLookAt(Eigen::Vector3d(0.0, 0.0, 0.0), -Eigen::Vector3d::UnitZ());
 }
 
@@ -35,7 +37,7 @@ int main() {
     auto visibilityManager = std::make_shared<visioncraft::VisibilityManager>(model);
 
     // Prepare to load viewpoints from CSV
-    std::ifstream viewpoint_csv("viewpoint_positions.csv");
+    std::ifstream viewpoint_csv("viewpoint_data.csv");
     if (!viewpoint_csv.is_open()) {
         std::cerr << "Error: Unable to open viewpoint_positions.csv" << std::endl;
         return -1;
@@ -48,18 +50,18 @@ int main() {
     // Prepare viewpoint instances
     int num_viewpoints = 0;
     std::vector<std::shared_ptr<visioncraft::Viewpoint>> viewpoints;
-    std::vector<std::vector<Eigen::Vector3d>> positions_per_timestep;
+    std::vector<std::vector<std::tuple<Eigen::Vector3d, Eigen::Quaterniond>>> positions_per_timestep;
 
-    // Load positions into a map
+    // Load positions and quaternions into a map
     std::string line;
     int current_timestep = -1;
-    std::vector<Eigen::Vector3d> current_positions;
+    std::vector<std::tuple<Eigen::Vector3d, Eigen::Quaterniond>> current_positions;
 
     while (std::getline(viewpoint_csv, line)) {
         std::istringstream iss(line);
         std::string token;
         int timestep, viewpoint_id;
-        double x, y, z;
+        double x, y, z, qw, qx, qy, qz;
 
         std::getline(iss, token, ',');
         timestep = std::stoi(token);
@@ -71,6 +73,16 @@ int main() {
         y = std::stod(token);
         std::getline(iss, token, ',');
         z = std::stod(token);
+        std::getline(iss, token, ',');
+        qw = std::stod(token);  // Quaternion w
+        std::getline(iss, token, ',');
+        qx = std::stod(token);  // Quaternion x
+        std::getline(iss, token, ',');
+        qy = std::stod(token);  // Quaternion y
+        std::getline(iss, token, ',');
+        qz = std::stod(token);  // Quaternion z
+
+        Eigen::Quaterniond quaternion(qw, qx, qy, qz);
 
         if (current_timestep != timestep) {
             if (!current_positions.empty()) {
@@ -79,7 +91,7 @@ int main() {
             }
             current_timestep = timestep;
         }
-        current_positions.emplace_back(x, y, z);
+        current_positions.emplace_back(Eigen::Vector3d(x, y, z), quaternion);
     }
     if (!current_positions.empty()) {
         positions_per_timestep.push_back(current_positions);
@@ -91,7 +103,9 @@ int main() {
     // Initialize viewpoints at their first position
     Eigen::Vector3d lookAt(0.0, 0.0, 0.0);
     for (int i = 0; i < num_viewpoints; ++i) {
-        auto viewpoint = std::make_shared<visioncraft::Viewpoint>(positions_per_timestep[0][i], lookAt);
+        auto viewpoint = std::make_shared<visioncraft::Viewpoint>(
+            std::get<0>(positions_per_timestep[0][i]), lookAt);
+        viewpoint->setOrientation(std::get<1>(positions_per_timestep[0][i]));
         viewpoint->setDownsampleFactor(8.0);
         visibilityManager->trackViewpoint(viewpoint);
         viewpoints.push_back(viewpoint);
@@ -99,32 +113,59 @@ int main() {
 
     // Animation loop
     for (const auto& positions : positions_per_timestep) {
+        // Time measurement for each frame
+        auto frame_start = std::chrono::high_resolution_clock::now();
+
         for (size_t i = 0; i < viewpoints.size(); ++i) {
-            // Update the viewpoint's position
-            updateViewpointState(viewpoints[i], positions[i], 400.0f);
+            // Measure time for updating the viewpoint
+            auto update_start = std::chrono::high_resolution_clock::now();
+            updateViewpointState(viewpoints[i], std::get<0>(positions[i]), std::get<1>(positions[i]), 400.0f);
+            auto update_end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> update_duration = update_end - update_start;
+            std::cout << "Update Viewpoint " << i << " took " << update_duration.count() << " seconds." << std::endl;
 
-            // Perform raycasting for the updated viewpoint
+            // Measure time for raycasting
+            auto raycast_start = std::chrono::high_resolution_clock::now();
             viewpoints[i]->performRaycastingOnGPU(model);
+            auto raycast_end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> raycast_duration = raycast_end - raycast_start;
+            std::cout << "Raycasting for Viewpoint " << i << " took " << raycast_duration.count() << " seconds." << std::endl;
 
-            // Add the updated viewpoint to the visualizer
-            visualizer.addViewpoint(*viewpoints[i], false, true);
+            // Measure time for adding viewpoint to visualizer
+            auto add_viewpoint_start = std::chrono::high_resolution_clock::now();
+            // visualizer.addViewpoint(*viewpoints[i], false, true);
             visualizer.updateViewpoint(*viewpoints[i], true, true);
+            auto add_viewpoint_end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> add_viewpoint_duration = add_viewpoint_end - add_viewpoint_start;
+            std::cout << "Adding Viewpoint " << i << " to visualizer took " << add_viewpoint_duration.count() << " seconds." << std::endl;
         }
 
         // Add voxel map for visibility
+        auto voxel_map_start = std::chrono::high_resolution_clock::now();
         visualizer.addVoxelMapProperty(model, "visibility");
+        auto voxel_map_end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> voxel_map_duration = voxel_map_end - voxel_map_start;
+        std::cout << "Adding voxel map took " << voxel_map_duration.count() << " seconds." << std::endl;
 
         // Render the current state
+        auto render_start = std::chrono::high_resolution_clock::now();
         visualizer.render();
+        auto render_end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> render_duration = render_end - render_start;
+        std::cout << "Rendering took " << render_duration.count() << " seconds." << std::endl;
 
         // Sleep for animation delay
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
         // Clean up for the next frame
-        // visualizer.removeViewpoints();
+        visualizer.removeViewpoints();
         visualizer.removeVoxelMapProperty();
+
+        // Measure total frame time
+        auto frame_end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> frame_duration = frame_end - frame_start;
+        std::cout << "Frame processing took " << frame_duration.count() << " seconds." << std::endl;
     }
 
     return 0;
 }
-
