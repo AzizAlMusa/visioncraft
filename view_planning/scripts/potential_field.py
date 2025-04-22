@@ -112,19 +112,36 @@ class Field:
     #     self.visibility.ravel()[:] = np.max(gaussian_visibility, axis=1)
 
 
-    def update_visibility(self, particles):
+    # def update_visibility(self, particles):
+    #     """
+    #     Mark each grid point as visible if it is within self.fov_radius
+    #     of any particle. Otherwise 0.
+    #     """
+    #     self.visibility.fill(0)
+    #     diff = self.field_points[:, None, :] - particles[None, :, :]
+    #     wrapped_diff = self.wrap_distance(diff)
+    #     distances = np.linalg.norm(wrapped_diff, axis=-1)
+
+    #     # If a grid point is within fov_radius of at least one particle -> visible
+    #     visibility_mask = np.any(distances <= self.fov_radius, axis=1)
+    #     self.visibility.ravel()[visibility_mask] = 1
+
+    def update_visibility(self, particles, beta=20.0):
         """
-        Mark each grid point as visible if it is within self.fov_radius
-        of any particle. Otherwise 0.
+        Soft visibility using a steep sigmoid approximation to a hard FOV:
+            s(r) = 1 / (1 + exp[β (r / R - 1)])
+        Where:
+            - R is the FOV radius
+            - β controls sharpness (higher = closer to binary step)
         """
         self.visibility.fill(0)
         diff = self.field_points[:, None, :] - particles[None, :, :]
         wrapped_diff = self.wrap_distance(diff)
-        distances = np.linalg.norm(wrapped_diff, axis=-1)
+        distances = np.linalg.norm(wrapped_diff, axis=-1) + epsilon  # (Npoints, Nparticles)
 
-        # If a grid point is within fov_radius of at least one particle -> visible
-        visibility_mask = np.any(distances <= self.fov_radius, axis=1)
-        self.visibility.ravel()[visibility_mask] = 1
+        s = 1.0 / (1.0 + np.exp(beta * (distances / self.fov_radius - 1.0)))  # soft visibility
+        self.visibility.ravel()[:] = np.clip(np.sum(s, axis=1), 0.0, 1.0)  # values in [0,1]
+
 
 
     def compute_potential(self, particles, alpha=1.0):
@@ -150,6 +167,7 @@ class Field:
         pot_values = alpha * covered_factor * log_sum
 
         self.potential = pot_values.reshape(self.grid_size, self.grid_size)
+
 
     def compute_attractive_force(self, particles, alpha=1.0):
         """
@@ -186,6 +204,46 @@ class Field:
         return total_attractive
 
 
+    # def compute_potential(self, particles, alpha=1.0, r0=1.0):
+    #     """
+    #     Smoothed log-based potential:
+    #         φ(x) = 1/2 * log(1 + ||x - p||^2 / r0^2)
+    #     for each viewpoint p, summed over all particles.
+    #     Only contributes where visibility is 0.
+    #     """
+    #     diff = self.field_points[:, None, :] - particles[None, :, :]
+    #     wrapped_diff = self.wrap_distance(diff)
+    #     squared_distances = np.sum(wrapped_diff ** 2, axis=-1)  # Shape: (Npoints, Nparticles)
+
+    #     log_sum = 0.5 * np.log1p(squared_distances / (r0 ** 2)).sum(axis=1)
+
+    #     covered_factor = 1.0 - self.visibility.ravel()
+    #     pot_values = alpha * covered_factor * log_sum
+    #     self.potential = pot_values.reshape(self.grid_size, self.grid_size)
+
+
+    # def compute_attractive_force(self, particles, alpha=1.0, r0=1.0):
+    #     """
+    #     Gradient of the log-smooth potential:
+    #         ∇φ(x) ∝ (x - p) / (r0^2 + ||x - p||^2)
+    #     Weighted by coverage deficit: (1 - visibility).
+    #     """
+    #     diff = self.field_points[:, None, :] - particles[None, :, :]
+    #     wrapped_diff = self.wrap_distance(diff)
+    #     squared_distances = np.sum(wrapped_diff ** 2, axis=-1) + epsilon
+    #     denom = r0 ** 2 + squared_distances  # Shape: (Npoints, Nparticles)
+
+    #     covered_factor = (1.0 - self.visibility.ravel())[:, None]  # Shape: (Npoints, 1)
+    #     force_magnitudes = alpha * covered_factor / denom  # Shape: (Npoints, Nparticles)
+
+    #     attractive_forces = force_magnitudes[..., None] * wrapped_diff  # Shape: (Npoints, Nparticles, 2)
+
+    #     self.attractive_forces = attractive_forces.reshape(
+    #         self.grid_size, self.grid_size, particles.shape[0], 2
+    #     )
+
+    #     total_attractive = self.attractive_forces.sum(axis=(0, 1))
+    #     return total_attractive
 
 
     def compute_repelling_force(self, particles, sigma=10, amplitude=100):
