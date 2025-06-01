@@ -206,11 +206,13 @@ class AngularViewPlanningField:
             diffs = positions - obj_point
             distances = np.linalg.norm(diffs, axis=1) + epsilon
             
-            # Logarithmic potential
+            # # Logarithmic potential
             log_distance_sum = np.sum(np.log(distances))
             
-            # Potential is (1-visibility) * log_distance_sum
+            # # Potential is (1-visibility) * log_distance_sum
             self.obj_potentials[i] = (1.0 - self.obj_visibility[i]) * log_distance_sum
+
+
     
     def compute_angular_forces(self, angular_positions, alpha=1.0, k_rep=0.2):
         """
@@ -242,7 +244,7 @@ class AngularViewPlanningField:
                     # Force is proportional to potential and inversely to distance
                     # Using the object's potential directly here is the key
                     force += self.obj_potentials[i] * (1.0 / distance) * sign
-            
+
             angular_forces[j] = alpha * force
 
         # --- Repulsive Force Between Viewpoints ---
@@ -255,7 +257,7 @@ class AngularViewPlanningField:
                         delta_theta = np.arctan2(np.sin(delta_theta), np.cos(delta_theta))
                         
                         # Gaussian repulsion
-                        gaussian_repulsion = k_rep * (-delta_theta / sigma**2) * np.exp(-(delta_theta**2) / (2*sigma**2))
+                        gaussian_repulsion = -np.sign(delta_theta) * k_rep * np.exp(-(delta_theta**2) / (2*sigma**2))
                         angular_forces[i] += gaussian_repulsion
 
         return angular_forces
@@ -270,9 +272,9 @@ class AngularViewPlanningField:
         angular_forces = self.compute_angular_forces(angular_positions, 
                                                alpha=k_attr, k_rep=k_rep)
         
-        # Apply damping to reduce oscillations
-        if t > 50:  # After initial exploration phase
-            angular_forces *= 0.9  # Damping factor
+        # # Apply damping to reduce oscillations
+        # if t > 50:  # After initial exploration phase
+        #     angular_forces *= 0.9  # Damping factor
         
         # Adam optimizer update
         if m is None:

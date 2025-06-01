@@ -221,107 +221,61 @@ class Field:
         # Calculate optimal overlap (areas covered exactly twice)
         self.optimal_overlap = (overlap_count == 2).astype(float).reshape(self.grid_size, self.grid_size)
 
-    # def compute_potential(self, particles, alpha=1.0):
-    #     """
-    #     A modified potential based on a continuous, differentiable coverage need function.
-    #     The potential is:
-    #     1. Highest for uncovered areas (to encourage coverage)
-    #     2. Low for optimally covered areas (visibility near 1.0)
-    #     3. Increases again for over-covered areas (to discourage redundancy)
+    def compute_potential(self, particles, alpha=1.0):
+        """
+        A modified potential based on a continuous, differentiable coverage need function.
+        The potential is:
+        1. Highest for uncovered areas (to encourage coverage)
+        2. Low for optimally covered areas (visibility near 1.0)
+        3. Increases again for over-covered areas (to discourage redundancy)
         
-    #     Uses (1-visibility) as a smooth, continuous factor to guide particles.
-    #     """
-    #     diff = self.field_points[:, None, :] - particles[None, :, :]
-    #     wrapped_diff = self.wrap_distance(diff)
-    #     distances = np.linalg.norm(wrapped_diff, axis=-1) + epsilon
-
-    #     # Sum of log(distance) across all particles
-    #     log_sum = np.log(distances).sum(axis=1)  # (grid_size*grid_size,)
-
-    #     # Coverage need is (1 - visibility) since our visibility function 
-    #     # already encodes the desired behavior
-    #     coverage_need = 1.0 - self.visibility.ravel()
-
-    #     # Final potential
-    #     pot_values = alpha * coverage_need * log_sum
-    #     self.potential = pot_values.reshape(self.grid_size, self.grid_size)
-
-    # def compute_attractive_force(self, particles, alpha=1.0):
-    #     """
-    #     Negative gradient of the modified potential field.
-    #     Uses the continuous (1-visibility) factor as the coverage need,
-    #     resulting in a smooth, differentiable force field.
-    #     """
-    #     diff = self.field_points[:, None, :] - particles[None, :, :]
-    #     wrapped_diff = self.wrap_distance(diff)
-    #     distances = np.linalg.norm(wrapped_diff, axis=-1) + epsilon
-    #     directions = wrapped_diff / distances[..., None]  # shape: (Npoints, Nparticles, 2)
-
-    #     # Coverage need is (1 - visibility) - smooth and differentiable
-    #     coverage_need = (1.0 - self.visibility.ravel())[:, None]  # shape: (Npoints, 1)
-
-    #     # Combine factors: alpha * coverage_need / distance
-    #     force_magnitude = alpha * coverage_need / distances
-    #     force_magnitude[distances < epsilon] = 0.0
-
-    #     # Force vector from each grid point to each particle
-    #     attractive_forces = force_magnitude[..., None] * directions
-
-    #     # Reshape to (grid_size, grid_size, num_particles, 2) for visualization
-    #     self.attractive_forces = attractive_forces.reshape(
-    #         self.grid_size, self.grid_size, particles.shape[0], 2
-    #     )
-
-    #     # Sum over all grid points => shape (num_particles, 2)
-    #     total_attractive = self.attractive_forces.sum(axis=(0, 1))
-    #     return total_attractive
-    def compute_potential(self, particles, alpha=1.0, sigma=10.0):
+        Uses (1-visibility) as a smooth, continuous factor to guide particles.
         """
-        Information-theoretic potential:
-        φ(r) = -0.5 * log(1 + exp(-r^2 / σ^2) / σ^2)
-
-        Encourages spacing and attraction to uncovered regions without collapse.
-        """
-        diff = self.field_points[:, None, :] - particles[None, :, :]  # (Npoints, Nparticles, 2)
+        diff = self.field_points[:, None, :] - particles[None, :, :]
         wrapped_diff = self.wrap_distance(diff)
-        distances_sq = np.sum(wrapped_diff**2, axis=-1)  # shape: (Npoints, Nparticles)
+        distances = np.linalg.norm(wrapped_diff, axis=-1) + epsilon
 
-        # Information-theoretic term
-        info = -0.5 * np.log1p(np.exp(-distances_sq / sigma**2) / sigma**2)  # (Npoints, Nparticles)
-        info_sum = info.sum(axis=1)  # sum over particles
+        # Sum of log(distance) across all particles
+        log_sum = np.log(distances).sum(axis=1)  # (grid_size*grid_size,)
 
-        covered_factor = 1.0 - self.visibility.ravel()
-        pot_values = alpha * covered_factor * info_sum
+        # Coverage need is (1 - visibility) since our visibility function 
+        # already encodes the desired behavior
+        coverage_need = 1.0 - self.visibility.ravel()
 
+        # Final potential
+        pot_values = alpha * coverage_need * log_sum
         self.potential = pot_values.reshape(self.grid_size, self.grid_size)
 
-
-    def compute_attractive_force(self, particles, alpha=1.0, sigma=10.0):
+    def compute_attractive_force(self, particles, alpha=1.0):
         """
-        Gradient of the information-theoretic potential:
-        F ∝ [exp(-r^2 / σ^2) / (σ^4 * (1 + exp(-r^2 / σ^2)/σ^2))] * (p - x)
-
-        Produces stable attraction toward uncovered regions, no collapse.
+        Negative gradient of the modified potential field.
+        Uses the continuous (1-visibility) factor as the coverage need,
+        resulting in a smooth, differentiable force field.
         """
-        diff = self.field_points[:, None, :] - particles[None, :, :]  # (Npoints, Nparticles, 2)
+        diff = self.field_points[:, None, :] - particles[None, :, :]
         wrapped_diff = self.wrap_distance(diff)
-        distances_sq = np.sum(wrapped_diff**2, axis=-1)  # (Npoints, Nparticles)
+        distances = np.linalg.norm(wrapped_diff, axis=-1) + epsilon
+        directions = wrapped_diff / distances[..., None]  # shape: (Npoints, Nparticles, 2)
 
-        exp_term = np.exp(-distances_sq / sigma**2)
-        denom = sigma**4 * (1 + exp_term / sigma**2)
-        factor = exp_term / denom  # (Npoints, Nparticles)
+        # Coverage need is (1 - visibility) - smooth and differentiable
+        coverage_need = (1.0 - self.visibility.ravel())[:, None]  # shape: (Npoints, 1)
 
-        covered_factor = (1.0 - self.visibility.ravel())[:, None]  # (Npoints, 1)
-        force_mags = alpha * covered_factor * factor  # (Npoints, Nparticles)
+        # Combine factors: alpha * coverage_need / distance
+        force_magnitude = alpha * coverage_need / distances
+        force_magnitude[distances < epsilon] = 0.0
 
-        attractive_forces = force_mags[..., None] * wrapped_diff  # (Npoints, Nparticles, 2)
+        # Force vector from each grid point to each particle
+        attractive_forces = force_magnitude[..., None] * directions
 
+        # Reshape to (grid_size, grid_size, num_particles, 2) for visualization
         self.attractive_forces = attractive_forces.reshape(
             self.grid_size, self.grid_size, particles.shape[0], 2
         )
 
-        total_attractive = self.attractive_forces.sum(axis=(0, 1))  # (Nparticles, 2)
+        # Sum over all grid points => shape (num_particles, 2)
+        total_attractive = self.attractive_forces.sum(axis=(0, 1))
         return total_attractive
+
     
     def compute_repelling_force(self, particles, sigma=10, amplitude=100):
         """
@@ -346,7 +300,7 @@ class Field:
         return total_repelling
 
     def compute_force(self, particles, sigma=10, amplitude=100,
-                      k_attr=0.4, k_rep=0.05, alpha=1.0):
+                      k_attr=0.4, k_rep=0.00, alpha=1.0):
         """
         Combine attraction and repulsion:
           F_total = k_attr * F_attr + k_rep * F_rep

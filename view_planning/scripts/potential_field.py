@@ -16,7 +16,7 @@ NEW_PARTICLES = 1  # Number of new viewpoints to add
 
 
 # Initial positions of particles
-num_particles = 6
+num_particles = 11
 # particles = np.random.rand(num_particles, 2) * grid_size
 
 particles = 50 + np.random.rand(num_particles, 2) 
@@ -388,7 +388,8 @@ def update(frame):
     # 2) Recompute potential (for visualization)
     field.compute_potential(particles, alpha=1.0)
     # 3) Compute forces
-    total_forces = field.compute_force(particles, alpha=1.0)
+    total_forces = field.compute_force(particles, alpha=1.0, k_attr=0.4, k_rep=0.1)
+
 
     # # 4) Move particles with toroidal wrapping
     # particles += total_forces

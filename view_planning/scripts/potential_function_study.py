@@ -41,22 +41,22 @@ def compute_potential(r, potential_type):
     elif potential_type == "quadratic":
         return alpha * r**2
     elif potential_type == "inverse":
-        return alpha / r
+        return -alpha / r  # Added negative sign
     elif potential_type == "gaussian":
-        return alpha * np.exp(-r**2 / sigma**2)
+        return -alpha * np.exp(-r**2 / sigma**2)  # Added negative sign
 
-# Function to compute force magnitudes (negative gradient of potential)
+# Function to compute force magnitudes (positive gradient of potential for gradient ascent)
 def compute_force(r, potential_type):
     if potential_type == "logarithmic":
-        return alpha / r
+        return alpha / r  # Positive gradient
     elif potential_type == "linear":
         return alpha * np.ones_like(r)  # Constant force
     elif potential_type == "quadratic":
         return 2 * alpha * r
     elif potential_type == "inverse":
-        return -alpha / r**2
+        return alpha / r**2  # Positive gradient of negative potential
     elif potential_type == "gaussian":
-        return 2 * alpha * r * np.exp(-r**2 / sigma**2) / sigma**2
+        return 2 * alpha * r * np.exp(-r**2 / sigma**2) / sigma**2  # Positive gradient of negative potential
 
 # Function to compute 2D potential field
 def compute_potential_2d(X, Y, potential_type):
@@ -75,25 +75,24 @@ def compute_force_2d(X, Y, potential_type):
     return force_magnitude * X_norm, force_magnitude * Y_norm
 
 # Define custom scaling factors for quiver plots to ensure consistent visibility
-# Further adjusted to make vectors more visible
 quiver_scales = {
     "logarithmic": 15,
     "linear": 30,
     "quadratic": 80, 
     "inverse": 8,
-    "gaussian": 5  # Make Gaussian vectors much larger
+    "gaussian": 5
 }
 
-# Define quiver colors based on background brightness and make Gaussian more visible
+# Define quiver colors based on background brightness
 quiver_colors = {
     "logarithmic": "white",
     "linear": "#1A365D",  # Darker blue for light background
     "quadratic": "white",
     "inverse": "white",
-    "gaussian": "#0000ff"  # Bright yellow for better contrast against dark background
+    "gaussian": "#0000ff"  # Bright blue for better contrast
 }
 
-# Consistent modern colors for all plots - more purplish blue and pinkish red
+# Consistent modern colors for all plots
 potential_color = "#6200EA"  # More purplish blue
 force_color = "#FF4081"      # More pinkish red
 
@@ -103,21 +102,21 @@ line_styles = {
     "force": {"linestyle": '--', "linewidth": 2.5, "dashes": (5, 2)}
 }
 
-# Mathematical formulas for display
+# Mathematical formulas for display (updated with negative signs)
 formulas = {
     "logarithmic": r"$\Phi(r) = \alpha \log(r)$", 
     "linear": r"$\Phi(r) = \alpha r$",
     "quadratic": r"$\Phi(r) = \alpha r^2$",
-    "inverse": r"$\Phi(r) = \frac{\alpha}{r}$",
-    "gaussian": r"$\Phi(r) = \alpha e^{-r^2/\sigma^2}$"
+    "inverse": r"$\Phi(r) = -\frac{\alpha}{r}$",  # Added negative sign
+    "gaussian": r"$\Phi(r) = -\alpha e^{-r^2/\sigma^2}$"  # Added negative sign
 }
 
 force_formulas = {
-    "logarithmic": r"$\vec{F} = -\frac{\alpha}{r}\hat{r}$",
-    "linear": r"$\vec{F} = -\alpha\hat{r}$",
-    "quadratic": r"$\vec{F} = -2\alpha r\hat{r}$",
-    "inverse": r"$\vec{F} = \frac{\alpha}{r^2}\hat{r}$",
-    "gaussian": r"$\vec{F} = \frac{2\alpha r}{\sigma^2}e^{-r^2/\sigma^2}\hat{r}$"
+    "logarithmic": r"$\vec{F} = \frac{\alpha}{r}\hat{r}$",
+    "linear": r"$\vec{F} = \alpha\hat{r}$",
+    "quadratic": r"$\vec{F} = 2\alpha r\hat{r}$",
+    "inverse": r"$\vec{F} = \frac{\alpha}{r^2}\hat{r}$",  # Positive gradient of negative potential
+    "gaussian": r"$\vec{F} = \frac{2\alpha r}{\sigma^2}e^{-r^2/\sigma^2}\hat{r}$"  # Positive gradient of negative potential
 }
 
 # ===== 1D POTENTIAL AND FORCE PLOTS (ONE FOR EACH TYPE) =====
@@ -139,8 +138,8 @@ for i, pot_type in enumerate(potential_types):
     if pot_type != "inverse" and pot_type != "logarithmic":
         potential_values = potential_values / np.max(np.abs(potential_values))
     elif pot_type == "inverse":
-        # Cap inverse potential for visualization
-        potential_values = np.minimum(potential_values, 3)
+        # Cap inverse potential for visualization (now negative)
+        potential_values = np.maximum(potential_values, -3)
     elif pot_type == "logarithmic":
         # Normalize logarithmic potential
         potential_values = (potential_values - np.min(potential_values)) / (np.max(potential_values) - np.min(potential_values))
@@ -193,8 +192,8 @@ for i, pot_type in enumerate(potential_types):
     
     # Handle special cases for visualization
     if pot_type == "inverse":
-        # Cap the inverse potential
-        potential_field = np.minimum(potential_field, 3)
+        # Cap the inverse potential (now negative, so use maximum)
+        potential_field = np.maximum(potential_field, -3)
     elif pot_type == "logarithmic":
         # Handle negative values in logarithmic potential
         potential_field = np.maximum(potential_field, -3)
@@ -288,4 +287,4 @@ plt.subplots_adjust(top=0.96, bottom=0.05, left=0.05, right=0.95, hspace=0.4, ws
 plt.show()
 
 # Uncomment to save
-# plt.savefig('final_potential_field_analysis.png', dpi=300, bbox_inches='tight')
+# plt.savefig('corrected_potential_field_analysis.png', dpi=300, bbox_inches='tight')

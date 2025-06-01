@@ -1,0 +1,276 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import argparse
+import os
+import time
+
+# === Arguments ===
+parser = argparse.ArgumentParser()
+parser.add_argument("--strategy", type=str, default="nbv", choices=["nbv", "random"])
+parser.add_argument("--potential_type", type=str, default="log")
+parser.add_argument("--seed", type=int, default=0)
+parser.add_argument("--save_dir", type=str, default="./results2")
+parser.add_argument("--animate", action="store_true")
+parser.add_argument("--smart_nbv_insertion", action="store_true")
+parser.add_argument("--k_attr", type=float, default=0.4)
+parser.add_argument("--k_rep", type=float, default=1.0)
+parser.add_argument("--verbose", action="store_true")
+args = parser.parse_args()
+
+# === Constants ===
+np.random.seed(args.seed)
+grid_size = 100
+fov_radius = 20
+epsilon = 1e-6
+frames_per_stage = 10
+max_viewpoints = 100
+
+x = np.arange(grid_size)
+y = np.arange(grid_size)
+X, Y = np.meshgrid(x, y)
+field_points = np.stack([X.ravel(), Y.ravel()], axis=-1)
+
+# === Field Class ===
+class Field:
+    def __init__(self, grid_size, fov_radius, use_wrapping=True):
+        self.grid_size = grid_size
+        self.fov_radius = fov_radius
+        self.use_wrapping = use_wrapping
+        self.visibility = np.zeros((grid_size, grid_size), dtype=np.float64)
+        self.potential = np.zeros((grid_size, grid_size))
+        self.field_points = field_points
+
+    def wrap_distance(self, diff):
+        if not self.use_wrapping:
+            return diff
+        return np.where(np.abs(diff) > self.grid_size / 2,
+                        -np.sign(diff) * (self.grid_size - np.abs(diff)), diff)
+
+    def update_visibility(self, particles, beta=20.0):
+        self.visibility.fill(0)
+        diff = self.field_points[:, None, :] - particles[None, :, :]
+        wrapped_diff = self.wrap_distance(diff)
+        distances = np.linalg.norm(wrapped_diff, axis=-1) + epsilon
+        s = 1.0 / (1.0 + np.exp(beta * (distances / self.fov_radius - 1.0)))
+        self.visibility.ravel()[:] = np.clip(np.sum(s, axis=1), 0.0, 1.0)
+
+    def compute_potential(self, particles, alpha=1.0):
+        diff = self.field_points[:, None, :] - particles[None, :, :]
+        wrapped_diff = self.wrap_distance(diff)
+        distances = np.linalg.norm(wrapped_diff, axis=-1) + epsilon
+        log_sum = np.log(distances).sum(axis=1)
+        covered_factor = 1.0 - self.visibility.ravel()
+        pot_values = alpha * covered_factor * log_sum
+        self.potential = pot_values.reshape(self.grid_size, self.grid_size)
+
+    def compute_force(self, particles, k_attr=0.4, k_rep=1.0, alpha=1.0):
+        diff = self.field_points[:, None, :] - particles[None, :, :]
+        wrapped_diff = self.wrap_distance(diff)
+        distances = np.linalg.norm(wrapped_diff, axis=-1) + epsilon
+        directions = wrapped_diff / distances[..., None]
+        covered_factor = (1.0 - self.visibility.ravel())[:, None]
+        coverage_need = alpha * covered_factor / distances
+        coverage_need[distances < epsilon] = 0.0
+        attractive_forces = coverage_need[..., None] * directions
+        attr = attractive_forces.reshape(
+            self.grid_size, self.grid_size, particles.shape[0], 2).sum(axis=(0, 1))
+
+        pairwise_diff = particles[:, None, :] - particles[None, :, :]
+        wrapped_diff = self.wrap_distance(pairwise_diff)
+        distances = np.linalg.norm(wrapped_diff, axis=-1) + epsilon
+        sigma = 10
+        amplitude = 100
+        forces = -(
+            amplitude * wrapped_diff *
+            (-distances[..., None] / sigma**2) *
+            np.exp(-distances**2 / (2 * sigma**2))[..., None]
+        )
+        rep = forces.sum(axis=1)
+
+        return k_attr * attr + k_rep * rep
+
+    def compute_coverage_monte_carlo(self, particles, num_samples=10000, threshold=0.25):
+        pts = np.random.rand(num_samples, 2) * self.grid_size
+        diff = pts[:, None, :] - particles[None, :, :]
+        d = np.linalg.norm(self.wrap_distance(diff), axis=-1)
+        visible = (d <= self.fov_radius).astype(float)
+        return np.sum(np.sum(visible, axis=1) > threshold) / num_samples
+
+# === Helper: plot frame ===
+def plot_frame(ax, particles, potential, nbv_point=None, title=None):
+    ax.clear()
+    im = ax.imshow(potential, cmap='viridis', origin='lower',
+                   vmin=potential.min(), vmax=potential.max(), extent=[0, grid_size, 0, grid_size])
+    for p in particles:
+        for dx in [-grid_size, 0, grid_size]:
+            for dy in [-grid_size, 0, grid_size]:
+                center = (p[0] + dx, p[1] + dy)
+                circle = plt.Circle(center, fov_radius, edgecolor='white', facecolor='none', alpha=0.2, linewidth=1)
+                ax.add_patch(circle)
+    ax.scatter(particles[:, 0], particles[:, 1], s=30, c='deepskyblue', edgecolors='white', linewidths=0.6)
+    if nbv_point is not None and args.strategy == "nbv":
+        ax.scatter(nbv_point[0], nbv_point[1], s=60, c='red', edgecolors='white', linewidths=1.5)
+        ax.text(nbv_point[0]+2, nbv_point[1]+2, 'NBV', color='red', fontsize=8, weight='bold')
+    ax.set_xlim(0, grid_size)
+    ax.set_ylim(0, grid_size)
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    if title:
+        ax.set_title(title, fontsize=10)
+    return im
+
+# === Setup ===
+os.makedirs(args.save_dir, exist_ok=True)
+field = Field(grid_size, fov_radius)
+particles = np.random.rand(1, 2) * grid_size
+m = np.zeros_like(particles)
+v = np.zeros_like(particles)
+t = 0
+coverage_data = []
+initial_particles = particles.copy()
+
+frames_particles = []
+frames_potentials = []
+frames_nbvs = []
+
+recent_movements = []
+window_size = 5
+T_motion = 1.5
+iter_count = 0
+
+# === Main Simulation ===
+start_time = time.time()
+
+while True:
+    field.update_visibility(particles)
+    field.compute_potential(particles)
+    coverage = field.compute_coverage_monte_carlo(particles)
+    coverage_data.append(coverage)
+
+    if args.strategy == "nbv":
+        max_idx = np.argmax(field.potential)
+        nbv = field.field_points[max_idx]
+    else:
+        nbv = np.random.rand(2) * grid_size
+
+    frames_particles.append(particles.copy())
+    frames_potentials.append(field.potential.copy())
+    frames_nbvs.append(nbv.copy())
+
+    forces = field.compute_force(particles, k_attr=args.k_attr, k_rep=args.k_rep)
+    t += 1
+    m = 0.9 * m + 0.1 * forces
+    v = 0.999 * v + 0.001 * (forces ** 2)
+    m_hat = m / (1 - 0.9 ** t)
+    v_hat = v / (1 - 0.999 ** t)
+    update = 5 * m_hat / (np.sqrt(v_hat) + epsilon)
+    particles += update
+    particles %= grid_size
+
+    movement = np.linalg.norm(update, axis=1).mean()
+    recent_movements.append(movement)
+    if len(recent_movements) > window_size:
+        recent_movements.pop(0)
+
+    insert_nbv = False
+    if args.verbose:
+        print(f"[Step {iter_count:03d}] Avg Motion = {movement:.4f} | Coverage = {coverage:.4f} | Viewpoints = {len(particles)}", end='')
+
+    if args.smart_nbv_insertion:
+        if len(particles) < 2:
+            insert_nbv = (iter_count % frames_per_stage == 0)
+            if args.verbose:
+                print(f" | Insert (warm-up) = {'✔️' if insert_nbv else '❌'}")
+        else:
+            settled = len(recent_movements) == window_size and all(m < T_motion for m in recent_movements)
+            insert_nbv = settled
+            if args.verbose:
+                print(f" | Settled = {'✔️' if settled else '❌'}")
+    else:
+        insert_nbv = (iter_count % frames_per_stage == 0)
+        if args.verbose:
+            print(f" | Insert (fixed rate) = {'✔️' if insert_nbv else '❌'}")
+
+    iter_count += 1
+
+    if insert_nbv:
+        particles = np.vstack([particles, nbv[None, :]])
+        m = np.zeros_like(particles)
+        v = np.zeros_like(particles)
+        t = 0
+        recent_movements.clear()
+
+    if coverage >= 0.99 or len(particles) >= max_viewpoints:
+        break
+
+elapsed_time = time.time() - start_time
+
+# === Save Snapshots ===
+
+if args.animate:
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+    field.update_visibility(initial_particles)
+    field.compute_potential(initial_particles)
+    im0 = plot_frame(axes[0], initial_particles, field.potential, title="Initial")
+
+    field.update_visibility(particles)
+    field.compute_potential(particles)
+    im1 = plot_frame(axes[1], particles, field.potential, title="Final")
+
+    fig.subplots_adjust(right=0.85)
+    cbar_ax = fig.add_axes([0.88, 0.15, 0.02, 0.7])
+    cbar = fig.colorbar(im1, cax=cbar_ax)
+    cbar.set_label("Potential")
+
+    snapshot_path = os.path.join(args.save_dir, f"{args.strategy}_{args.potential_type}_seed{args.seed}_snapshots.png")
+    plt.savefig(snapshot_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"[Saved] Initial/Final snapshot at: {snapshot_path}")
+
+# === Save Animation ===
+if args.animate:
+    fig, ax = plt.subplots(figsize=(6, 6))
+    fig.patch.set_facecolor('black')
+
+    def animate(i):
+        return [plot_frame(ax, frames_particles[i], frames_potentials[i], frames_nbvs[i])]
+
+    ani = animation.FuncAnimation(fig, animate, frames=len(frames_particles), interval=100, blit=False)
+    mp4_path = os.path.join(args.save_dir, f"{args.strategy}_{args.potential_type}_seed{args.seed}_anim.mp4")
+    ani.save(mp4_path, writer='ffmpeg', fps=10, dpi=300)
+    plt.close()
+    print(f"[Saved] Animation MP4 at: {mp4_path}")
+
+
+# === Compute Redundancy and Affinity ===
+redundancy_data = []
+affinity_data = []
+
+for i in range(len(frames_particles)):
+    pts = frames_particles[i]
+    diff = pts[:, None, :] - pts[None, :, :]
+    dist = np.linalg.norm(field.wrap_distance(diff), axis=-1) + epsilon
+    redundancy = np.mean(np.exp(-dist / fov_radius))  # higher if clustered
+    affinity = np.sum(field.potential * field.visibility)  # dot product-like
+    redundancy_data.append(redundancy)
+    affinity_data.append(affinity)
+
+# === Save Results ===
+npz_path = os.path.join(args.save_dir, f"{args.strategy}_{args.potential_type}_kattr{args.k_attr:.2f}_krep{args.k_rep:.2f}_seed{args.seed}_metrics.npz")
+# At the end of the simulation
+np.savez_compressed(npz_path,
+    coverage=np.array(coverage_data),
+    redundancy=np.array(redundancy_data),
+    affinity=np.array(affinity_data),
+    num_viewpoints=len(particles),
+    num_iterations=iter_count,
+    simulation_time_sec=elapsed_time
+)
+
+
+
+print(f"[Saved] Metrics NPZ at: {npz_path}")
+
+
+print("[Done] Simulation complete.")

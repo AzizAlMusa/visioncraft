@@ -2,6 +2,8 @@ models/
 build/
 *.mp4
 *.mp3
+*.gif
+*.png
 scripts/*.mp4
 *.png
 script/*.png
