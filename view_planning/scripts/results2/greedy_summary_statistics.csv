@@ -1,2 +1,0 @@
-strategy,n_seeds,final_coverage_mean,final_coverage_std,monte_carlo_coverage_mean,monte_carlo_coverage_std,num_viewpoints_mean,num_viewpoints_std,computation_time_mean,computation_time_std,coverage_auc_mean,coverage_auc_std
-greedy,300,0.994,0.0024,0.9759,0.0066,11.1333,0.7226,0.5349,0.0374,7.1792,0.6928

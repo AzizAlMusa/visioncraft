@@ -1,0 +1,3 @@
+strategy,n_seeds,final_coverage_mean,final_coverage_std,final_redundancy_mean,final_redundancy_std,final_affinity_mean,final_affinity_std,num_viewpoints_mean,num_viewpoints_std,num_iterations_mean,num_iterations_std,simulation_time_mean,simulation_time_std,coverage_auc_mean,coverage_auc_std,redundancy_auc_mean,redundancy_auc_std,affinity_auc_mean,affinity_auc_std
+nbv,11,0.9992,0.0002,0.2226,0.001,35.262,26.712,11.1818,0.3857,235.1818,48.0224,3.2593,0.8006,2.8531,0.7763,0.8016,0.1827,111.4565,90.6089
+random,11,0.9992,0.0001,0.2207,0.0023,57.2591,47.5006,11.5455,0.4979,217.2727,38.3716,2.9408,0.6584,2.4943,0.65,0.7386,0.1493,165.5299,135.9718

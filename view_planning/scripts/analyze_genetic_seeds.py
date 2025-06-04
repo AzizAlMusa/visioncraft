@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Post-processing script for Greedy simulation results.
-Outputs plots and tables consistent with NBV/Random format.
+Post-processing script for Genetic (RKGA) simulation results.
+Outputs plots and tables consistent with NBV/Greedy format.
 """
 
 import numpy as np
@@ -13,14 +13,14 @@ import argparse
 import warnings
 warnings.filterwarnings('ignore')
 
-def load_seed_data(base_dir, strategy):
-    """Load data from all seed directories for a given strategy."""
+def load_seed_data(base_dir, strategy, file_prefix):
+    """Load data from all seed directories for a given strategy and prefix."""
     data = []
     seed_dirs = glob.glob(os.path.join(base_dir, f"{strategy}_seeds", "seed*"))
 
     for seed_dir in sorted(seed_dirs):
         seed_num = int(os.path.basename(seed_dir).replace('seed', ''))
-        pattern = f"{strategy}_seed{seed_num}_metrics.npz"
+        pattern = f"{file_prefix}_seed{seed_num}_metrics.npz"
         metrics_files = glob.glob(os.path.join(seed_dir, pattern))
 
         if metrics_files:
@@ -93,38 +93,36 @@ def compute_summary_stats(data_list, strategy):
 
     return stats
 
-def create_time_plots(greedy_data, save_dir):
-    """Create plots vs. time for greedy data."""
+def create_time_plots(data, save_dir, label='Genetic', color='green'):
+    """Create plots vs. time for given strategy data."""
     fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-    fig.suptitle('Simulation Results Over Time (Greedy)', fontsize=16)
+    fig.suptitle(f'Simulation Results Over Time ({label})', fontsize=16)
 
-    if not greedy_data:
+    if not data:
         print("No data to plot.")
         return
 
-    label = 'Greedy'
-    color = 'purple'
-    common_time = np.linspace(0, max(max(d['time']) for d in greedy_data), 500)
-    cov_interp = np.array([np.interp(common_time, d['time'], d['coverage']) for d in greedy_data])
-    red_interp = np.array([np.interp(common_time, d['time'], d['redundancy']) for d in greedy_data])
-    aff_interp = np.array([np.interp(common_time, d['time'], d['affinity']) for d in greedy_data])
+    common_time = np.linspace(0, max(max(d['time']) for d in data), 500)
+    cov_interp = np.array([np.interp(common_time, d['time'], d['coverage']) for d in data])
+    red_interp = np.array([np.interp(common_time, d['time'], d['redundancy']) for d in data])
+    aff_interp = np.array([np.interp(common_time, d['time'], d['affinity']) for d in data])
 
     cov_mean, cov_std = np.mean(cov_interp, axis=0), np.std(cov_interp, axis=0)
     red_mean, red_std = np.mean(red_interp, axis=0), np.std(red_interp, axis=0)
     aff_mean, aff_std = np.mean(aff_interp, axis=0), np.std(aff_interp, axis=0)
 
-    axes[0, 0].plot(common_time, cov_mean, label=f'{label} (n={len(greedy_data)})', color=color)
+    axes[0, 0].plot(common_time, cov_mean, label=f'{label} (n={len(data)})', color=color)
     axes[0, 0].fill_between(common_time, cov_mean - cov_std, cov_mean + cov_std, alpha=0.3, color=color)
 
-    axes[0, 1].plot(common_time, red_mean, label=f'{label} (n={len(greedy_data)})', color=color)
+    axes[0, 1].plot(common_time, red_mean, label=f'{label} (n={len(data)})', color=color)
     axes[0, 1].fill_between(common_time, red_mean - red_std, red_mean + red_std, alpha=0.3, color=color)
 
-    axes[1, 0].plot(common_time, aff_mean, label=f'{label} (n={len(greedy_data)})', color=color)
+    axes[1, 0].plot(common_time, aff_mean, label=f'{label} (n={len(data)})', color=color)
     axes[1, 0].fill_between(common_time, aff_mean - aff_std, aff_mean + aff_std, alpha=0.3, color=color)
 
     final_metrics = [cov_interp[:, -1], red_interp[:, -1]]
     labels = [f'{label} Coverage', f'{label} Redundancy']
-    colors = ['lightblue', 'lightblue']
+    colors = ['lightgreen', 'lightgreen']
     bp = axes[1, 1].boxplot(final_metrics, labels=labels, patch_artist=True)
     for patch, c in zip(bp['boxes'], colors):
         patch.set_facecolor(c)
@@ -141,7 +139,7 @@ def create_time_plots(greedy_data, save_dir):
 
     axes[0, 0].legend()
     plt.tight_layout()
-    path = os.path.join(save_dir, 'greedy_over_time.png')
+    path = os.path.join(save_dir, 'genetic_over_time.png')
     plt.savefig(path, dpi=300, bbox_inches='tight')
     print(f"Saved plot: {path}")
 
@@ -175,21 +173,24 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--results_dir', type=str, default='./results2')
     parser.add_argument('--output_dir', type=str, default=None)
+    parser.add_argument('--strategy', type=str, default='genetic')
+    parser.add_argument('--file_prefix', type=str, default='rkga')
     args = parser.parse_args()
+
     args.output_dir = args.output_dir or args.results_dir
     os.makedirs(args.output_dir, exist_ok=True)
 
     print("Loading data...")
-    greedy_data = load_seed_data(args.results_dir, 'greedy')
+    data = load_seed_data(args.results_dir, args.strategy, args.file_prefix)
 
     print("Computing stats...")
-    greedy_stats = compute_summary_stats(greedy_data, 'greedy') if greedy_data else None
+    stats = compute_summary_stats(data, args.strategy) if data else None
 
     print("Creating plots...")
-    create_time_plots(greedy_data, args.output_dir)
+    create_time_plots(data, args.output_dir, label=args.strategy.capitalize(), color='green')
 
     print("Creating tables...")
-    create_summary_table(greedy_stats, args.output_dir)
+    create_summary_table(stats, args.output_dir)
 
     print("Done.")
 
