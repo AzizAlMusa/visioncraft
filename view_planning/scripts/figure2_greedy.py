@@ -130,21 +130,22 @@ class GreedyCoverage:
 def plot_frame(ax, pts, pot, nbv=None, title=None):
     ax.clear()
     im = ax.imshow(pot, cmap='viridis', origin='lower',
-                   extent=[0,grid_size,0,grid_size],
+                   extent=[0, grid_size, 0, grid_size],
                    vmin=pot.min(), vmax=pot.max())
     for p in pts:
-        for dx in (-grid_size,0,grid_size):
-            for dy in (-grid_size,0,grid_size):
+        for dx in (-grid_size, 0, grid_size):
+            for dy in (-grid_size, 0, grid_size):
                 ax.add_patch(plt.Circle((p[0]+dx, p[1]+dy), fov_radius,
-                                        edgecolor='white', facecolor='none',
-                                        alpha=0.2, lw=1))
-    ax.scatter(pts[:,0], pts[:,1], s=30, c='deepskyblue',
+                              edgecolor='white', facecolor='none', alpha=0.2, lw=1))
+    ax.scatter(pts[:, 0], pts[:, 1], c='deepskyblue', s=30,
                edgecolors='white', linewidths=0.6)
     if nbv is not None:
         ax.scatter(*nbv, s=60, c='red', edgecolors='white', lw=1.5)
         ax.text(nbv[0]+2, nbv[1]+2, 'NBV', color='red', fontsize=8, weight='bold')
-    ax.set_xlim(0,grid_size); ax.set_ylim(0,grid_size)
-    if title: ax.set_title(title, fontsize=10)
+    ax.set_xlim(0, grid_size)
+    ax.set_ylim(0, grid_size)
+    if title:
+        ax.set_title(title, fontsize=10)
     return im
 
 # ---------- Run ----------
@@ -156,24 +157,22 @@ gc = GreedyCoverage(grid_size, fov_radius)
 # ---------- Snapshots / animation ----------
 if args.animate and len(snapshots) >= 2:
     fig, ax = plt.subplots(1,2,figsize=(10,5))
-    plot_frame(ax[0], viewpoints[:1], 1-snapshots[0].reshape(grid_size,grid_size),
-               title="Initial")
-    plot_frame(ax[1], viewpoints,    1-snapshots[-1].reshape(grid_size,grid_size),
-               title="Final")
+    plot_frame(ax[0], viewpoints[:1], 1-snapshots[0].reshape(grid_size, grid_size), title="Initial")
+    plot_frame(ax[1], viewpoints,    1-snapshots[-1].reshape(grid_size, grid_size), title="Final")
     fig.subplots_adjust(right=0.86)
-    cax = fig.add_axes([0.88,0.15,0.02,0.7])
+    cax = fig.add_axes([0.88, 0.15, 0.02, 0.7])
     fig.colorbar(ax[1].images[0], cax=cax).set_label("Potential")
     snap = os.path.join(args.save_dir, f"{args.strategy}_seed{args.seed}_snapshots.png")
-    plt.savefig(snap,dpi=300,bbox_inches='tight'); plt.close()
+    plt.savefig(snap, dpi=300, bbox_inches='tight'); plt.close()
     print(f"[Saved] Snapshots ➜ {snap}")
 
 if args.animate:
     fig, ax = plt.subplots(figsize=(6,6)); fig.patch.set_facecolor('black')
     ani = animation.FuncAnimation(fig,
-          lambda i:[plot_frame(ax, viewpoints[:i+1],
-                               1-snapshots[i].reshape(grid_size,grid_size),
-                               nbvs[i])],
-          frames=len(snapshots), interval=100, blit=False)
+        lambda i: [plot_frame(ax, viewpoints[:i+1],
+                              1-snapshots[i].reshape(grid_size, grid_size),
+                              nbvs[i])],
+        frames=len(snapshots), interval=100, blit=False)
     mp4 = os.path.join(args.save_dir, f"{args.strategy}_seed{args.seed}_anim.mp4")
     ani.save(mp4, writer='ffmpeg', fps=10, dpi=300); plt.close()
     print(f"[Saved] Animation  ➜ {mp4}")
@@ -225,7 +224,8 @@ np.savez_compressed(npz,
     viewpoint_contribution_hist = viewpoint_contribution_hist,
     point_redundancy_hist       = point_redundancy_hist,
     viewpoint_overlap_matrix    = overlap,
-    functional_isolation_flags  = functional_isolation_flags
+    functional_isolation_flags  = functional_isolation_flags,
+    final_viewpoints            = viewpoints      # <-- Add this line
 )
 print(f"[Saved] Metrics NPZ ➜ {npz}")
 print("[Done] Greedy simulation complete.")

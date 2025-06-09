@@ -35,8 +35,8 @@ parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--save_dir", type=str, default="./results2")
 parser.add_argument("--animate", action="store_true")
 parser.add_argument("--smart_nbv_insertion", action="store_true")
-parser.add_argument("--k_attr", type=float, default=0.4)
-parser.add_argument("--k_rep", type=float, default=1.0)
+parser.add_argument("--k_attr", type=float, default=10.0)
+parser.add_argument("--k_rep", type=float, default=0.25)
 parser.add_argument("--verbose", action="store_true")
 args = parser.parse_args()
 
@@ -194,7 +194,7 @@ while True:
         m = np.zeros_like(particles); v = np.zeros_like(particles)
         t_adam = 0; recent_moves.clear()
 
-    if coverage >= .999 or len(particles) >= max_viewpoints: break
+    if coverage >= 1.0 or len(particles) >= max_viewpoints: break
 
 # ---------- Animation / snapshots ----------
 if args.animate:
@@ -267,7 +267,9 @@ np.savez_compressed(npz,
     viewpoint_contribution_hist=viewpoint_contribution_hist,
     point_redundancy_hist=point_redundancy_hist,
     viewpoint_overlap_matrix=overlap,
-    functional_isolation_flags=functional_isolation_flags
+    functional_isolation_flags=functional_isolation_flags,
+    final_viewpoints=particles              # <-- ADD THIS LINE
+
 )
 print(f"[Saved] Metrics NPZ ➜ {npz}")
 print("[Done] Simulation complete.")

@@ -1271,132 +1271,339 @@ std::vector<SphereBlob> clusterHighPotentialRegions(
 }
 
 
-/* ... [Structural breakdown as already provided] ... */
-
 int main() {
     srand(time(nullptr));
     visioncraft::Visualizer visualizer;
-    visualizer.setBackgroundColor(Eigen::Vector3d(1.0, 1.0, 1.0));
+    visualizer.setBackgroundColor(Eigen::Vector3d(0.0, 0.0, 0.0));
 
     visioncraft::Model model;
+    
     std::cout << "Loading model..." << std::endl;
-    model.loadModel("../models/engineering10.ply", 200000);
+    model.loadModel("../models/cat.ply", 100000);
     std::cout << "Model loaded successfully." << std::endl;
 
     auto visibilityManager = std::make_shared<visioncraft::VisibilityManager>(model);
     model.addVoxelProperty("potential", 0.0f);
     model.addVoxelProperty("force", 0.0f);
-    model.addVoxelProperty("alignment_visibility", 0); // Required for internal access even if unused
+    model.addVoxelProperty("alignment_visibility", 0);
     model.addVoxelProperty("alignment_potential", 0.0f);
     model.addVoxelProperty("torque", 0.0f);
 
 
     float sphere_radius = 400.0f;
-    int num_viewpoints = 8;
+    int num_viewpoints = 6;
     auto viewpoints = generateClusteredViewpoints(num_viewpoints, sphere_radius);
+    // auto viewpoints = generateRandomViewpoints(num_viewpoints, sphere_radius);
 
     for (auto& viewpoint : viewpoints) {
         viewpoint->setDownsampleFactor(8.0);
         visibilityManager->trackViewpoint(viewpoint);
         viewpoint->setFarPlane(900);
         viewpoint->setNearPlane(50);
+        
     }
-
     std::unordered_map<int, std::vector<Eigen::Vector3d>> viewpointPaths;
+
+    // Simulation parameters
+    float sigma = 223.0f;
+    float k_attr = 1000.0f;
+    float k_repel = 50000.0f;
+    float delta_t = 0.04f;
+    float alpha = 1.0f;
+    float c = 100.0f;
+    int max_iterations = 100;
+    int V_max = num_viewpoints; //num_viewpoints
+
+    // Generate manifold mapping
     std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash> voxelToSphereMap;
     mapVoxelsToSphere(model, sphere_radius, voxelToSphereMap);
 
+  
+    // Prepare CSV logging
     std::ofstream csv_file("results.csv");
     csv_file << "Timestep,CoverageScore,SystemEnergy,KineticEnergy,ForceMagnitude,Entropy\n";
     csv_file << std::fixed << std::setprecision(6);
-
+    
+    // Initialize the CSV file for viewpoint positions and orientations
     std::ofstream viewpoint_csv_file("viewpoint_data.csv");
     viewpoint_csv_file << "Timestep,ViewpointID,X,Y,Z,OrientationX,OrientationY,OrientationZ,OrientationW\n";
-
+     // Log the positions and orientations for each viewpoint
+    // Log the initial positions and orientations of viewpoints
     for (size_t i = 0; i < viewpoints.size(); ++i) {
-        auto pos = viewpoints[i]->getPosition();
-        auto ori = viewpoints[i]->getOrientationQuaternion();
-        viewpoint_csv_file << "0," << i << "," << pos.x() << "," << pos.y() << "," << pos.z() << ","
-                           << ori.x() << "," << ori.y() << "," << ori.z() << "," << ori.w() << "\n";
+        Eigen::Vector3d position = viewpoints[i]->getPosition();
+        Eigen::Quaterniond orientation = viewpoints[i]->getOrientationQuaternion();
+        viewpoint_csv_file << "0," << i << ","
+                               << position.x() << "," << position.y() << "," << position.z() << ","
+                               << orientation.x() << "," << orientation.y() << ","
+                               << orientation.z() << "," << orientation.w() << "\n";
     }
+    // Metrics tracking
+    double previous_coverage_score = 0.0;
 
     std::vector<Eigen::Vector3d> previous_positions;
-    for (const auto& vp : viewpoints) previous_positions.push_back(vp->getPosition());
+    for (const auto& viewpoint : viewpoints) {
+        previous_positions.push_back(viewpoint->getPosition());
+    }
 
-    float sigma = 223.0f, k_attr = 1000.0f, k_repel = 50000.0f;
-    float delta_t = 0.04f, alpha = 1.0f;
-    int max_iterations = 100, V_max = num_viewpoints;
-    bool use_exponential = false;
+    // visualizer.addVoxelMapProperty(model, "visibility");
+    // //iterate through voxel keys and visualize the voxel to sphere mapping
+    // for (const auto& kv : voxelToSphereMap) {
+    //     const auto& key = kv.first;
+    //     const auto& spherePoint = kv.second;
+    //     // std::cout << "Key: " << key.k[0] << ", " << key.k[1] << ", " << key.k[2] << std::endl;
+    //     // std::cout << "Sphere Point: " << spherePoint.transpose() << std::endl;
+    //     visualizer.visualizeVoxelToSphereMapping(model, key, voxelToSphereMap);
+
+            
+    //     // Eigen::Vector3d normalColor(1.0, 1.0, 1.0); // Red color for the normals
+    //     // double normalLength = 10.0; // Length of the normal vector
+
+    //     // visualizer.visualizeVoxelNormals(model, normalLength, normalColor, key);
+    //     // visualizer.render();
+    //     // std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    // }
+    // while loop that terminates when pressing the 'q' key
+    // while (true) {
+    //     visualizer.render();
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    // }
+
+    // loop through angles of a circle and make points on the sphere
+
+        
+    Eigen::Vector3d position(400.0f, 0.0f, 0.0f);
+    Eigen::Vector3d look_at(0.0, 0.0, 0.0);
+
+    auto viewpoint = std::make_shared<visioncraft::Viewpoint>(position, look_at);
+  
 
     for (int iter = 0; iter < max_iterations; ++iter) {
-        for (auto& vp : viewpoints) vp->performRaycastingOnGPU(model);
+
+        
+        // resetPotentials(model);
+        // Perform raycasting
+        for (auto& viewpoint : viewpoints) {
+            viewpoint->performRaycastingOnGPU(model);
+        }
+  
+        // // Log viewpoint positions to the CSV file
+        // for (size_t i = 0; i < viewpoints.size(); ++i) {
+        //     Eigen::Vector3d position = viewpoints[i]->getPosition();
+        //     viewpoint_csv_file << iter << "," << i << ","
+        //                     << position.x() << "," << position.y() << "," << position.z() << "\n";
+            
+           
+
+
+        // }
+
+
+
+        bool use_exponential = false; // Set to false for quadratic potential
 
         computeVoxelPotentials(model, voxelToSphereMap, viewpoints, sphere_radius, V_max, use_exponential);
+        
+        computeVisibilityAlignment(model, viewpoints, visibilityManager);
+        computeAlignmentPotential(model, voxelToSphereMap, viewpoints, sphere_radius, sigma, c);
+
+        
+        // visualizer.visualizePotentialOnSphere(model, sphere_radius, "potential", voxelToSphereMap);
+        
+        // std::vector<PositionCluster> injection_regions = getHighPotentialClusters(model, voxelToSphereMap);
+        // visualizer.visualizeInjectionRegionsOnSphere(model, injection_regions, voxelToSphereMap);
+
+        float potential_threshold = 15.0f;
+        int min_blob_size = 20;
 
         vtkSmartPointer<vtkPolyData> spherePolyData = computeInterpolatedPotentialsOnSphere(
             model, voxelToSphereMap, "potential", sphere_radius);
-        std::vector<SphereBlob> blobs = clusterHighPotentialRegions(spherePolyData, 15.0f, 20);
+
+        vtkSmartPointer<vtkPolyData> spherePolyAlignmentData = computeInterpolatedPotentialsOnSphere(
+            model, voxelToSphereMap, "alignment_potential", sphere_radius);
+
+        vtkSmartPointer<vtkPolyData> forcePolyAlignmentData = computeInterpolatedPotentialsOnSphere(
+            model, voxelToSphereMap, "torque", sphere_radius);
+
+
+        // Step 3: Compute blobs based on interpolated potentials
+        std::vector<SphereBlob> blobs = clusterHighPotentialRegions(
+            spherePolyData, potential_threshold, min_blob_size);
+
+         // Step 3: Compute blobs based on interpolated potentials
+        std::vector<SphereBlob> Alignmentblobs = clusterHighPotentialRegions(
+            spherePolyAlignmentData, potential_threshold, min_blob_size);
+        // Find the blob with the highest weight
 
         float MAX_POTENTIAL = std::log(M_PI * sphere_radius) * num_viewpoints;
         visualizer.visualizePotentialOnSphere(spherePolyData, MAX_POTENTIAL, 0.5f);
 
+        // MAX_POTENTIAL = 100.0f ;
+        // visualizer.visualizePotentialOnSphere(spherePolyAlignmentData, MAX_POTENTIAL);
+
+        // visualizer.visualizePotentialOnSphere(forcePolyAlignmentData, MAX_POTENTIAL);
+
+        // // Prepare a vector to store the centroids
         std::vector<Eigen::Vector3d> blobCentroids;
-        for (const auto& blob : blobs) blobCentroids.push_back(blob.centroid);
+
+        // Extract the centroids from the blobs
+        for (const auto& blob : blobs) {
+            blobCentroids.push_back(blob.centroid); // Assuming each SphereBlob has a member `centroid`
+        }
+
+        // Visualize the blob centroids
         visualizer.visualizeBlobCentroidsOnSphere(model, blobCentroids, sphere_radius);
 
+  
+        // Compute metrics
         double coverage_score = visibilityManager->computeCoverageScore();
+  
+       // Compute system energy
         double system_energy = computeSystemEnergy(model, viewpoints, sigma, V_max, k_repel, alpha);
         double kinetic_energy = computeKineticEnergy(viewpoints, previous_positions, delta_t);
         double average_force = computeAverageForce(model, voxelToSphereMap, viewpoints, sphere_radius, k_repel, alpha, sigma, V_max);
         double system_entropy = computeEntropy(model);
+        double quality_coverage_score = computeAlignedVoxelPercentage(model);
 
-        csv_file << iter << "," << coverage_score << "," << system_energy << "," << kinetic_energy << ","
-                 << average_force << "," << system_entropy << "\n";
-
-        std::cout << "Iteration: " << iter << ", Coverage Score: " << coverage_score
+        // Log metrics to CSV
+        csv_file << iter << "," << coverage_score << "," << system_energy << "," << kinetic_energy << "," << average_force << "," << system_entropy <<"\n";
+        
+        // Print metrics to console
+        std::cout << "Iteration: " << iter 
+                  << ", Coverage Score: " << coverage_score 
                   << ", System Energy: " << system_energy
-                  << ", Kinetic Energy: " << kinetic_energy
-                  << ", Avg Force: " << average_force
-                  << ", Entropy: " << system_entropy << "\n";
-
-        for (size_t i = 0; i < viewpoints.size(); ++i)
-            previous_positions[i] = viewpoints[i]->getPosition();
-
-        for (auto& viewpoint : viewpoints) {
-            Eigen::Vector3d F_attr = computeAttractiveForce(model, voxelToSphereMap, viewpoint, sphere_radius, sigma, V_max);
-            Eigen::Vector3d F_repel = computeRepulsiveForce(viewpoints, viewpoint, sphere_radius, k_repel, alpha);
-            Eigen::Vector3d F_total = F_attr + F_repel;
-
-            Eigen::Vector3d n = viewpoint->getPosition().normalized();
-            Eigen::Vector3d F_tangent = F_total - F_total.dot(n) * n;
-
-            if (coverage_score < 1.0) {
-                Eigen::Vector3d new_pos = viewpoint->getPosition() + delta_t * F_tangent;
-                updateViewpointState(viewpoint, new_pos, sphere_radius, true);
-            } else {
-                Eigen::Vector3d new_pos = viewpoint->getPosition() + 0.1f * delta_t * F_tangent;
-                updateViewpointState(viewpoint, new_pos, sphere_radius, false);
-            }
-
-            visualizer.updateViewpoint(*viewpoint, false, true, true, true);
-        }
+                  << ", Kinetic Energy: " << kinetic_energy 
+                  << ", Average Force: " << average_force 
+                  << ", Entropy: " << system_entropy 
+                  << ", Quality Coverage: " << quality_coverage_score << "\n";
 
         for (size_t i = 0; i < viewpoints.size(); ++i) {
-            auto pos = viewpoints[i]->getPosition();
-            auto ori = viewpoints[i]->getOrientationQuaternion();
-            viewpoint_csv_file << iter << "," << i << "," << pos.x() << "," << pos.y() << "," << pos.z() << ","
-                               << ori.x() << "," << ori.y() << "," << ori.z() << "," << ori.w() << "\n";
-        }
+            // Update previous positions
+            previous_positions[i] = viewpoints[i]->getPosition();
+         }
 
-        for (int i = 0; i < viewpoints.size(); i++) {
-            viewpointPaths[i].push_back(viewpoints[i]->getPosition());
+        // Update viewpoint positions
+        for (auto& viewpoint : viewpoints) {
+         
+
+            // Eigen::Vector3d F_attr = computeAttractiveForce(model, viewpoint, sphere_radius, sigma, num_viewpoints);
+            Eigen::Vector3d F_attr = computeAttractiveForce(const_cast<visioncraft::Model&>(model), voxelToSphereMap, viewpoint, sphere_radius, sigma, V_max, use_exponential);
+            Eigen::Vector3d F_repel = computeRepulsiveForce(viewpoints, viewpoint, sphere_radius, k_repel, alpha);
+            // std::cout << "F_attr: " << F_attr.transpose() << "F_repel: " << F_repel.transpose() << std::endl;
+            Eigen::Vector3d Torque = computeAttractiveTorque(model, voxelToSphereMap, viewpoint, sphere_radius, sigma, c);
+            std::cout << "Torque: " << Torque.transpose() << std::endl;
+
+            Eigen::Vector3d F_total = F_attr + F_repel ; // + F_repel
+            Eigen::Vector3d n = viewpoint->getPosition().normalized();
+            Eigen::Vector3d F_tangent = F_total - F_total.dot(n) * n;
+            // compute the percentage of f_tanget over the total force
+            double percentage = F_tangent.norm() / F_total.norm();
+            // std::cout << "percentage: " << percentage << std::endl;
+
+            // std::cout << "F_tangent: " << F_tangent.transpose() << std::endl;
+            if (coverage_score < 1.0) {
+                Eigen::Vector3d new_position = viewpoint->getPosition() + delta_t * F_tangent; // delta_t *
+                updateViewpointState(viewpoint, new_position, sphere_radius, true);
+            } else {
+                
+                Eigen::Vector3d new_position = viewpoint->getPosition() + 0.1f * delta_t * F_tangent;
+                // updateViewpointState(viewpoint, new_position, sphere_radius);
+                // updateViewpointOrientation(viewpoint, Torque, 0.2f);
+
+
+            }
+          
+
+            // visualizer.addViewpoint(*viewpoint, false, true);
+            visualizer.updateViewpoint(*viewpoint, false, true, true, true);
         }
+        
+        for (int i = 0; i < viewpoints.size(); i++) {
+            Eigen::Vector3d position = viewpoints[i]->getPosition();
+            viewpointPaths[i].push_back(position);
+        }
+        Eigen::Vector3d red(1.0, 0.0, 0.0);
+        Eigen::Vector3d green(1.0, 0.0, 0.0);
 
         visualizer.addVoxelMapProperty(model, "visibility");
         visualizer.visualizePaths(viewpointPaths, sphere_radius);
+
+        //  while (!kbhit()) {
+        //     // Perform tasks here
+        //     // Example: visualizer.render();
+        //     visualizer.render();
+        //     std::this_thread::sleep_for(std::chrono::milliseconds(1));  // Sleep to avoid high CPU usage
+        // }
         visualizer.render();
+
+        // // If a key is pressed, capture the key
+        // char key = getchar();
+        // if (key == 'q' || key == 'Q') {
+        //     std::cout << "Exit key pressed!" << std::endl;
+        // }
+
+        // visualizer.removeViewpoints();
         visualizer.removeVoxelMapProperty();
+
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+
+        // if (iter % 30 == 0 && iter != 0) { // Add a new viewpoint every 10 iterations
+        //     // Eigen::Vector3d random_position(
+        //     //     static_cast<float>(rand()) / RAND_MAX * sphere_radius,
+        //     //     static_cast<float>(rand()) / RAND_MAX * sphere_radius,
+        //     //     static_cast<float>(rand()) / RAND_MAX * sphere_radius);
+        //     // Eigen::Vector3d look_at(0.0, 0.0, 0.0);
+
+        //     // Add the new viewpoint
+        //     addNewViewpoint(viewpoints, visibilityManager, visualizer, random_position, look_at, sphere_radius);
+
+        //     // Initialize its previous position
+        //     previous_positions.push_back(viewpoints.back()->getPosition());
+        // }
+
+        Eigen::Vector3d next_candidate;
+
+        // // // Find the blob with the highest weight and its highest potential vertex if blobs exist
+        // if (!blobs.empty()) {
+        //     const SphereBlob& highestWeightBlob = *std::max_element(
+        //         blobs.begin(), blobs.end(),
+        //         [](const SphereBlob& a, const SphereBlob& b) {
+        //             return a.weightedPotential < b.weightedPotential;
+        //         });
+
+        //     next_candidate = highestWeightBlob.highestPotentialVertex;
+        //     std::cout << "Next candidate vertex: [" << next_candidate.x() << ", "
+        //             << next_candidate.y() << ", " << next_candidate.z() << "]" << std::endl;
+
+        //     if (iter % 20 == 0 && iter != 0){
+            
+        //         Eigen::Vector3d look_at(0.0, 0.0, 0.0);
+        //         // Add the new viewpoint
+        //         addNewViewpoint(viewpoints, visibilityManager, visualizer, next_candidate, look_at, sphere_radius);
+
+        //         // Initialize its previous position
+        //         previous_positions.push_back(viewpoints.back()->getPosition());
+
+        //     }
+                
+        // }
+
+        // Add the position and orientation in each timestep
+
+        // Log the positions and orientations of viewpoints
+        for (size_t i = 0; i < viewpoints.size(); ++i) {
+            Eigen::Vector3d position = viewpoints[i]->getPosition();
+            Eigen::Quaterniond orientation = viewpoints[i]->getOrientationQuaternion();
+            
+            viewpoint_csv_file << iter << "," << i << ","
+                                << position.x() << "," << position.y() << "," << position.z() << ","
+                                << orientation.x() << "," << orientation.y() << ","
+                                << orientation.z() << "," << orientation.w() << "\n";
+        }
+        
+
+
+
     }
 
     viewpoint_csv_file.close();

@@ -715,6 +715,7 @@ bool Model::convertVoxelGridToGPUFormat(double voxelSize) {
         int y_idx = static_cast<int>((voxel_center.y() - min_y) / voxelSize);
         int z_idx = static_cast<int>((voxel_center.z() - min_z) / voxelSize);
 
+
         // Ensure indices are within calculated dimensions
         if (x_idx >= 0 && x_idx < gpu_voxel_grid_.width &&
             y_idx >= 0 && y_idx < gpu_voxel_grid_.height &&
@@ -842,32 +843,79 @@ void Model::updateOctomapWithHits(const std::unordered_map<octomap::OcTreeKey, b
  * 
  * @return True if the meta voxel map is generated successfully, false otherwise.
  */
+// bool Model::generateVoxelMap() {
+//     if (!surfaceShellOctomap_) {
+//         std::cerr << "Error: Surface shell OctoMap is not available." << std::endl;
+//         return false;
+//     }
+
+//     // Clear any existing data in the meta voxel map
+//     meta_voxel_map_.clear();
+
+//     // Iterate through each leaf node in the surface shell octomap
+//     for (auto it = surfaceShellOctomap_->begin_leafs(); it != surfaceShellOctomap_->end_leafs(); ++it) {
+       
+  
+//             octomap::OcTreeKey key = it.getKey();
+//             std::cout << "[Insert] key = (" << key.k[0] << ", " << key.k[1] << ", " << key.k[2]
+//           << ") | hash = " << std::hash<octomap::OcTreeKey>()(key) << std::endl;
+
+//             Eigen::Vector3d position(it.getX(), it.getY(), it.getZ());
+//             float occupancy = it->getOccupancy();
+//             MetaVoxel meta_voxel(position, key, occupancy);
+
+//             // Insert the MetaVoxel into the map
+//             meta_voxel_map_.setMetaVoxel(key, meta_voxel);
+        
+//     }
+
+//     // std::cout << "Meta voxel map generated successfully with " << meta_voxel_map_.size() << " voxels." << std::endl;
+//     return true;
+// }
+
 bool Model::generateVoxelMap() {
     if (!surfaceShellOctomap_) {
-        std::cerr << "Error: Surface shell OctoMap is not available." << std::endl;
+        std::cerr << "Error: Surface shell OctoMap is not available.\n";
         return false;
     }
 
-    // Clear any existing data in the meta voxel map
+    /* clear any previous content */
     meta_voxel_map_.clear();
 
-    // Iterate through each leaf node in the surface shell octomap
-    for (auto it = surfaceShellOctomap_->begin_leafs(); it != surfaceShellOctomap_->end_leafs(); ++it) {
-       
-  
-            octomap::OcTreeKey key = it.getKey();
-            Eigen::Vector3d position(it.getX(), it.getY(), it.getZ());
-            float occupancy = it->getOccupancy();
-            MetaVoxel meta_voxel(position, key, occupancy);
+    /* loop over every occupied leaf voxel */
+    for (auto it = surfaceShellOctomap_->begin_leafs();
+         it != surfaceShellOctomap_->end_leafs(); ++it)
+    {
+        /* voxel centre in world coordinates */
+        octomap::point3d centre(it.getX(), it.getY(), it.getZ());
 
-            // Insert the MetaVoxel into the map
-            meta_voxel_map_.setMetaVoxel(key, meta_voxel);
-        
+        /* --- canonical key (always at max depth) --- */
+        octomap::OcTreeKey key_full;
+        if (!surfaceShellOctomap_->coordToKeyChecked(centre, key_full)) {
+            std::cerr << "[WARN] coordToKeyChecked failed at "
+                      << centre << '\n';
+            continue;
+        }
+
+        /* prepare and insert MetaVoxel */
+        Eigen::Vector3d pos(centre.x(), centre.y(), centre.z());
+        float occ = it->getOccupancy();
+
+        MetaVoxel mv(pos, key_full, occ);
+        meta_voxel_map_.setMetaVoxel(key_full, mv);
+
+        /* uncomment for debugging
+        std::cout << "[Insert] (" << key_full.k[0] << ", "
+                                  << key_full.k[1] << ", "
+                                  << key_full.k[2] << ") hash = "
+                                  << std::hash<octomap::OcTreeKey>()(key_full)
+                                  << '\n';
+        */
     }
 
-    // std::cout << "Meta voxel map generated successfully with " << meta_voxel_map_.size() << " voxels." << std::endl;
     return true;
 }
+
 
 /**
  * @brief Retrieve a MetaVoxel object from the meta voxel map using the specified OctoMap key.
@@ -877,9 +925,34 @@ bool Model::generateVoxelMap() {
  * @param key The OctoMap key of the MetaVoxel to retrieve.
  * @return Pointer to the MetaVoxel if found, nullptr otherwise.
  */
-MetaVoxel* Model::getVoxel(const octomap::OcTreeKey& key) {
-    return meta_voxel_map_.getMetaVoxel(key);
+// MetaVoxel* Model::getVoxel(const octomap::OcTreeKey& key) {
+//     return meta_voxel_map_.getMetaVoxel(key);
+// }
+
+/* --------------------------------------------------------------------------
+ *  Canonical key lookup
+ *
+ *  Whatever depth the caller’s key has, convert it to a full-depth key
+ *  first, so it matches the keys we stored in generateVoxelMap().
+ * --------------------------------------------------------------------------*/
+MetaVoxel* Model::getVoxel(const octomap::OcTreeKey& raw_key)
+{
+    if (!surfaceShellOctomap_)               // should never happen
+        return nullptr;
+
+    /* centre of the voxel represented by raw_key */
+    octomap::point3d centre =
+        surfaceShellOctomap_->keyToCoord(raw_key);
+
+    /* always produce a max-depth key from that centre */
+    octomap::OcTreeKey key_full;
+    if (!surfaceShellOctomap_->coordToKeyChecked(centre, key_full))
+        return nullptr;                      // out of map bounds
+
+    /* normal lookup – now guaranteed to hit if the voxel exists */
+    return meta_voxel_map_.getMetaVoxel(key_full);
 }
+
 
 /**
  * @brief Retrieve a MetaVoxel object from the meta voxel map using the specified voxel position.
@@ -897,6 +970,7 @@ MetaVoxel* Model::getVoxel(const Eigen::Vector3d& position) {
     std::cerr << "Failed to convert position to OctoMap key." << std::endl;
     return nullptr;
 }
+
 
 /**
  * @brief Update the occupancy value of a MetaVoxel in the meta voxel map.
@@ -1246,25 +1320,28 @@ bool Model::computeVoxelNormals() {
         }
     }
 
-    // Step 3: Compute the average normal for each voxel and set it in meta_voxel_map_
+    // Step 3: Compute average normals and set them in the MetaVoxel map
     for (const auto& entry : normals_accumulator) {
-        octomap::OcTreeKey key = entry.first;
+        const octomap::OcTreeKey& key = entry.first;
         const Eigen::Vector3d& normal_sum = entry.second.first;
         int count = entry.second.second;
 
-        // Calculate the average normal
         Eigen::Vector3d average_normal = normal_sum / count;
         average_normal.normalize();
 
-        // Set the "normal" property for each voxel in meta_voxel_map_
+        // Ensure the MetaVoxel exists before setting the property
+        if (!meta_voxel_map_.contains(key)) {
+            meta_voxel_map_.setMetaVoxel(key, MetaVoxel());
+        }
+
         setVoxelProperty(key, "normal", average_normal);
     }
+
+
 
     std::cout << "Voxel normals computed and stored successfully." << std::endl;
     return true;
 }
-
-
 
 
 } // namespace visioncraft

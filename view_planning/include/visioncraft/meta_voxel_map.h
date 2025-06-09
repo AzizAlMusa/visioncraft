@@ -1,13 +1,41 @@
 #ifndef VISIONCRAFT_META_VOXEL_MAP_H
 #define VISIONCRAFT_META_VOXEL_MAP_H
 
+#include <map>
 #include <unordered_map>
 #include <string>
 #include <stdexcept>
 #include <octomap/ColorOcTree.h>
 #include "visioncraft/meta_voxel.h"
 
+
+namespace std {
+
+template <>
+struct hash<octomap::OcTreeKey> {
+    std::size_t operator()(const octomap::OcTreeKey& key) const {
+        std::size_t seed = 0;
+        seed ^= std::hash<unsigned int>()(key.k[0]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= std::hash<unsigned int>()(key.k[1]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= std::hash<unsigned int>()(key.k[2]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        return seed;
+    }
+};
+
+
+} // namespace std
+
+
 namespace visioncraft {
+
+struct OcTreeKeyXYZEqual {
+    bool operator()(const octomap::OcTreeKey& a,
+                    const octomap::OcTreeKey& b) const noexcept {
+        return a.k[0] == b.k[0] &&
+               a.k[1] == b.k[1] &&
+               a.k[2] == b.k[2];
+    }
+};
 
 /**
  * @brief Class for managing MetaVoxel instances within a map structure.
@@ -18,6 +46,13 @@ namespace visioncraft {
  */
 class MetaVoxelMap {
 public:
+
+
+
+    using Key   = octomap::OcTreeKey;
+    using Hash  = Key::KeyHash;      // unchanged
+    using Equal = OcTreeKeyXYZEqual; // depth-agnostic comparator
+    using Map   = std::unordered_map<Key, MetaVoxel, Hash, Equal>;
     /**
      * @brief Constructor for MetaVoxelMap.
      */
@@ -103,29 +138,47 @@ public:
      */
     size_t size() const;
 
-    /**
-     * @brief Retrieve the internal meta voxel map.
-     *
-     * @return A const reference to the unordered map of MetaVoxel objects.
-     */
-    const std::unordered_map<octomap::OcTreeKey, MetaVoxel, octomap::OcTreeKey::KeyHash>& getMap() const {
-        return meta_voxel_map_;
-    }
+    // /**
+    //  * @brief Retrieve the internal meta voxel map.
+    //  *
+    //  * @return A const reference to the unordered map of MetaVoxel objects.
+    //  */
+    // const std::unordered_map<octomap::OcTreeKey, MetaVoxel, octomap::OcTreeKey::KeyHash>& getMap() const {
+    //     return meta_voxel_map_;
+    // }
 
 
-    /**
-     * @brief Retrieve the internal meta voxel map (non-const version).
-     *
-     * This function allows modifications to the map and its contents.
-     * 
-     * @return A non-const reference to the unordered map of MetaVoxel objects.
-     */
-    std::unordered_map<octomap::OcTreeKey, MetaVoxel, octomap::OcTreeKey::KeyHash>& getMap() {
-        return meta_voxel_map_;
-    }
+    // /**
+    //  * @brief Retrieve the internal meta voxel map (non-const version).
+    //  *
+    //  * This function allows modifications to the map and its contents.
+    //  * 
+    //  * @return A non-const reference to the unordered map of MetaVoxel objects.
+    //  */
+    // std::unordered_map<octomap::OcTreeKey, MetaVoxel, octomap::OcTreeKey::KeyHash>& getMap() {
+    //     return meta_voxel_map_;
+    // }
+
+//     const std::unordered_map<octomap::OcTreeKey, MetaVoxel>& getMap() const {
+//     return meta_voxel_map_;
+// }
+
+//     std::unordered_map<octomap::OcTreeKey, MetaVoxel>& getMap() {
+//         return meta_voxel_map_;
+//     }
+
+    bool contains(const octomap::OcTreeKey& key) const;
+
+    const Map& getMap() const { return meta_voxel_map_; }
+          Map& getMap()       { return meta_voxel_map_; }
 
 private:
-    std::unordered_map<octomap::OcTreeKey, MetaVoxel, octomap::OcTreeKey::KeyHash> meta_voxel_map_; ///< Map of MetaVoxel objects, keyed by OctoMap keys.
+    // std::unordered_map<octomap::OcTreeKey, MetaVoxel, octomap::OcTreeKey::KeyHash> meta_voxel_map_; ///< Map of MetaVoxel objects, keyed by OctoMap keys.
+    // std::unordered_map<octomap::OcTreeKey, MetaVoxel> meta_voxel_map_;
+
+
+    Map meta_voxel_map_;
+
 };
 
 } // namespace visioncraft

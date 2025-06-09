@@ -50,18 +50,36 @@ MetaVoxel* MetaVoxelMap::getMetaVoxel(const octomap::OcTreeKey& key) const {
     if (it != meta_voxel_map_.end()) {
         return const_cast<MetaVoxel*>(&it->second);
     } else {
-        // Print the key being searched for
-        std::cerr << "MetaVoxel not found for key: (" << key.k[0] << ", " << key.k[1] << ", " << key.k[2] << ")" << std::endl;
+        
+        std::cerr << "MetaVoxel not found for key: (" << key.k[0] << ", " << key.k[1] << ", " << key.k[2] << ")\n";
+        std::cerr << "  Hash of queried key: " << std::hash<octomap::OcTreeKey>()(key) << "\n";
 
-        // Debug: Iterate manually to check for close matches
+        void* callstack[128];
+        int frames = backtrace(callstack, 128);
+        char** strs = backtrace_symbols(callstack, frames);
+        std::cerr << "  Stack trace:\n";
+        for (int i = 0; i < frames; ++i) {
+            std::cerr << "    " << strs[i] << "\n";
+        }
+        free(strs);
+
         for (const auto& entry : meta_voxel_map_) {
-            const octomap::OcTreeKey& stored_key = entry.first;
+            const auto& stored_key = entry.first;
             if (stored_key.k[0] == key.k[0] && stored_key.k[1] == key.k[1] && stored_key.k[2] == key.k[2]) {
-                std::cerr << "Potential match found with identical values in stored key, but find() failed. Stored Key: ("
-                          << stored_key.k[0] << ", " << stored_key.k[1] << ", " << stored_key.k[2] << ")" << std::endl;
+                std::cerr << "  Matching key exists but was not found by find()\n";
+                std::cerr << "  Stored Key: (" << stored_key.k[0] << ", " << stored_key.k[1] << ", " << stored_key.k[2] << ")\n";
+                // std::cerr << "  Hash of stored key: " << octomap::OcTreeKey::KeyHash{}(stored_key) << "\n";
+                std::cerr << "  Hash of stored key: " << std::hash<octomap::OcTreeKey>()(stored_key) << "\n";
+
+                if (!(stored_key == key)) {
+                    std::cerr << "  Also: stored_key == key evaluates to false\n";
+                } else {
+                    std::cerr << "  stored_key == key evaluates to true\n";
+                }
                 break;
             }
         }
+
 
         return nullptr;
     }
@@ -144,5 +162,19 @@ void MetaVoxelMap::clear() {
 size_t MetaVoxelMap::size() const {
     return meta_voxel_map_.size();
 }
+
+
+/**
+ * @brief Check if the MetaVoxel map contains a specific key.
+ * 
+ * This function checks if the MetaVoxel map contains a MetaVoxel associated with the given OctoMap key.
+ * 
+ * @param key The OctoMap key to check for existence in the map.
+ * @return True if the key exists in the map, false otherwise.
+ */
+bool MetaVoxelMap::contains(const octomap::OcTreeKey& key) const {
+    return meta_voxel_map_.find(key) != meta_voxel_map_.end();
+}
+
 
 } // namespace visioncraft

@@ -3,24 +3,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 import argparse
 from scipy.stats import entropy
+from matplotlib.patches import Ellipse
+import matplotlib.transforms as transforms
+import os
 
 def compute_metrics(assignments):
     num_points, num_viewpoints = assignments.shape
-
-    # Point redundancy → how many viewpoints see each point
     seen_counts = assignments.sum(axis=1)
     redundancy_hist = np.bincount(seen_counts, minlength=10)
     redundancy_percent = redundancy_hist / redundancy_hist.sum() * 100
 
-    # Exclusive area per viewpoint (i.e. points only seen by 1 VP)
     exclusive_mask = (seen_counts == 1)
     exclusive_contributions = np.zeros(num_viewpoints, dtype=float)
     for idx in np.where(exclusive_mask)[0]:
         vp = assignments[idx].argmax()
         exclusive_contributions[vp] += 1
-    exclusive_contributions = (exclusive_contributions / num_points) * 100  # → % of area
+    exclusive_contributions = (exclusive_contributions / num_points) * 100
 
-    # Overlap matrix + entropy
     overlap_matrix = np.zeros((num_viewpoints, num_viewpoints), dtype=np.float32)
     for i in range(num_viewpoints):
         vi = assignments[:, i]
@@ -43,16 +42,39 @@ def compute_metrics(assignments):
         "entropy": overlap_entropies,
     }
 
+def draw_cov_ellipse(xs, ys, ax, n_std=1.0, facecolor='none', edgecolor='black', **kwargs):
+    cov = np.cov(xs, ys)
+    if cov.shape != (2, 2):
+        return
+    pearson = cov[0, 1]/np.sqrt(cov[0, 0] * cov[1, 1])
+    ell_radius_x = np.sqrt(1 + pearson)
+    ell_radius_y = np.sqrt(1 - pearson)
+    ellipse = Ellipse((0, 0),
+                      width=ell_radius_x * 2,
+                      height=ell_radius_y * 2,
+                      facecolor=facecolor,
+                      edgecolor=edgecolor,
+                      linestyle='--',
+                      linewidth=1,
+                      alpha=0.7,
+                      **kwargs)
+    scale_x = np.sqrt(cov[0, 0]) * n_std
+    scale_y = np.sqrt(cov[1, 1]) * n_std
+    mean_x = np.mean(xs)
+    mean_y = np.mean(ys)
+    transf = transforms.Affine2D().rotate_deg(45).scale(scale_x, scale_y).translate(mean_x, mean_y)
+    ellipse.set_transform(transf + ax.transData)
+    ax.add_patch(ellipse)
+
 # ---------- CLI ----------
 parser = argparse.ArgumentParser()
 parser.add_argument("--npz_pf", type=str, required=True)
 parser.add_argument("--npz_greedy", type=str, required=True)
 parser.add_argument("--npz_rkga", type=str, required=True)
 parser.add_argument("--npz_sa", type=str, required=True)
-parser.add_argument("--save_path", type=str, default=None)
+parser.add_argument("--save_path", type=str, default="./results2/overlap_redundancy_comparison.pdf")
 args = parser.parse_args()
 
-# ---------- Load and compute ----------
 def load_and_compute(npz_path, label):
     try:
         data = np.load(npz_path)
@@ -69,7 +91,6 @@ metrics_gr   = load_and_compute(args.npz_greedy, "Greedy")
 metrics_rkga = load_and_compute(args.npz_rkga, "RKGA")
 metrics_sa   = load_and_compute(args.npz_sa, "SA")
 
-# ---------- Colors and Labels ----------
 methods = [
     ("PF", metrics_pf, "#33a02c"),
     ("Greedy", metrics_gr, "#1f78b4"),
@@ -78,56 +99,54 @@ methods = [
 ]
 
 # ---------- Plotting ----------
-fig, axs = plt.subplots(1, 4, figsize=(19.2, 3.8))
-fig.suptitle("Comparison of View Planning Methods", fontsize=13)
+fig, axs = plt.subplots(1, 2, figsize=(4.8, 2.4), dpi=600)
 
-# 1. Redundancy %
+# 1. Coverage Frequency Distribution
 x = np.arange(6)
 bar_width = 0.18
 for i, (label, m, color) in enumerate(methods):
     if m:
         axs[0].bar(x + i*bar_width - bar_width*1.5, m["redundancy_percent"], width=bar_width, label=label, color=color)
-axs[0].set_title("Point Redundancy (% of Area)", fontsize=10)
-axs[0].set_xlabel("# Viewpoints per Point", fontsize=9)
-axs[0].set_ylabel("% of Area", fontsize=9)
-axs[0].legend(frameon=False, fontsize=8)
-axs[0].tick_params(labelsize=8)
+axs[0].set_title("Coverage Frequency Distribution", fontsize=6)
+axs[0].set_xlabel("Times a Region is Observed", fontsize=6)
+axs[0].set_ylabel("% of Area", fontsize=6)
+axs[0].legend(frameon=False, fontsize=7)
+axs[0].tick_params(labelsize=7)
 
-# 2. Exclusive Area Boxplot
-data = [m["exclusive"] for _, m, _ in methods if m]
-labels = [label for label, m, _ in methods if m]
-colors = [color for _, m, color in methods if m]
-axs[1].boxplot(data, labels=labels, patch_artist=True,
-               boxprops=dict(facecolor='lightgray'), medianprops=dict(color='black'))
-for i, ex in enumerate(data):
-    axs[1].scatter([i+1]*len(ex), ex, s=12, alpha=0.6, color=colors[i])
-axs[1].set_title("Exclusive Area per Viewpoint", fontsize=10)
-axs[1].set_ylabel("% of Area", fontsize=9)
-axs[1].tick_params(labelsize=8)
+# 2. Entropy vs Exclusive Area with Ellipses
+label_offsets = {
+    "PF": (0.1, 0.00),
+    "Greedy": (-0.6, 0.15),
+    "RKGA": (0.1, -0.25),
+    "SA": (0.1, 0.1),
+}
+axs[1].set_title("Overlap Entropy vs Viewpoint Unique Contribution", fontsize=6)
+axs[1].set_xlabel("Unique Contribution / Viewpoint", fontsize=6)
+axs[1].set_ylabel("Overlap Entropy", fontsize=6)
+axs[1].tick_params(labelsize=7)
 
-# 3. Overlap Entropy Boxplot
-data = [m["entropy"] for _, m, _ in methods if m]
-axs[2].boxplot(data, labels=labels, patch_artist=True,
-               boxprops=dict(facecolor='lightgray'), medianprops=dict(color='black'))
-for i, en in enumerate(data):
-    axs[2].scatter([i+1]*len(en), en, s=12, alpha=0.6, color=colors[i])
-axs[2].set_title("Overlap Entropy", fontsize=10)
-axs[2].set_ylabel("Entropy", fontsize=9)
-axs[2].tick_params(labelsize=8)
-
-# 4. Entropy vs Exclusive
-for (label, m, color) in methods:
+for label, m, color in methods:
     if m:
-        axs[3].scatter(m["entropy"], m["exclusive"], s=18, alpha=0.7, label=label, color=color)
-axs[3].set_title("Entropy vs Exclusive Area", fontsize=10)
-axs[3].set_xlabel("Overlap Entropy", fontsize=9)
-axs[3].set_ylabel("Exclusive Area (%)", fontsize=9)
-axs[3].legend(frameon=False, fontsize=8)
-axs[3].tick_params(labelsize=8)
+        xs = m["exclusive"]
+        ys = m["entropy"]
+        mean_x = np.mean(xs)
+        mean_y = np.mean(ys)
+        axs[1].scatter(xs, ys, s=5, alpha=0.25, color=color)
+        axs[1].scatter(mean_x, mean_y, s=20, color=color, edgecolor='black', zorder=3)
+        draw_cov_ellipse(xs, ys, axs[1], edgecolor=color)
+        dx, dy = label_offsets[label]
+        axs[1].annotate(label, (mean_x + dx, mean_y + dy), fontsize=6, color=color)
 
-plt.tight_layout(rect=[0, 0, 1, 0.92])
-if args.save_path:
-    plt.savefig(args.save_path, dpi=300, bbox_inches='tight')
-    print(f"[Saved] {args.save_path}")
-else:
-    plt.show()
+plt.tight_layout(rect=[0, 0, 1, 1.0])
+os.makedirs(os.path.dirname(args.save_path), exist_ok=True)
+plt.savefig(args.save_path, bbox_inches='tight')
+print(f"[Saved] {args.save_path}")
+
+print("\n--- Entropy vs Unique Contribution Data ---")
+for label, m, _ in methods:
+    if m:
+        xs = m["exclusive"]
+        ys = m["entropy"]
+        print(f"\nMethod: {label}")
+        print("Exclusive Area (%):", np.round(xs, 3).tolist())
+        print("Overlap Entropy:", np.round(ys, 3).tolist())

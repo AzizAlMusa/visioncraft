@@ -22,7 +22,7 @@ visualizer.initializeWindow("3D View")
 visualizer.setBackgroundColor([0.0, 0.0, 0.0])
 
 model = Model()
-model.loadModel("../models/gorilla.ply", 50000)
+model.loadModel("../models/engineering17.ply", 100000)
 visibility_manager = VisibilityManager(model)
 
 # Greedy algorithm setup
@@ -39,7 +39,7 @@ while achieved_coverage < target_coverage:
         viewpoint = Viewpoint.from_lookat(position, [0.0, 0.0, 0.0])
         viewpoint.setNearPlane(300)
         viewpoint.setFarPlane(900.0)
-        viewpoint.setDownsampleFactor(8.0)
+        viewpoint.setDownsampleFactor(2.0)
         
         visibility_manager.trackViewpoint(viewpoint)
         viewpoint.performRaycastingOnGPU(model)
@@ -57,15 +57,36 @@ while achieved_coverage < target_coverage:
         
         achieved_coverage += best_coverage_increment
         selected_viewpoints.append(best_viewpoint)
-
+        print(best_viewpoint.getPosition())
+        print
 # Print results
 print(f"\nFinal Coverage Score: {visibility_manager.getCoverageScore()}")
 print(f"Total Viewpoints Selected: {len(selected_viewpoints)}")
 print(f"Time taken for greedy algorithm (excluding rendering): {time.time() - start_time:.2f} seconds")
+
+import csv
+
+# Save selected viewpoints to CSV
+with open("selected_viewpoints.csv", "w", newline='') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerow(["x", "y", "z", "qx", "qy", "qz", "qw"])  # Header
+
+    for vp in selected_viewpoints:
+        pos = vp.getPosition()
+        quat = vp.getOrientationQuaternion()  # [w, x, y, z]
+
+        # Write as x, y, z, qx, qy, qz, qw
+        writer.writerow([pos[0], pos[1], pos[2], quat[1], quat[2], quat[3], quat[0]])
 
 # Render selected viewpoints
 visualizer.addVoxelMapProperty(model, "visibility", [1.0, 1.0, 1.0], [0.0, 1.0, 0.0])
 for viewpoint in selected_viewpoints:
     visualizer.addViewpoint(viewpoint, True, True)
 
-visualizer.render()
+print("Press Ctrl+C to exit the viewer loop.")
+try:
+    while True:
+        visualizer.renderStep()
+        time.sleep(0.01)  # Limit to ~100 FPS and reduce CPU usage
+except KeyboardInterrupt:
+    print("Viewer loop terminated.")

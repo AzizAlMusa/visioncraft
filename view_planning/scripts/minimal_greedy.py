@@ -22,11 +22,11 @@ visualizer.initializeWindow("3D View")
 visualizer.setBackgroundColor([0.0, 0.0, 0.0])
 
 model = Model()
-model.loadModel("../models/cube.ply", 50000)
+model.loadModel("../models/goku.ply", 200000)
 visibility_manager = VisibilityManager(model)
 
 # Greedy algorithm setup
-target_coverage, achieved_coverage = 0.995, visibility_manager.getCoverageScore()
+target_coverage, achieved_coverage = 0.95, visibility_manager.getCoverageScore()
 selected_viewpoints = []
 start_time = time.time()
 

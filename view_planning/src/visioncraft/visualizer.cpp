@@ -1276,8 +1276,8 @@ void Visualizer::visualizeVoxelNormals(
     vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
 
     // Check if the specific key exists in the map
-    if (voxelMap.find(key) != voxelMap.end()) {
-        const auto& voxel = voxelMap.at(key);
+    if (voxelMap.find({key}) != voxelMap.end()) {
+        const auto& voxel = voxelMap.at({key});
         Eigen::Vector3d voxelPosition = voxel.getPosition();
 
         Eigen::Vector3d normal;
