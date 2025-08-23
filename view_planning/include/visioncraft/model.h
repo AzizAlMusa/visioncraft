@@ -526,6 +526,9 @@ public:
     */
     std::unordered_map<octomap::OcTreeKey, Eigen::Vector3d, octomap::OcTreeKey::KeyHash> getVoxelNormals() const { return voxel_normals_; }
 
+
+    bool findInternalVoxels(float escape_threshold);
+
 private:
 
     /**

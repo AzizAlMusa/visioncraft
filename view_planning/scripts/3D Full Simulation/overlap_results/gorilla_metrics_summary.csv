@@ -1,0 +1,5 @@
+method,n_seeds,num_viewpoints_mean,num_viewpoints_std,coverage_auc_mean,coverage_auc_std,solution_time_mean,solution_time_std,exclusive_area_mean,exclusive_area_std,overlap_entropy_mean,overlap_entropy_std,cv_overlap_neighbors_mean,cv_overlap_neighbors_std,gini_overlap_neighbors_mean,gini_overlap_neighbors_std
+Greedy,10,6.7,0.458258,12.008102,1.042928,15.989347,1.035867,1.424499,0.586747,0.841908,0.033403,0.710712,0.077781,0.379641,0.036823
+Genetic,10,6.0,0.0,12.901805,0.918603,18.7941,0.978911,2.212464,0.733467,0.85964,0.021503,0.631091,0.062962,0.339013,0.031472
+SA,10,6.9,0.830662,21.033413,18.219021,23.569326,19.168217,1.65408,1.200263,0.842793,0.027632,0.726365,0.084761,0.379827,0.041226
+Potential Field,10,5.5,0.5,21.898499,6.46394,22.645695,6.64926,5.536737,1.810501,0.86401,0.016331,0.579876,0.061192,0.308262,0.032144

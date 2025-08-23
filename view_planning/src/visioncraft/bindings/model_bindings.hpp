@@ -209,7 +209,8 @@ inline void bind_model(py::module& m) {
                 py_voxel_normals[keyToTuple(item.first)] = item.second;
             }
             return py_voxel_normals;
-        });
+        })
+        .def("findInternalVoxels", &visioncraft::Model::findInternalVoxels, py::arg("escape_threshold") = 0.05f);
 
 
     // Expose VoxelGridGPU Struct to Python

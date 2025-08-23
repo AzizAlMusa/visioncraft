@@ -1,0 +1,2 @@
+strategy,n_seeds,final_coverage_mean,final_coverage_std,final_redundancy_mean,final_redundancy_std,final_affinity_mean,final_affinity_std,num_viewpoints_mean,num_viewpoints_std,num_iterations_mean,num_iterations_std,simulation_time_mean,simulation_time_std,coverage_auc_mean,coverage_auc_std,redundancy_auc_mean,redundancy_auc_std,affinity_auc_mean,affinity_auc_std
+genetic,10,0.9998,0.0002,0.5807,0.1275,1.6978,0.1512,4.0,0.0,405.7,3.7961,13.7404,1.0706,9.6486,1.0016,3.9812,1.0393,18.2368,2.2932

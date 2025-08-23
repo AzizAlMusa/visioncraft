@@ -1,0 +1,2 @@
+strategy,n_seeds,final_coverage_mean,final_coverage_std,final_redundancy_mean,final_redundancy_std,final_affinity_mean,final_affinity_std,num_viewpoints_mean,num_viewpoints_std,num_iterations_mean,num_iterations_std,simulation_time_mean,simulation_time_std,coverage_auc_mean,coverage_auc_std,redundancy_auc_mean,redundancy_auc_std,affinity_auc_mean,affinity_auc_std
+potential_field,10,0.996,0.0006,0.7102,0.1059,1.9704,0.1366,5.0,0.0,177.9,20.2556,40.5414,9.9265,33.5475,9.0849,13.4673,6.6395,57.4609,19.2902

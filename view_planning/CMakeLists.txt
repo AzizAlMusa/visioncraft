@@ -107,6 +107,8 @@ target_link_libraries(visioncraft_lib PRIVATE project_dependencies)
 add_executable(observer_tests tests/observer_tests.cpp)
 target_link_libraries(observer_tests PRIVATE visioncraft_lib project_dependencies)
 
+add_executable(potential_field tests/potential_field.cpp)
+target_link_libraries(potential_field PRIVATE visioncraft_lib project_dependencies)
 
 # Python bindings for visioncraft_py, linking with visioncraft_lib and project_dependencies
 pybind11_add_module(visioncraft_py src/visioncraft/bindings/bindings.cpp)

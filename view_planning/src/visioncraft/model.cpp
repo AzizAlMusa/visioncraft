@@ -167,7 +167,7 @@ bool Model::generateAllStructures(int num_samples, double resolution) {
 
     // success &= loadBinvoxToOctomap("../models/model_normalized.surface.binvox");
     if (resolution <= 0) {
-        resolution = 8.0 * getAverageSpacing();
+        resolution = 8.5 * getAverageSpacing();
         voxel_size_ = resolution;
     }
 
@@ -253,7 +253,7 @@ bool Model::generatePointCloud(int numSamples) {
 
     // Estimate normals for the point cloud
     // std::cout << "Generating normals..."  << std::endl ;
-    pcd->EstimateNormals(open3d::geometry::KDTreeSearchParamHybrid(averageSpacing * 5, 30));  // Adjust these parameters as needed
+    pcd->EstimateNormals(open3d::geometry::KDTreeSearchParamHybrid(averageSpacing * 1.5, 5));  // Adjust these parameters as needed
 
     // Correct oppositely oriented normals using signed distance
     // std::cout << "Correcting misaligned normals..."  << std::endl ;
@@ -379,7 +379,7 @@ bool Model::generateOctoMap(double resolution) {
 
     // If resolution is not provided or less than or equal to zero, set it to twice the average point cloud spacing
     if (resolution <= 0.0) {
-        resolution = 10.0 * getAverageSpacing();
+        resolution = 2.0 * getAverageSpacing();
     }
 
     // Create an octomap with the specified resolution
@@ -1342,6 +1342,80 @@ bool Model::computeVoxelNormals() {
     std::cout << "Voxel normals computed and stored successfully." << std::endl;
     return true;
 }
+
+
+bool Model::findInternalVoxels(float escape_threshold) {
+    if (!raycasting_scene_ || !octoMap_ || !pointCloud_ || !surfaceShellOctomap_) {
+        std::cerr << "[Error] Required data not initialized.\n";
+        return false;
+    }
+
+    // Set default "internal" property to false for all voxels
+    addVoxelProperty("internal", false);
+
+    const auto& points = pointCloud_->points_;
+    const auto& normals = pointCloud_->normals_;
+    if (points.size() != normals.size()) {
+        std::cerr << "[Error] Point-normal mismatch.\n";
+        return false;
+    }
+
+    const double epsilon = 1e-3;  // Offset along the normal direction
+    int updated = 0;
+
+    for (size_t i = 0; i < points.size(); i += 2) {  // Subsample every 10th point
+        const auto& p = points[i];
+        const auto& n = normals[i];
+
+        if (!n.allFinite() || n.norm() < 1e-6) continue;
+
+        Eigen::Vector3d dir = n.normalized();
+        Eigen::Vector3d origin = p + epsilon * dir;
+
+        open3d::core::Tensor ray = open3d::core::Tensor::Init<float>({
+            static_cast<float>(origin.x()), static_cast<float>(origin.y()), static_cast<float>(origin.z()),
+            static_cast<float>(dir.x()), static_cast<float>(dir.y()), static_cast<float>(dir.z())
+        }).Reshape({1, 6});
+
+        auto result = raycasting_scene_->CastRays(ray);
+        float t_hit = result["t_hit"][0].Item<float>();
+
+        if (t_hit <= 0 || t_hit > escape_threshold) continue;
+
+        // Compute hit point
+        Eigen::Vector3d hit_point = origin + t_hit * dir;
+
+        // Query if this hit point lands inside an occupied voxel of octoMap_
+        auto node = octoMap_->search(octomap::point3d(hit_point.x(), hit_point.y(), hit_point.z()));
+        if (!node || !octoMap_->isNodeOccupied(node)) continue;
+
+        // Find closest voxel in surface shell octomap to mark as internal
+        MetaVoxel* closest_voxel = nullptr;
+        double min_dist = std::numeric_limits<double>::max();
+        for (auto it = surfaceShellOctomap_->begin_leafs(); it != surfaceShellOctomap_->end_leafs(); ++it) {
+            Eigen::Vector3d v(it.getX(), it.getY(), it.getZ());
+            double dist = (v - p).squaredNorm();
+            if (dist < min_dist) {
+                MetaVoxel* voxel = getVoxel(it.getKey());
+                if (voxel) {
+                    closest_voxel = voxel;
+                    min_dist = dist;
+                }
+            }
+        }
+
+        if (closest_voxel) {
+            closest_voxel->setProperty("internal", true);
+            ++updated;
+        }
+    }
+
+    std::cout << "[Info] Internal classification complete. Updated " << updated << " voxels.\n";
+    return true;
+}
+
+
+
 
 
 } // namespace visioncraft

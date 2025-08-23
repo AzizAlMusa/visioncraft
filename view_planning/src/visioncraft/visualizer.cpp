@@ -153,14 +153,18 @@ void Visualizer::addMultipleViewpoints(const std::vector<visioncraft::Viewpoint>
     }
 }
 
-void visioncraft::Visualizer::removeViewpoint(const visioncraft::Viewpoint& viewpoint) {
-    auto it = viewpointActorMap_.find(viewpoint.getId());
+void Visualizer::removeViewpoint(const visioncraft::Viewpoint& viewpoint) {
+    int id = viewpoint.getId();
+
+
+    auto it = viewpointActorMap_.find(id);
     if (it != viewpointActorMap_.end()) {
+
         for (auto& actor : it->second) {
-            renderer->RemoveActor(actor);  // Remove each actor individually
+            renderer->RemoveActor(actor);
         }
-        viewpointActorMap_.erase(it);  // Remove the entry from the map
-    }
+        viewpointActorMap_.erase(it);
+    } 
 }
 
 
@@ -515,13 +519,17 @@ void Visualizer::addMesh(const visioncraft::Model& model, const Eigen::Vector3d&
 
 
 
-void Visualizer::addPointCloud(const visioncraft::Model& model, const Eigen::Vector3d& color ) {
+void Visualizer::addPointCloud(const visioncraft::Model& model, const Eigen::Vector3d& color) {
     auto pointCloud = model.getPointCloud();
     if (!pointCloud) return;
 
+    // --- Points ---
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-    for (const auto& point : pointCloud->points_) {
-        points->InsertNextPoint(point(0), point(1), point(2));
+    points->SetDataTypeToFloat();
+    points->Allocate(static_cast<vtkIdType>(pointCloud->points_.size()));
+
+    for (const auto& p : pointCloud->points_) {
+        points->InsertNextPoint(p(0), p(1), p(2));
     }
 
     vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
@@ -536,9 +544,59 @@ void Visualizer::addPointCloud(const visioncraft::Model& model, const Eigen::Vec
 
     vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
     actor->SetMapper(mapper);
-    actor->GetProperty()->SetColor(color(0), color(1), color(2));  // Set point cloud color
+    actor->GetProperty()->SetColor(color(0), color(1), color(2));
     renderer->AddActor(actor);
+
+    // --- Normals (as line segments), length = 5 units ---
+    const bool has_normals =
+        (!pointCloud->normals_.empty()) &&
+        (pointCloud->normals_.size() == pointCloud->points_.size());
+
+    if (has_normals) {
+        const double normal_scale = 5.0; // fixed length as requested
+
+        vtkSmartPointer<vtkPoints> npts = vtkSmartPointer<vtkPoints>::New();
+        npts->SetDataTypeToFloat();
+        npts->Allocate(static_cast<vtkIdType>(pointCloud->points_.size() * 2));
+
+        vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+
+        for (size_t i = 0; i < pointCloud->points_.size(); ++i) {
+            const auto& p = pointCloud->points_[i];
+            Eigen::Vector3d n = pointCloud->normals_[i];
+
+            // Skip degenerate normals
+            const double len = n.norm();
+            if (len < 1e-9) continue;
+            n /= len;
+
+            const Eigen::Vector3d q = p + normal_scale * n;
+
+            vtkIdType id0 = npts->InsertNextPoint(p(0), p(1), p(2));
+            vtkIdType id1 = npts->InsertNextPoint(q(0), q(1), q(2));
+
+            vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+            line->GetPointIds()->SetId(0, id0);
+            line->GetPointIds()->SetId(1, id1);
+            lines->InsertNextCell(line);
+        }
+
+        vtkSmartPointer<vtkPolyData> nPoly = vtkSmartPointer<vtkPolyData>::New();
+        nPoly->SetPoints(npts);
+        nPoly->SetLines(lines);
+
+        vtkSmartPointer<vtkPolyDataMapper> nMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        nMapper->SetInputData(nPoly);
+
+        vtkSmartPointer<vtkActor> nActor = vtkSmartPointer<vtkActor>::New();
+        nActor->SetMapper(nMapper);
+        // Use a subtle dark tone so normals stand out against colored points
+        nActor->GetProperty()->SetColor(0.1, 0.1, 0.1);
+        nActor->GetProperty()->SetLineWidth(1.0);
+        renderer->AddActor(nActor);
+    }
 }
+
 
 void Visualizer::addOctomap(const visioncraft::Model& model, const Eigen::Vector3d& defaultColor) {
     auto octomap = model.getSurfaceShellOctomap();
@@ -730,6 +788,153 @@ void Visualizer::addVoxelMap(const visioncraft::Model& model, const Eigen::Vecto
     renderer->AddActor(voxelActor);
 }
 
+// void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std::string& property_name, 
+//                                      const Eigen::Vector3d& baseColor, const Eigen::Vector3d& propertyColor, 
+//                                      float minScale, float maxScale) {
+//     const auto& metaVoxelMap = model.getVoxelMap().getMap();
+//     if (metaVoxelMap.empty()) return;
+
+//     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+//     vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
+//     colors->SetNumberOfComponents(3);  // RGB
+//     colors->SetName("Colors");
+
+//     // If minScale and maxScale are not provided, calculate them from the property values
+//     if (minScale == -1.0f || maxScale == -1.0f) {
+//         minScale = std::numeric_limits<float>::max();
+//         maxScale = std::numeric_limits<float>::lowest();
+//         for (const auto& kv : metaVoxelMap) {
+//             const auto& metaVoxel = kv.second;
+//             if (metaVoxel.hasProperty(property_name)) {
+//                 try {
+//                     float value = 0.0f;
+//                     const auto& prop = metaVoxel.getProperty(property_name);
+//                     if (prop.type() == typeid(int)) {
+//                         value = static_cast<float>(boost::get<int>(prop));
+//                     } else if (prop.type() == typeid(float)) {
+//                         value = boost::get<float>(prop);
+//                     } else if (prop.type() == typeid(double)) {
+//                         value = static_cast<float>(boost::get<double>(prop)); 
+//                     }
+//                     minScale = std::min(minScale, value);
+//                     maxScale = std::max(maxScale, value);
+//                 } catch (const boost::bad_get& e) {
+//                     std::cerr << "Warning: Property " << property_name 
+//                               << " has an unexpected type for voxel at position " 
+//                               << metaVoxel.getPosition().transpose() << ": " << e.what() << std::endl;
+//                     continue;
+//                 }
+//             }
+//         }
+//     }
+
+//     auto rainbowColorMap = [](float normalizedValue) -> Eigen::Vector3d {
+//         // Compute RGB using a rainbow color scheme (Blue -> Green -> Red)
+//         float r = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.75f) + 1.5f));
+//         float g = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.5f) + 1.5f));
+//         float b = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.25f) + 1.5f));
+//         return Eigen::Vector3d(r, g, b);
+//     };
+
+//     auto hotColdColorMap = [](float normalizedValue) -> Eigen::Vector3d {
+//         // Compute RGB using a hot-cold color scheme (Blue -> Green -> Red)
+//         float r = std::max(0.0f, std::min(1.0f, 4.0f * normalizedValue));  // Red increases as value increases
+//         float g = std::max(0.0f, std::min(1.0f, 1.0f - 2.0f * std::abs(normalizedValue - 0.5f)));  // Green peaks at the middle value
+//         float b = std::max(0.0f, std::min(1.0f, 1.0f - 4.0f * normalizedValue));  // Blue decreases as value increases
+//         return Eigen::Vector3d(r, g, b);
+//     };
+
+//     auto redGreenColorMap = [](float normalizedValue) -> Eigen::Vector3d {
+//         // Ensure the normalized value is between 0 and 1
+//         normalizedValue = std::sin(std::pow(normalizedValue, 0.5f) * M_PI_2); ;
+
+//         normalizedValue = std::max(0.0f, std::min(1.0f, normalizedValue));
+
+      
+//         // Red decreases as the value increases
+//         float r = 1.0f - normalizedValue; 
+
+//         // Green increases as the value increases
+//         float g = normalizedValue;
+
+//         // No blue component needed for this map
+//         float b = 0.0f;
+
+//         return Eigen::Vector3d(r, g, b);
+//     };
+
+
+
+//     for (const auto& kv : metaVoxelMap) {
+//         const auto& metaVoxel = kv.second;
+//         const auto& voxelPos = metaVoxel.getPosition();
+//         points->InsertNextPoint(voxelPos.x(), voxelPos.y(), voxelPos.z());
+
+//         Eigen::Vector3d color(0.0, 0.0, 1.0);  // Default to blue for undefined values
+
+//         if (metaVoxel.hasProperty(property_name)) {
+//             try {
+//                 float propertyValue = 0.0f;
+//                 const auto& prop = metaVoxel.getProperty(property_name);
+
+//                 if (prop.type() == typeid(int)) {
+//                     propertyValue = static_cast<float>(boost::get<int>(prop));
+//                 } else if (prop.type() == typeid(float)) {
+//                     propertyValue = boost::get<float>(prop);
+//                 } else if (prop.type() == typeid(double)) {
+//                     propertyValue = static_cast<float>(boost::get<double>(prop));
+//                 }
+
+//                 float normalizedValue = (propertyValue - minScale) / (maxScale - minScale);
+//                 normalizedValue = std::max(0.0f, std::min(normalizedValue, 1.0f));
+//                 color = redGreenColorMap(normalizedValue);
+
+//             } catch (const boost::bad_get& e) {
+//                 std::cerr << "Error: Failed to retrieve property " << property_name 
+//                           << " for voxel at position " << voxelPos.transpose() 
+//                           << ": " << e.what() << std::endl;
+//                 continue;
+//             }
+//         }
+
+//         unsigned char voxelColor[3] = {
+//             static_cast<unsigned char>(color(0) * 255),
+//             static_cast<unsigned char>(color(1) * 255),
+//             static_cast<unsigned char>(color(2) * 255)
+//         };
+//         colors->InsertNextTypedTuple(voxelColor);
+//     }
+
+//     vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+//     polyData->SetPoints(points);
+//     polyData->GetPointData()->SetScalars(colors);
+
+//     vtkSmartPointer<vtkCubeSource> cubeSource = vtkSmartPointer<vtkCubeSource>::New();
+//     cubeSource->SetXLength(model.getOctomap()->getResolution());
+//     cubeSource->SetYLength(model.getOctomap()->getResolution());
+//     cubeSource->SetZLength(model.getOctomap()->getResolution());
+
+//     vtkSmartPointer<vtkGlyph3D> glyphFilter = vtkSmartPointer<vtkGlyph3D>::New();
+//     glyphFilter->SetInputData(polyData);
+//     glyphFilter->SetSourceConnection(cubeSource->GetOutputPort());
+//     glyphFilter->SetColorModeToColorByScalar();
+//     glyphFilter->SetScaleModeToDataScalingOff();
+//     glyphFilter->Update();
+
+//     vtkSmartPointer<vtkPolyDataMapper> voxelMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+//     voxelMapper->SetInputConnection(glyphFilter->GetOutputPort());
+//     voxelMapper->SetScalarModeToUsePointData();
+
+//     vtkSmartPointer<vtkActor> voxelActor = vtkSmartPointer<vtkActor>::New();
+//     voxelActor->SetMapper(voxelMapper);
+//     voxelActor->GetProperty()->SetEdgeVisibility(1);
+//     voxelActor->GetProperty()->SetEdgeColor(0.0, 0.0, 0.0);
+//     voxelActor->GetProperty()->SetLineWidth(1.0);
+
+//     voxelMapPropertyActor_ = voxelActor;  // Store the actor for later removal
+//     renderer->AddActor(voxelMapPropertyActor_);
+// }
+
 void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std::string& property_name, 
                                      const Eigen::Vector3d& baseColor, const Eigen::Vector3d& propertyColor, 
                                      float minScale, float maxScale) {
@@ -770,49 +975,12 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
         }
     }
 
-    auto rainbowColorMap = [](float normalizedValue) -> Eigen::Vector3d {
-        // Compute RGB using a rainbow color scheme (Blue -> Green -> Red)
-        float r = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.75f) + 1.5f));
-        float g = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.5f) + 1.5f));
-        float b = std::max(0.0f, std::min(1.0f, -4.0f * std::abs(normalizedValue - 0.25f) + 1.5f));
-        return Eigen::Vector3d(r, g, b);
-    };
-
-    auto hotColdColorMap = [](float normalizedValue) -> Eigen::Vector3d {
-        // Compute RGB using a hot-cold color scheme (Blue -> Green -> Red)
-        float r = std::max(0.0f, std::min(1.0f, 4.0f * normalizedValue));  // Red increases as value increases
-        float g = std::max(0.0f, std::min(1.0f, 1.0f - 2.0f * std::abs(normalizedValue - 0.5f)));  // Green peaks at the middle value
-        float b = std::max(0.0f, std::min(1.0f, 1.0f - 4.0f * normalizedValue));  // Blue decreases as value increases
-        return Eigen::Vector3d(r, g, b);
-    };
-
-    auto redGreenColorMap = [](float normalizedValue) -> Eigen::Vector3d {
-        // Ensure the normalized value is between 0 and 1
-        normalizedValue = std::sin(std::pow(normalizedValue, 0.5f) * M_PI_2); ;
-
-        normalizedValue = std::max(0.0f, std::min(1.0f, normalizedValue));
-
-      
-        // Red decreases as the value increases
-        float r = 1.0f - normalizedValue; 
-
-        // Green increases as the value increases
-        float g = normalizedValue;
-
-        // No blue component needed for this map
-        float b = 0.0f;
-
-        return Eigen::Vector3d(r, g, b);
-    };
-
-
-
     for (const auto& kv : metaVoxelMap) {
         const auto& metaVoxel = kv.second;
         const auto& voxelPos = metaVoxel.getPosition();
         points->InsertNextPoint(voxelPos.x(), voxelPos.y(), voxelPos.z());
 
-        Eigen::Vector3d color(0.0, 0.0, 1.0);  // Default to blue for undefined values
+        Eigen::Vector3d color = baseColor;  // Default to baseColor (e.g., red for <1)
 
         if (metaVoxel.hasProperty(property_name)) {
             try {
@@ -827,9 +995,12 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
                     propertyValue = static_cast<float>(boost::get<double>(prop));
                 }
 
-                float normalizedValue = (propertyValue - minScale) / (maxScale - minScale);
-                normalizedValue = std::max(0.0f, std::min(normalizedValue, 1.0f));
-                color = redGreenColorMap(normalizedValue);
+                // Simple binary map: >=1 green, <1 red
+                if (propertyValue >= 1.0f) {
+                    color = propertyColor;  // Green for seen
+                } else {
+                    color = baseColor;  // Red for unseen
+                }
 
             } catch (const boost::bad_get& e) {
                 std::cerr << "Error: Failed to retrieve property " << property_name 
@@ -876,8 +1047,6 @@ void Visualizer::addVoxelMapProperty(const visioncraft::Model& model, const std:
     voxelMapPropertyActor_ = voxelActor;  // Store the actor for later removal
     renderer->AddActor(voxelMapPropertyActor_);
 }
-
-
 
 void Visualizer::removeVoxelMapProperty() {
     if (voxelMapPropertyActor_) {

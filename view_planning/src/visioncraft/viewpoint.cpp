@@ -78,7 +78,8 @@ Viewpoint::Viewpoint(const Eigen::Vector3d& position, const Eigen::Vector3d& loo
                      const Eigen::Vector3d& up, double near, double far, 
                      int resolution_width, int resolution_height,
                      double hfov, double vfov)
-    : position_(position), 
+    : id_(globalIdCounter_++),
+      position_(position), 
       near_(near), 
       far_(far), 
       resolution_width_(resolution_width), 

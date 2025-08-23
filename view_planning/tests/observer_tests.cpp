@@ -1280,7 +1280,7 @@ int main() {
 
     visioncraft::Model model;
     std::cout << "Loading model..." << std::endl;
-    model.loadModel("../models/engineering10.ply", 200000);
+    model.loadModel("../models/gorilla.ply", 100000);
     std::cout << "Model loaded successfully." << std::endl;
 
     auto visibilityManager = std::make_shared<visioncraft::VisibilityManager>(model);
@@ -1342,7 +1342,7 @@ int main() {
 
         std::vector<Eigen::Vector3d> blobCentroids;
         for (const auto& blob : blobs) blobCentroids.push_back(blob.centroid);
-        visualizer.visualizeBlobCentroidsOnSphere(model, blobCentroids, sphere_radius);
+        // visualizer.visualizeBlobCentroidsOnSphere(model, blobCentroids, sphere_radius);
 
         double coverage_score = visibilityManager->computeCoverageScore();
         double system_energy = computeSystemEnergy(model, viewpoints, sigma, V_max, k_repel, alpha);
