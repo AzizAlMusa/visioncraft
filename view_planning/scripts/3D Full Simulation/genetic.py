@@ -31,7 +31,7 @@ model_name = file_stem(model_path)
 
 # ------------------------------- Constants ---------------------------------
 
-TARGET_COVERAGE = 0.9995        # relaxed target coverage
+TARGET_COVERAGE = 0.995        # relaxed target coverage
 MAX_ROUNDS = 5                 # max times to expand candidates and retry
 BASE_NEW_CANDIDATES = 120      # added per retry round
 SPHERE_RADIUS = 400            # candidate viewpoint radius
@@ -405,10 +405,10 @@ for vp in selected_viewpoints:
 
 
 # Uncomment to keep the render loop running
-print("Press Ctrl+C to exit viewer.")
-try:
-    while True:
-        visualizer.renderStep()
-        time.sleep(0.01)
-except KeyboardInterrupt:
-    print("Exited.")
+# print("Press Ctrl+C to exit viewer.")
+# try:
+#     while True:
+#         visualizer.renderStep()
+#         time.sleep(0.01)
+# except KeyboardInterrupt:
+#     print("Exited.")

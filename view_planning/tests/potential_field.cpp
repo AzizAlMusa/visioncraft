@@ -783,7 +783,7 @@ void addNewViewpoint(
 {
     // Create a new viewpoint
     auto new_viewpoint = std::make_shared<visioncraft::Viewpoint>(position, look_at);
-    new_viewpoint->setDownsampleFactor(8.0);
+    new_viewpoint->setDownsampleFactor(4.0);
     new_viewpoint->setFarPlane(900);
     new_viewpoint->setNearPlane(300);
     
@@ -1438,16 +1438,25 @@ Eigen::Vector3d refineNBVLocalRing(
 }
 
 
+
 int main(int argc, char* argv[]) {
     // -------- setup / IO --------
     int seed = (argc > 1) ? std::atoi(argv[1]) : 0;
     srand(seed);
 
-    const std::string model_path = "../models/cat.stl";   // change as needed
-    const std::string model_name = file_stem(model_path);
+    // default model if none provided
+    std::string model_id = (argc > 2) ? argv[2] : "0007";
+    std::string model_path = "../models/abc/" + model_id + ".stl";
+    std::string model_name = file_stem(model_path);
+
     const std::string base_dir   = "cpp_output";
     const std::string output_dir = base_dir + "/" + model_name + "/seed_" + std::to_string(seed);
     system(("mkdir -p " + output_dir).c_str());
+
+    std::cout << "Using seed: " << seed << "\n";
+    std::cout << "Loading model: " << model_path << "\n";
+    std::cout << "Model name: " << model_name << "\n";
+    std::cout << "Output directory: " << output_dir << "\n";
 
     visioncraft::Visualizer visualizer;
     visualizer.setBackgroundColor(Eigen::Vector3d(1.0, 1.0, 1.0));
@@ -1461,7 +1470,7 @@ int main(int argc, char* argv[]) {
     model.addVoxelProperty("potential", 0.0f);
 
     // -------- PF / sphere / viewpoints --------
-    const float  TARGET_COVERAGE = 0.99f;
+    const float  TARGET_COVERAGE = 0.98f;
     const double COV_EPS         = 1e-9;
     const float  sphere_radius   = 400.0f;
 
@@ -1470,7 +1479,7 @@ int main(int argc, char* argv[]) {
 
     auto viewpoints = generateClusteredViewpoints(start_viewpts, sphere_radius);
     for (auto& vp : viewpoints) {
-        vp->setDownsampleFactor(8.0);
+        vp->setDownsampleFactor(4.0);
         visibilityManager->trackViewpoint(vp);
         vp->setFarPlane(900);
         vp->setNearPlane(50);
@@ -1526,11 +1535,11 @@ int main(int argc, char* argv[]) {
     int   t_adam = 0;
 
     // Strong attraction, mild repulsion → faster gap hunting
-    float k_attr    = 800.0f;
+    float k_attr    = 3000.0f;
     float k_rep     = 300.0f;
-    float sigma_rep = sphere_radius * 2.0f;
+    float sigma_rep = 400.0f; //sphere_radius * 2.0f;
 
-    float beta1 = 0.95f, beta2 = 0.999f, lr = 0.5f, adam_eps = 1e-8f;
+    float beta1 = 0.95f, beta2 = 0.99f, lr = 0.5f, adam_eps = 1e-8f;
     float lr_decay = 1.0f;
 
     // -------- insertion & termination bookkeeping (compact, faster) --------
@@ -1698,16 +1707,16 @@ int main(int argc, char* argv[]) {
                                current_sample_rate, S.hit_count);
 
         float total_potential = 0.0f;
-        for (auto it = voxelToSphereMap.begin(); it != voxelToSphereMap.end(); ++it)
-            total_potential += boost::get<float>(model.getVoxelProperty(it->first, "potential"));
+        // for (auto it = voxelToSphereMap.begin(); it != voxelToSphereMap.end(); ++it)
+        //     total_potential += boost::get<float>(model.getVoxelProperty(it->first, "potential"));
 
-        // 4) viz
-        {
-            vtkSmartPointer<vtkPolyData> spherePoly =
-                computeInterpolatedPotentialsOnSphere(model, voxelToSphereMap, "potential", sphere_radius);
-            float MAX_POT = std::log(M_PI * sphere_radius) * viewpoints.size();
-            visualizer.visualizePotentialOnSphere(spherePoly, MAX_POT, 0.5f);
-        }
+        // // 4) viz
+        // {
+        //     vtkSmartPointer<vtkPolyData> spherePoly =
+        //         computeInterpolatedPotentialsOnSphere(model, voxelToSphereMap, "potential", sphere_radius);
+        //     float MAX_POT = std::log(M_PI * sphere_radius) * viewpoints.size();
+        //     visualizer.visualizePotentialOnSphere(spherePoly, MAX_POT, 0.5f);
+        // }
 
         // 5) logging
         double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count();
@@ -1849,8 +1858,8 @@ int main(int argc, char* argv[]) {
                             nbv_pos, Eigen::Vector3d(0,0,0), sphere_radius);
 
             // adapt σ_rep to N
-            sigma_rep = sphere_radius *
-                        std::acos(std::max(-1.0, 1.0 - 2.0 / double(std::max(2, int(viewpoints.size())))));
+            // sigma_rep = sphere_radius *
+            //             std::acos(std::max(-1.0, 1.0 - 2.0 / double(std::max(2, int(viewpoints.size())))));
 
             // late VP tweaks to dig deeper into tiny gaps
             if (S.coverage >= 0.975) {
@@ -1881,13 +1890,13 @@ int main(int argc, char* argv[]) {
         }
 
         // 11) trails + render
-        for (size_t i = 0; i < viewpoints.size(); ++i)
-            viewpointPaths[i].push_back(viewpoints[i]->getPosition());
-        visualizer.addVoxelMapProperty(model, "visibility",
-                                       Eigen::Vector3d(1,0,0), Eigen::Vector3d(0,1,0));
-        visualizer.visualizePaths(viewpointPaths, sphere_radius);
-        visualizer.render();
-        visualizer.removeVoxelMapProperty();
+        // for (size_t i = 0; i < viewpoints.size(); ++i)
+        //     viewpointPaths[i].push_back(viewpoints[i]->getPosition());
+        // visualizer.addVoxelMapProperty(model, "visibility",
+        //                                Eigen::Vector3d(1,0,0), Eigen::Vector3d(0,1,0));
+        // visualizer.visualizePaths(viewpointPaths, sphere_radius);
+        // visualizer.render();
+        // visualizer.removeVoxelMapProperty();
 
         // 12) write VP states this iter
         for (size_t i = 0; i < viewpoints.size(); ++i) {

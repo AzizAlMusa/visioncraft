@@ -286,10 +286,10 @@ for j, vp in enumerate(selected_viewpoints):
 
 
 
-# print("Press Ctrl+C to exit viewer.")
-# try:
-#     while True:
-#         visualizer.renderStep()
-#         time.sleep(0.01)
-# except KeyboardInterrupt:
-#     print("Exited.")
+print("Press Ctrl+C to exit viewer.")
+try:
+    while True:
+        visualizer.renderStep()
+        time.sleep(0.01)
+except KeyboardInterrupt:
+    print("Exited.")

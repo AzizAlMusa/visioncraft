@@ -1,0 +1,86 @@
+{
+  "seed": 0,
+  "save_dir": "./phase2_results",
+  "animate": true,
+
+  "grid_size": 100,
+  "fov_radius": 20,
+
+  "strategy": "nbv",
+  "potential_type": "log",
+  "k_attr": 10.0,
+  "k_rep": 0.25,
+  "max_viewpoints": 8,
+  "vp_index": 0,
+  "perpetual": true,
+  "max_anim_frames": 600,
+
+  "quiver_mode": "length",
+  "quiver_len_scale_attr": 0.01,
+  "quiver_len_scale_rep": 1.0,
+  "show_interest_quiver": true,
+  "show_kmap_contours": true,
+  "quiver_len_scale_interest": null,
+
+  "show_repulsion_kernel": true,
+  "show_repulsion_kernel_all": true,
+  "kernel_levels": "1",
+  "kernel_color": "#111111",
+  "kernel_alpha": 0.30,
+  "kernel_lw": 1.2,
+
+  "verbose": false,
+
+  "vis_beta": 40.0,             
+  "gamma": 1.0,
+  "need_hard_clip": true,
+  "tau_clip": 1.0,
+
+  "importance_config": "",
+  "poi_config": "band:90,50,16,req=2,omega=*4.0",  
+
+  "smart_nbv_insertion": false,
+  "frames_per_stage": 10,
+  "T_motion_rough": 1.5,
+  "T_motion_fine": 0.15,
+  "adam_step_gain": 5.0,
+
+  "show_interest_overlay_right": true,
+  "interest_overlay_mode": "both",
+  "interest_overlay_alpha": 0.25,
+  "interest_contour_levels": "0.2,0.4,0.6,0.8",
+  "interest_contour_color": "#6a5acd",
+  "interest_contour_alpha": 0.65,
+  "interest_colormap": "magma",
+
+  "interest_mode": "edge_grad",   
+  "edge_power": 1.2,
+  "edge_eps": 1e-6,
+  "edge_norm": "max",
+  "edge_weight_scale": 1.0,
+  "dog_sigma_inner": 1.2,
+  "dog_sigma_outer": 5.0,
+  "dog_positive_only": true,
+  "edge_mode": "boost",         
+  "edge_gain": 1.2,              
+  "edge_mix_with_area": 0.0,
+
+  "anisotropy": {
+    "enabled": true,
+    "alpha_t": 1.0,              
+    "alpha_n": 6.0,           
+    "sigma_rep": 20.0,
+    "amp_rep": 100.0,
+    "smooth_sigma": 1.5,
+    "grad_eps": 0.001,
+    "tensor_blend": 0.0,
+    "blend_tau": 0.01,
+    "blend_scale": 0.05,
+    "importance_floor": 0.20,
+
+    "aniso_prox_sigma": 6.0,      
+    "aniso_prox_gain": 4.0,      
+    "aniso_prox_bias": 0.0,
+    "aniso_prox_steep": 2.0
+  }
+}

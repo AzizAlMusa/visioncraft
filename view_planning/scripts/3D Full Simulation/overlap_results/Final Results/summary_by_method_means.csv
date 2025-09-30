@@ -1,0 +1,5 @@
+method,mean_num_viewpoints,mean_solution_time,mean_cv_overlap,mean_novel_area
+Greedy,7.8869,13.8713,0.7573,3.1698
+Genetic (RKGA),5.0000,18.2767,0.6491,9.5148
+SA,8.9639,34.4544,0.8639,0.8136
+Potential Field,5.1656,19.0062,0.6310,9.9801

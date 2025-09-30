@@ -1,0 +1,62 @@
+model,pf_seeds,loses_sig_count,loses_sig_on,best_time_meth,ΔTime(>0 worse),t_Time,best_vp_meth,Δ#VP(>0 worse),t_#VP,best_novel_meth,ΔNovel%(>0 worse),t_Novel%,best_cv_meth,ΔCV(>0 worse),t_CV
+0008,1,4,"Time, #VP, Novel %, CV",Greedy,38.445,inf,Greedy,5.0,inf,Greedy,20.048,inf,Greedy,0.17,inf
+0043,1,4,"Time, #VP, Novel %, CV",Greedy,33.833,inf,Greedy,3.0,inf,Greedy,7.588,inf,Genetic (RKGA),0.089,inf
+0056,1,4,"Time, #VP, Novel %, CV",Greedy,21.269,inf,Genetic (RKGA),3.0,inf,Genetic (RKGA),7.762,inf,Genetic (RKGA),0.239,inf
+0102,1,4,"Time, #VP, Novel %, CV",Greedy,12.122,inf,Genetic (RKGA),2.0,inf,Genetic (RKGA),13.674,inf,Greedy,0.215,inf
+0022,1,4,"Time, #VP, Novel %, CV",Greedy,17.612,inf,Greedy,1.0,inf,Greedy,2.39,inf,Greedy,0.438,inf
+0110,1,4,"Time, #VP, Novel %, CV",Genetic (RKGA),13.933,inf,Genetic (RKGA),2.0,inf,Genetic (RKGA),3.482,inf,Genetic (RKGA),0.125,inf
+0094,1,4,"Time, #VP, Novel %, CV",Greedy,14.328,inf,Genetic (RKGA),2.0,inf,Genetic (RKGA),2.698,inf,Greedy,0.086,inf
+0068,1,4,"Time, #VP, Novel %, CV",Greedy,5.003,inf,Genetic (RKGA),1.0,inf,Greedy,5.093,inf,Greedy,0.643,inf
+0090,1,3,"Time, #VP, CV",Greedy,181.618,inf,Genetic (RKGA),1.0,inf,Genetic (RKGA),-0.322,0.0,Genetic (RKGA),0.018,inf
+0078,1,3,"Time, #VP, CV",Greedy,44.777,inf,Genetic (RKGA),1.0,inf,Genetic (RKGA),-2.181,0.0,Genetic (RKGA),0.059,inf
+0017,1,3,"Time, #VP, CV",SA,35.051,inf,Greedy,3.0,inf,Greedy,-1.438,0.0,Genetic (RKGA),0.042,inf
+0082,1,3,"Time, #VP, Novel %",Greedy,34.95,inf,Genetic (RKGA),2.0,inf,Genetic (RKGA),0.269,inf,Genetic (RKGA),-0.044,0.0
+0051,1,3,"Time, #VP, Novel %",Greedy,9.548,inf,Genetic (RKGA),3.0,inf,Genetic (RKGA),14.864,inf,Genetic (RKGA),-0.014,0.0
+0044,1,3,"#VP, Novel %, CV",Greedy,-5.286,0.0,Genetic (RKGA),1.0,inf,Genetic (RKGA),25.061,inf,Genetic (RKGA),0.639,inf
+0005,1,3,"#VP, Novel %, CV",Genetic (RKGA),-6.36,0.0,Genetic (RKGA),1.0,inf,Genetic (RKGA),24.521,inf,Genetic (RKGA),0.628,inf
+0062,1,3,"#VP, Novel %, CV",Genetic (RKGA),-8.71,0.0,Genetic (RKGA),1.0,inf,Genetic (RKGA),21.418,inf,Genetic (RKGA),0.493,inf
+0084,1,3,"Time, #VP, CV",Greedy,17.97,inf,Genetic (RKGA),1.0,inf,Genetic (RKGA),-0.716,0.0,Genetic (RKGA),0.007,inf
+0030,1,3,"Time, #VP, CV",Greedy,13.954,inf,Greedy,1.0,inf,Genetic (RKGA),-3.035,0.0,Genetic (RKGA),0.228,inf
+0107,1,3,"#VP, Novel %, CV",Genetic (RKGA),-4.689,0.0,Genetic (RKGA),1.0,inf,Genetic (RKGA),12.941,inf,Genetic (RKGA),0.182,inf
+0088,1,3,"#VP, Novel %, CV",Genetic (RKGA),-7.685,0.0,Genetic (RKGA),1.0,inf,Genetic (RKGA),6.514,inf,Genetic (RKGA),0.032,inf
+0012,1,3,"#VP, Novel %, CV",Greedy,-5.212,0.0,Genetic (RKGA),1.0,inf,Genetic (RKGA),5.038,inf,Genetic (RKGA),0.172,inf
+0052,1,3,"Time, Novel %, CV",Greedy,4.136,inf,Greedy,0.0,0.0,Greedy,1.584,inf,Greedy,0.237,inf
+0009,1,3,"#VP, Novel %, CV",SA,-1.794,0.0,Genetic (RKGA),1.0,inf,Genetic (RKGA),4.778,inf,Genetic (RKGA),0.094,inf
+0108,1,3,"#VP, Novel %, CV",Greedy,-5.164,0.0,Genetic (RKGA),1.0,inf,Genetic (RKGA),3.666,inf,Genetic (RKGA),0.136,inf
+0077,1,3,"Time, #VP, Novel %",Greedy,0.06,inf,Genetic (RKGA),1.0,inf,Genetic (RKGA),2.536,inf,Genetic (RKGA),-0.01,0.0
+goku,10,2,"Time, CV",Greedy,69.944,13.38,SA,0.1,0.22,SA,-0.098,-0.41,Genetic (RKGA),0.069,3.17
+0066,1,2,"Time, CV",Greedy,23.929,inf,Greedy,0.0,0.0,Genetic (RKGA),-1.215,0.0,Genetic (RKGA),0.032,inf
+0106,1,2,"Time, #VP",Greedy,7.051,inf,Genetic (RKGA),1.0,inf,Genetic (RKGA),-3.894,0.0,Greedy,-0.325,0.0
+0083,1,2,"Time, CV",Greedy,7.007,inf,Genetic (RKGA),-1.0,0.0,Greedy,-5.268,0.0,Genetic (RKGA),0.168,inf
+0003,3,2,"Time, #VP",SA,5.025,2.61,Genetic (RKGA),1.0,inf,Genetic (RKGA),-0.196,-0.16,Greedy,-0.075,-1.66
+0021,1,2,"Time, #VP",Greedy,4.417,inf,Greedy,1.0,inf,Greedy,-4.632,0.0,Genetic (RKGA),-0.049,0.0
+0073,1,2,"#VP, Novel %",SA,-2.241,0.0,Genetic (RKGA),1.0,inf,Greedy,3.789,inf,Greedy,-0.098,0.0
+0099,1,2,"Time, #VP",Greedy,0.295,inf,Genetic (RKGA),1.0,inf,Genetic (RKGA),-5.569,0.0,SA,-0.456,0.0
+0093,1,2,"Time, CV",Greedy,0.366,inf,Genetic (RKGA),-1.0,0.0,Genetic (RKGA),-1.198,0.0,SA,0.184,inf
+0006,1,1,Time,Greedy,13.858,inf,Genetic (RKGA),0.0,0.0,Greedy,-1.459,0.0,Genetic (RKGA),-0.064,0.0
+0016,1,1,Time,Greedy,12.802,inf,Genetic (RKGA),-1.0,0.0,Genetic (RKGA),-6.302,0.0,Greedy,-0.253,0.0
+cat,10,1,Time,Greedy,12.138,2.75,Genetic (RKGA),-1.9,-6.37,SA,-2.905,-5.84,Genetic (RKGA),-0.061,-2.37
+0089,1,1,Time,Genetic (RKGA),10.614,inf,Genetic (RKGA),-1.0,0.0,Genetic (RKGA),-2.473,0.0,Greedy,-0.113,0.0
+0010,1,1,Novel %,Greedy,-5.158,0.0,Genetic (RKGA),0.0,0.0,Greedy,7.058,inf,Greedy,-0.048,0.0
+gorilla,10,1,Time,Greedy,6.656,3.13,Genetic (RKGA),-0.5,-3.16,Genetic (RKGA),-3.324,-5.38,Genetic (RKGA),-0.051,-1.84
+bracket,10,1,#VP,Greedy,-0.558,-0.4,Genetic (RKGA),0.9,9.49,Genetic (RKGA),2.295,1.82,Greedy,-0.054,-0.66
+0042,1,1,Time,Greedy,2.736,inf,Greedy,-1.0,0.0,Greedy,-0.326,0.0,Genetic (RKGA),-0.035,0.0
+0109,1,1,Time,SA,1.824,inf,Genetic (RKGA),0.0,0.0,Genetic (RKGA),-6.928,0.0,Genetic (RKGA),-0.177,0.0
+0013,1,1,Time,Greedy,1.695,inf,Genetic (RKGA),-1.0,0.0,Genetic (RKGA),-13.14,0.0,Genetic (RKGA),-0.405,0.0
+0015,1,1,Time,Greedy,1.61,inf,Genetic (RKGA),0.0,0.0,Greedy,-1.449,0.0,Greedy,-0.057,0.0
+0050,1,1,Novel %,Genetic (RKGA),-11.54,0.0,Genetic (RKGA),0.0,0.0,Genetic (RKGA),1.006,inf,Genetic (RKGA),-0.037,0.0
+0071,1,1,#VP,Greedy,-0.984,0.0,Genetic (RKGA),1.0,inf,Genetic (RKGA),-2.171,0.0,Greedy,-0.129,0.0
+0029,1,1,Novel %,Greedy,-8.323,0.0,Genetic (RKGA),0.0,0.0,Genetic (RKGA),0.618,inf,Genetic (RKGA),-0.037,0.0
+0041,1,1,CV,Greedy,-8.557,0.0,Genetic (RKGA),0.0,0.0,Greedy,-2.225,0.0,Genetic (RKGA),0.366,inf
+0034,1,1,CV,SA,-8.489,0.0,Genetic (RKGA),-2.0,0.0,Genetic (RKGA),-9.877,0.0,Genetic (RKGA),0.116,inf
+0038,1,1,CV,SA,-2.768,0.0,Genetic (RKGA),0.0,0.0,Genetic (RKGA),-2.048,0.0,Genetic (RKGA),0.064,inf
+0081,1,1,CV,Genetic (RKGA),-7.581,0.0,Genetic (RKGA),0.0,0.0,Genetic (RKGA),-1.274,0.0,Genetic (RKGA),0.049,inf
+0007,1,1,CV,Greedy,-2.611,0.0,Genetic (RKGA),0.0,0.0,Genetic (RKGA),-3.959,0.0,Genetic (RKGA),0.026,inf
+0046,1,1,CV,Greedy,-2.809,0.0,Genetic (RKGA),-1.0,0.0,Genetic (RKGA),-11.741,0.0,Greedy,0.014,inf
+bell,10,0,-,Genetic (RKGA),2.24,0.76,Genetic (RKGA),-1.8,-6.0,SA,-3.322,-6.81,Genetic (RKGA),-0.011,-0.34
+0026,1,0,-,Genetic (RKGA),-7.888,0.0,Genetic (RKGA),0.0,0.0,Genetic (RKGA),-14.79,0.0,SA,-0.239,0.0
+0031,1,0,-,Greedy,-5.62,0.0,Genetic (RKGA),0.0,0.0,Genetic (RKGA),-3.04,0.0,Genetic (RKGA),-0.307,0.0
+0036,1,0,-,Greedy,-5.868,0.0,Genetic (RKGA),0.0,0.0,Genetic (RKGA),-2.942,0.0,Greedy,-0.131,0.0
+0067,1,0,-,Greedy,-6.933,0.0,Genetic (RKGA),-2.0,0.0,SA,-10.813,0.0,Greedy,-0.077,0.0
+0095,1,0,-,Genetic (RKGA),-1.956,0.0,Genetic (RKGA),-1.0,0.0,Genetic (RKGA),-11.442,0.0,Greedy,-0.206,0.0
+mug,10,0,-,Genetic (RKGA),-0.949,-0.43,Genetic (RKGA),-0.5,-2.09,Genetic (RKGA),-2.66,-2.95,Genetic (RKGA),-0.026,-0.67
