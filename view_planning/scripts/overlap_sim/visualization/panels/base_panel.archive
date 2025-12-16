@@ -1,0 +1,27 @@
+# visualization/panels/base_panel.py
+import numpy as np
+
+class ViewerPanel:
+    """
+    Base class for modular visualization panels.
+    Each panel defines its own update() and optional handle_key().
+    """
+    def __init__(self, ax=None, title=""):
+        self.ax = ax
+        self.title = title
+        self.initialized = False
+
+    def init(self, ax):
+        """Attach matplotlib axis after layout creation."""
+        self.ax = ax
+        self.ax.set_title(self.title, fontsize=12)
+        self.ax.set_aspect("equal", "box")
+        self.initialized = True
+
+    def update(self, data: dict):
+        """Update visual elements with simulation data."""
+        pass
+
+    def handle_key(self, key: str):
+        """Optional key handler."""
+        pass

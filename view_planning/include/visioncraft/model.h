@@ -6,6 +6,7 @@
 #include <open3d/Open3D.h>
 #include <octomap/ColorOcTree.h>
 #include "open3d/t/geometry/RaycastingScene.h"
+#include <Eigen/Dense>
 
 #include "visioncraft/meta_voxel.h"
 #include "visioncraft/meta_voxel_map.h"
@@ -528,6 +529,10 @@ public:
 
 
     bool findInternalVoxels(float escape_threshold);
+
+    // Inside class Model public section:
+    Eigen::MatrixXd getPointCloudEigen() const;          // sampled surface points
+    Eigen::MatrixXd getSurfaceVoxelCentersEigen() const; // meta-voxel centers
 
 private:
 

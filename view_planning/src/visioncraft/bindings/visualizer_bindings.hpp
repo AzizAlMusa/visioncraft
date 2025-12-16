@@ -24,6 +24,11 @@ inline void bind_visualizer(py::module& m) {
         .def("stopAsyncRendering", &visioncraft::Visualizer::stopAsyncRendering)
         .def("getRenderWindowInteractor", &visioncraft::Visualizer::getRenderWindowInteractor)
         .def("getRenderer", &visioncraft::Visualizer::getRenderer)
+        .def("getCameraPose", &visioncraft::Visualizer::getCameraPose)
+        .def("setCameraPose", &visioncraft::Visualizer::setCameraPose)
+        .def("saveScreenshot", &visioncraft::Visualizer::saveScreenshot,
+            py::arg("filename"), py::arg("magnification") = 2)
+
 
         // Viewpoint Management
         .def("addViewpoint", &visioncraft::Visualizer::addViewpoint, py::arg("viewpoint"), py::arg("showFrustum") = true, py::arg("showAxes") = true, py::arg("showPosition") = false, py::arg("showDirection") = false)

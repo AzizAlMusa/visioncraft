@@ -299,15 +299,18 @@ tau_clip      = float(CFG["tau_clip"])
 # ----------------------- Importance, edges, and W_eff -----------------------
 
 # Base area importance (uniform 1 unless POIs modulate omega)
+# identical baseline behavior when no POIs (ω^γ, no normalization)
 W_area = np.clip(omega_map.astype(np.float64) ** gamma, 0.0, None)
-if W_area.max() > 0:
-    W_area = W_area / (W_area.max() + 1e-12)
+
 
 # Smoothed importance (for edge extraction and anisotropy)
 I0 = W_area  # already ω^γ normalized
 I_smooth = toroidal_gaussian_smooth(I0, float(CFG["anisotropy"]["smooth_sigma"]))
 Gx, Gy = toroidal_gradient(I_smooth)
 Grad_mag = np.sqrt(Gx*Gx + Gy*Gy)
+
+
+
 
 def toroidal_laplacian(F):
     return (
@@ -324,6 +327,9 @@ def normalize_edge(E, mode="max"):
         return Z / M
     M = E.max() + 1e-12
     return E / M
+
+
+
 
 # Edge maps
 Lap = toroidal_laplacian(I_smooth)
@@ -348,20 +354,37 @@ elif edge_mode_name == "edge_dog":
 else:
     W_edge = None
 
-# Keep normal potential everywhere; edges boost it
+
+
+# --- EDGE-ONLY ADDITIVE mode: flat baseline + edge enhancement ---
 edge_mode = str(CFG.get("edge_mode", "boost")).lower()
 edge_gain = float(CFG.get("edge_gain", 1.0))
 mix = float(CFG.get("edge_mix_with_area", 0.0))
 
-if W_edge is None or edge_mode == "replace":
-    if W_edge is None:
-        W_eff = W_area
-    else:
-        W_eff = (1.0 - mix) * W_edge + mix * W_area
+# --- EDGE-ADD mode: baseline = original potential weight (W_area), edges add extra pull ---
+if W_edge is None:
+    # No edges → pure baseline behavior (identical to overlap_original)
+    W_eff = W_area.copy()
 else:
-    # BOOST mode (recommended): areas outside interest keep W_area,
-    # edges multiply it up, never to zero elsewhere.
-    W_eff = W_area * (1.0 + edge_gain * W_edge)
+    # Normalize edge map only (keep baseline untouched)
+    W_edge_n = W_edge / (np.max(W_edge) + 1e-12)
+
+    # Optional: smooth to widen the belt slightly
+    W_edge_n = toroidal_gaussian_smooth(W_edge_n, 1.0)
+
+    # Additive blend: preserve absolute baseline potential scale
+    # (edges add local enhancement; baseline stays unchanged)
+    W_eff = W_area + edge_gain * (W_edge_n * np.mean(W_area))
+
+    # Do NOT normalize again; we want to preserve the true baseline potential values
+
+
+
+
+# If there are no POIs or edges degenerate to zero, collapse to baseline exactly
+if np.allclose(W_edge, 0) or str(CFG.get("poi_config","")).strip() == "":
+    W_eff[:] = W_area
+
 
 W_eff *= float(CFG["edge_weight_scale"])
 W_eff = np.clip(W_eff, 0.0, None)
@@ -370,86 +393,122 @@ W_eff = np.clip(W_eff, 0.0, None)
 
 grad_eps = float(CFG["anisotropy"]["grad_eps"])
 
-# Tangent / normal unit directions
-n_x = np.where(Grad_mag > grad_eps, Gx/(Grad_mag+1e-12), 0.0)
-n_y = np.where(Grad_mag > grad_eps, Gy/(Grad_mag+1e-12), 0.0)
-t_x = -n_y
-t_y =  n_x
-
-# Optional principal-direction blend
-if float(CFG["anisotropy"]["tensor_blend"]) > 0.0:
-    Sxx = toroidal_gaussian_smooth(Gx*Gx, 1.0)
-    Syy = toroidal_gaussian_smooth(Gy*Gy, 1.0)
-    Sxy = toroidal_gaussian_smooth(Gx*Gy, 1.0)
-    trace = Sxx + Syy
-    det   = Sxx*Syy - Sxy*Sxy
-    tmp   = np.sqrt(np.maximum(trace*trace - 4*det, 0.0))
-    lam1  = 0.5*(trace + tmp)
-    evx = np.where(np.abs(Sxy) + np.abs(Sxx - lam1) > 1e-12, Sxy, 1.0)
-    evy = np.where(np.abs(Sxy) + np.abs(Sxx - lam1) > 1e-12, lam1 - Sxx, 0.0)
-    nor = np.sqrt(evx*evx + evy*evy) + 1e-12
-    evx /= nor; evy /= nor
-    b = float(CFG["anisotropy"]["tensor_blend"])
-    t_x = (1-b)*t_x + b*evx
-    t_y = (1-b)*t_y + b*evy
-    tn = np.sqrt(t_x*t_x + t_y*t_y) + 1e-12
-    t_x /= tn; t_y /= tn
-    n_x = -t_y; n_y = t_x
-
-alpha_t = float(CFG["anisotropy"]["alpha_t"])
-alpha_n = float(CFG["anisotropy"]["alpha_n"])
-
-# Raw tensor field A_raw(x) = alpha_t * t t^T + alpha_n * n n^T
-axx_raw = alpha_t*(t_x*t_x) + alpha_n*(n_x*n_x)
-axy_raw = alpha_t*(t_x*t_y) + alpha_n*(n_x*n_y)
-ayy_raw = alpha_t*(t_y*t_y) + alpha_n*(n_y*n_y)
-
-# Proximity map (smooth ramp near edges) via toroidal Gaussian on the edge field
-# Use gradient magnitude as the seed for proximity unless another mode is chosen
-prox_seed = W_edge if W_edge is not None else normalize_edge(Grad_mag, "max")
-prox_sigma = float(CFG["anisotropy"]["aniso_prox_sigma"])
-prox_map = toroidal_gaussian_smooth(prox_seed, prox_sigma)
-# Normalize to [0,1]
-prox_map = (prox_map - prox_map.min()) / (prox_map.max() - prox_map.min() + 1e-12)
-
-# Logistic ramp: s_prox in [0,1], small far from edges, rises smoothly near edges
-prox_gain  = float(CFG["anisotropy"]["aniso_prox_gain"])
-prox_bias  = float(CFG["anisotropy"]["aniso_prox_bias"])
-prox_k     = float(CFG["anisotropy"]["aniso_prox_steep"])
-s_prox = 1.0 / (1.0 + np.exp(-prox_k * (prox_gain * (prox_map - prox_bias))))
-
-# Superset normalization:
-# If alpha_t == alpha_n => A_eff = I exactly.
-# Else det-normalize A_raw, then ramp it with s_prox and fallback-to-identity in flat/noise regions.
-eq_tol = 1e-12
-if abs(alpha_t - alpha_n) < eq_tol:
-    axx_eff_base = np.ones_like(axx_raw)
-    axy_eff_base = np.zeros_like(axy_raw)
-    ayy_eff_base = np.ones_like(ayy_raw)
+if np.allclose(Grad_mag, 0.0, atol=1e-14):
+    axx_grid = np.ones((grid_size, grid_size))
+    axy_grid = np.zeros((grid_size, grid_size))
+    ayy_grid = np.ones((grid_size, grid_size))
 else:
-    detA = axx_raw*ayy_raw - axy_raw*axy_raw
-    detA = np.where(detA <= 0, 1.0, detA)
-    scale_det = np.sqrt(detA) + 1e-12
-    axx_eff_base = axx_raw / scale_det
-    axy_eff_base = axy_raw / scale_det
-    ayy_eff_base = ayy_raw / scale_det
 
-# Blend to identity based on: (a) local structure strength and (b) proximity ramp
-# First: structure-based blend (avoid anisotropy in flat regions)
-tau   = float(CFG["anisotropy"]["blend_tau"])
-scale = float(CFG["anisotropy"]["blend_scale"])
-Imin  = float(CFG["anisotropy"]["importance_floor"])
-s_struct = np.clip((Grad_mag - tau) / max(scale, 1e-9), 0.0, 1.0)
-if Imin > 0:
-    s_struct = s_struct * (I_smooth > Imin)
+    # Tangent / normal unit directions
+    n_x = np.where(Grad_mag > grad_eps, Gx/(Grad_mag+1e-12), 0.0)
+    n_y = np.where(Grad_mag > grad_eps, Gy/(Grad_mag+1e-12), 0.0)
+    t_x = -n_y
+    t_y =  n_x
 
-# Final ramp multiplier
-s_total = np.clip(s_struct * s_prox, 0.0, 1.0)
+    # Optional principal-direction blend
+    if float(CFG["anisotropy"]["tensor_blend"]) > 0.0:
+        Sxx = toroidal_gaussian_smooth(Gx*Gx, 1.0)
+        Syy = toroidal_gaussian_smooth(Gy*Gy, 1.0)
+        Sxy = toroidal_gaussian_smooth(Gx*Gy, 1.0)
+        trace = Sxx + Syy
+        det   = Sxx*Syy - Sxy*Sxy
+        tmp   = np.sqrt(np.maximum(trace*trace - 4*det, 0.0))
+        lam1  = 0.5*(trace + tmp)
+        evx = np.where(np.abs(Sxy) + np.abs(Sxx - lam1) > 1e-12, Sxy, 1.0)
+        evy = np.where(np.abs(Sxy) + np.abs(Sxx - lam1) > 1e-12, lam1 - Sxx, 0.0)
+        nor = np.sqrt(evx*evx + evy*evy) + 1e-12
+        evx /= nor; evy /= nor
+        b = float(CFG["anisotropy"]["tensor_blend"])
+        t_x = (1-b)*t_x + b*evx
+        t_y = (1-b)*t_y + b*evy
+        tn = np.sqrt(t_x*t_x + t_y*t_y) + 1e-12
+        t_x /= tn; t_y /= tn
+        n_x = -t_y; n_y = t_x
 
-# A_eff(x) = (1 - s_total) * I + s_total * A_eff_base
-axx_grid = s_total*axx_eff_base + (1.0 - s_total)*1.0
-axy_grid = s_total*axy_eff_base + (1.0 - s_total)*0.0
-ayy_grid = s_total*ayy_eff_base + (1.0 - s_total)*1.0
+    alpha_t = float(CFG["anisotropy"]["alpha_t"])
+    alpha_n = float(CFG["anisotropy"]["alpha_n"])
+
+    # Raw tensor field A_raw(x) = alpha_t * t t^T + alpha_n * n n^T
+    axx_raw = alpha_t*(t_x*t_x) + alpha_n*(n_x*n_x)
+    axy_raw = alpha_t*(t_x*t_y) + alpha_n*(n_x*n_y)
+    ayy_raw = alpha_t*(t_y*t_y) + alpha_n*(n_y*n_y)
+
+    # Proximity map (wider band around edges) — keep interest map unchanged.
+    # Build a binary edge mask from the existing edge field (or normalized |∇I|).
+    seed = W_edge if W_edge is not None else normalize_edge(Grad_mag, "max")
+    edge_mask = (seed > (0.15 * (seed.max() + 1e-12))).astype(np.float64)
+
+    # Use multi-pass toroidal smoothing on the binary mask to create a *spatial* proximity halo.
+    # This widens the effect without changing any JSON parameters.
+    prox_sigma = float(CFG["anisotropy"]["aniso_prox_sigma"])
+    prox_map = edge_mask.copy()
+    for _ in range(3):  # widen the influence band (effective sigma grows ~√passes)
+        prox_map = toroidal_gaussian_smooth(prox_map, prox_sigma)
+
+    # Normalize to [0,1]
+    prox_map = (prox_map - prox_map.min()) / (prox_map.max() - prox_map.min() + 1e-12)
+
+    # Same logistic ramp as before.
+    prox_gain  = float(CFG["anisotropy"]["aniso_prox_gain"])
+    prox_bias  = float(CFG["anisotropy"]["aniso_prox_bias"])
+    prox_k     = float(CFG["anisotropy"]["aniso_prox_steep"])
+    s_prox = 1.0 / (1.0 + np.exp(-prox_k * (prox_gain * (prox_map - prox_bias))))
+
+
+
+    # Superset normalization:
+    # If alpha_t == alpha_n => A_eff = I exactly.
+    # Else det-normalize A_raw, then ramp it with s_prox and fallback-to-identity in flat/noise regions.
+    eq_tol = 1e-12
+    if abs(alpha_t - alpha_n) < eq_tol:
+        axx_eff_base = np.ones_like(axx_raw)
+        axy_eff_base = np.zeros_like(axy_raw)
+        ayy_eff_base = np.ones_like(ayy_raw)
+    else:
+        detA = axx_raw*ayy_raw - axy_raw*axy_raw
+        detA = np.where(detA <= 0, 1.0, detA)
+        scale_det = np.sqrt(detA) + 1e-12
+        axx_eff_base = axx_raw / scale_det
+        axy_eff_base = axy_raw / scale_det
+        ayy_eff_base = ayy_raw / scale_det
+
+    # Blend to identity based on: (a) local structure strength and (b) proximity ramp
+    # First: structure-based blend (avoid anisotropy in flat regions)
+    tau   = float(CFG["anisotropy"]["blend_tau"])
+    scale = float(CFG["anisotropy"]["blend_scale"])
+    Imin  = float(CFG["anisotropy"]["importance_floor"])
+    s_struct = np.clip((Grad_mag - tau) / max(scale, 1e-9), 0.0, 1.0)
+    if Imin > 0:
+        s_struct = s_struct * (I_smooth > Imin)
+
+    # Final ramp multiplier
+    s_total = np.clip(s_struct * s_prox, 0.0, 1.0)
+
+    # A_eff(x) = (1 - s_total) * I + s_total * A_eff_base
+    axx_grid = s_total*axx_eff_base + (1.0 - s_total)*1.0
+    axy_grid = s_total*axy_eff_base + (1.0 - s_total)*0.0
+    ayy_grid = s_total*ayy_eff_base + (1.0 - s_total)*1.0
+
+    # --- WIDEN ANISOTROPIC EFFECT FOOTPRINT (spread tensors spatially) ---
+    # We convolve the final anisotropy tensors so nearby points also "feel" the squish.
+    # This widens the *effect* without changing the interest/edge maps or proximity logic.
+
+    if not np.allclose(Grad_mag, 0):
+        effect_sigma = max(1.0, 2.0 * float(CFG["anisotropy"]["aniso_prox_sigma"]))
+        axx_grid = toroidal_gaussian_smooth(axx_grid, effect_sigma)
+        axy_grid = toroidal_gaussian_smooth(axy_grid, effect_sigma)
+        ayy_grid = toroidal_gaussian_smooth(ayy_grid, effect_sigma)
+        
+
+    # Keep the 2x2 tensor positive-definite: if det <= 0 at any cell, fall back to identity.
+    det_grid = axx_grid*ayy_grid - axy_grid*axy_grid
+    bad = det_grid <= 1e-12
+    if np.any(bad):
+        axx_grid[bad] = 1.0
+        axy_grid[bad] = 0.0
+        ayy_grid[bad] = 1.0
+# ---------------------------------------------------------------------
+
 
 def sample_Aeff(Q):
     axx = bilinear_sample_periodic(axx_grid, Q)
@@ -777,11 +836,19 @@ class LiveTwoPanel:
             self.Q, particles,
             exclude_index=int(np.clip(CFG["vp_index"],0,max(0,len(particles)-1)))
         )
-        Fb     = self.field.attraction_field_baseline_at(self.Q) if CFG["show_interest_quiver"] else 0.0
+
+
+        if CFG["show_interest_quiver"]:
+            Fb = self.field.attraction_field_baseline_at(self.Q)
+            # collapse: if n_grid == base (no POI) -> zero interest field exactly
+            if np.allclose(self.field._attr_Fx, self.field._base_Fx) and np.allclose(self.field._attr_Fy, self.field._base_Fy):
+                Fb[:] = 0.0
+        else:
+            Fb = 0.0
 
         F_attr *= CFG["k_attr"]
         F_rep  *= CFG["k_rep"]
-        F_poi  = (F_attr - CFG["k_attr"]*Fb) if CFG["show_interest_quiver"] else 0.0
+        F_poi = (F_attr - CFG["k_attr"] * Fb) if CFG["show_interest_quiver"] else 0.0
 
         if CFG["quiver_mode"] == "normalized":
             def _norm(U):
@@ -845,7 +912,10 @@ class LiveTwoPanel:
                 vp = particles[vp_idx]
                 self._draw_repulsion_kernel_at(vp)
 
-        plt.pause(0.001)
+        # plt.pause(0.001)
+        self.fig.canvas.draw_idle()
+        self.fig.canvas.flush_events()
+
 
     def close(self):
         if self.enabled:

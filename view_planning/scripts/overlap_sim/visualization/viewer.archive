@@ -1,0 +1,136 @@
+# visualization/viewer.py
+"""
+Viewer
+------
+Single-panel visualization for overlap_sim.
+Displays:
+- Potential map (color-coded)
+- Viewpoints with FOV circles
+- Smooth live updates with pause/quit
+
+Author: Abdulaziz (overlap_sim)
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
+
+class Viewer:
+    def __init__(self, field, enable=True, target_fps=30, cmap="plasma"):
+        self.enabled = bool(enable)
+        if not self.enabled:
+            return
+
+        self.field = field
+        self.grid_size = field.grid_size
+        self.fov_radius = getattr(field, "fov_radius", 20.0)
+        self.target_dt = 1.0 / target_fps
+        self.cmap = cmap
+
+        plt.style.use("dark_background")
+        plt.ion()
+        self.fig, self.ax = plt.subplots(figsize=(7.5, 7.5))
+        self.ax.set_xlim(0, self.grid_size)
+        self.ax.set_ylim(0, self.grid_size)
+        self.ax.set_aspect("equal", "box")
+        self.ax.set_title("Potential Field", fontsize=12)
+        self.ax.set_facecolor("#111111")
+
+        # artists
+        self.im = self.ax.imshow(
+            np.zeros((self.grid_size, self.grid_size)),
+            cmap=self.cmap,
+            origin="lower",
+            extent=[0, self.grid_size, 0, self.grid_size],
+        )
+        self.cbar = self.fig.colorbar(self.im, ax=self.ax, fraction=0.046, pad=0.04)
+        self.cbar.set_label("Potential", fontsize=10)
+
+        self.scat = self.ax.scatter([], [], s=60, c="#FFD166", edgecolors="black", linewidths=0.8, zorder=4)
+        self.fov_patches = []
+
+        self.text = self.ax.text(
+            3, self.grid_size - 4, "", color="white", fontsize=10, ha="left", va="top"
+        )
+
+        self.paused = False
+        self.quit = False
+        self.fig.canvas.mpl_connect("key_press_event", self._on_key)
+
+    # --------------------------------------------------
+    def _on_key(self, event):
+        if event.key == "p":
+            self.paused = not self.paused
+            print(f"[Viewer] Paused={self.paused}")
+        elif event.key == "q":
+            self.quit = True
+            plt.close(self.fig)
+            print("[Viewer] Quit requested.")
+
+    # --------------------------------------------------
+    def _update_fov(self, particles):
+        # Remove old circles
+        for c in self.fov_patches:
+            c.remove()
+        self.fov_patches.clear()
+
+        g = self.grid_size
+        r = self.fov_radius
+
+        # Offsets to wrap around domain edges
+        offsets = [
+            (0, 0),
+            (-g, 0), (g, 0),          # left/right wraps
+            (0, -g), (0, g),          # top/bottom wraps
+            (-g, -g), (-g, g),        # corner wraps
+            (g, -g), (g, g),
+        ]
+
+        for p in particles:
+            for dx, dy in offsets:
+                circ = Circle(
+                    (p[0] + dx, p[1] + dy),
+                    radius=r,
+                    edgecolor="white",
+                    facecolor="none",
+                    lw=0.8,
+                    alpha=0.3,
+                    zorder=2,
+                )
+                self.ax.add_patch(circ)
+                self.fov_patches.append(circ)
+
+
+    # --------------------------------------------------
+    def update(self, particles, potential, step=None):
+        """Update potential map and viewpoints."""
+        if not self.enabled or self.quit:
+            return
+        if self.paused:
+            plt.pause(0.05)
+            return
+
+        # update potential field colors
+        self.im.set_data(potential)
+        self.im.set_clim(np.nanmin(potential), np.nanmax(potential))
+
+        # update viewpoint positions
+        self.scat.set_offsets(particles)
+        self._update_fov(particles)
+
+        # overlay text
+        msg = f"Step {step if step is not None else 0}"
+        self.text.set_text(msg)
+
+        self.fig.canvas.draw_idle()
+        self.fig.canvas.flush_events()
+        plt.pause(self.target_dt)
+
+    # --------------------------------------------------
+    def close(self):
+        if self.enabled:
+            try:
+                plt.ioff()
+                plt.close(self.fig)
+            except Exception:
+                pass

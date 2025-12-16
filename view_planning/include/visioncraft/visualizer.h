@@ -314,6 +314,30 @@ public:
     const std::vector<Eigen::Vector3d>& blobCentroids,
     float sphereRadius);
 
+    /**
+     * @brief Get current camera parameters (position, focal point, up vector).
+     * @return std::tuple of three Eigen::Vector3d.
+     */
+    std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> getCameraPose() const;
+
+    /**
+     * @brief Set camera parameters (position, focal point, up vector).
+     * @param position Camera position in world coordinates.
+     * @param focal    Camera focal point (look-at target).
+     * @param up       Camera up direction vector.
+     */
+    void setCameraPose(const Eigen::Vector3d& position,
+                    const Eigen::Vector3d& focal,
+                    const Eigen::Vector3d& up);
+
+    /**
+     * @brief Save the current render window to a high-quality image file.
+     * @param filename Path to save the image (e.g., "output.png").
+     * @param magnification Magnification factor for resolution (default = 1 for screen res, >1 for higher res).
+     */
+    void saveScreenshot(const std::string& filename, int magnification = 2);
+
+
 private:
 
     /**

@@ -210,7 +210,12 @@ inline void bind_model(py::module& m) {
             }
             return py_voxel_normals;
         })
-        .def("findInternalVoxels", &visioncraft::Model::findInternalVoxels, py::arg("escape_threshold") = 0.05f);
+        .def("findInternalVoxels", &visioncraft::Model::findInternalVoxels, py::arg("escape_threshold") = 0.05f)
+        .def("get_point_cloud_array", &visioncraft::Model::getPointCloudEigen,
+             "Return sampled surface point cloud as an (N,3) numpy array")
+        .def("get_surface_voxel_centers_array", &visioncraft::Model::getSurfaceVoxelCentersEigen,
+            "Return surface voxel centers as an (N,3) numpy array");
+
 
 
     // Expose VoxelGridGPU Struct to Python

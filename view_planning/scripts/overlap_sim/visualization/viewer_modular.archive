@@ -1,0 +1,166 @@
+# visualization/viewer_modular.py
+"""
+Modular Viewer
+--------------
+Dynamically composes multiple visualization panels side-by-side.
+Supports:
+- Real-time visualization (interactive)
+- Optional high-quality 60 FPS MP4 recording via config
+
+Keyboard:
+    p : pause / resume
+    q : quit viewer
+    n : cycle active viewpoint
+"""
+
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FFMpegWriter
+
+
+class Viewer:
+    def __init__(self, panels, target_fps=30,
+                 record=False, out_path="./results/sim_output.mp4"):
+        """
+        Parameters
+        ----------
+        panels : list of ViewerPanel
+            Visualization panels (e.g., PotentialPanel, VectorFieldPanel)
+        target_fps : int
+            Target frame rate for interactive rendering
+        record : bool
+            If True, saves animation to MP4 (60 FPS, high quality)
+        out_path : str
+            Output path for saved video
+        """
+        self.panels = panels
+        self.n = len(panels)
+        self.target_dt = 1.0 / target_fps
+
+        # Recording setup
+        self.record = bool(record)
+        self.out_path = out_path
+        self._writer = None
+        self._frame_count = 0
+
+        plt.style.use("dark_background")
+        plt.ion()
+
+        # -------------------------------------------------------------
+        # Figure layout
+        # -------------------------------------------------------------
+        self.fig, self.axes = plt.subplots(
+            1, self.n, figsize=(7 * self.n, 7), constrained_layout=True
+        )
+        if self.n == 1:
+            self.axes = [self.axes]
+
+        for ax, panel in zip(self.axes, self.panels):
+            panel.init(ax)
+
+        # -------------------------------------------------------------
+        # States
+        # -------------------------------------------------------------
+        self.paused = False
+        self.quit = False
+        self.active_index = 0
+        self._num_viewpoints = 0
+
+        # -------------------------------------------------------------
+        # Recording initialization
+        # -------------------------------------------------------------
+        if self.record:
+            os.makedirs(os.path.dirname(self.out_path), exist_ok=True)
+            metadata = dict(
+                title="OverlapSim",
+                artist="Visioncraft",
+                comment="High-quality 60 FPS simulation recording",
+            )
+            self._writer = FFMpegWriter(fps=60, metadata=metadata, bitrate=18000)
+            self._writer.setup(self.fig, self.out_path, dpi=200)
+            print(f"[Viewer] Recording enabled → {self.out_path}")
+
+        # -------------------------------------------------------------
+        # Event bindings
+        # -------------------------------------------------------------
+        self.fig.canvas.mpl_connect("key_press_event", self._on_key)
+
+        self.insertion_request = False
+
+
+    # =========================================================
+    # Keyboard handler
+    # =========================================================
+    def _on_key(self, event):
+        if event.key == "p":
+            self.paused = not self.paused
+            print(f"[Viewer] Paused={self.paused}")
+        elif event.key == "q":
+            self.quit = True
+            plt.close(self.fig)
+            print("[Viewer] Quit requested.")
+        elif event.key == "n":
+            if self._num_viewpoints > 0:
+                self.active_index = (self.active_index + 1) % self._num_viewpoints
+                print(f"[Viewer] Active viewpoint: {self.active_index}")
+        elif event.key == "m":
+            self.insertion_request = True
+            print("[Viewer] Manual viewpoint insertion requested.")
+
+        for panel in self.panels:
+            panel.handle_key(event.key)
+
+    # =========================================================
+    # Update loop
+    # =========================================================
+    def update(self, data):
+        """Update all panels with new simulation data."""
+        if self.quit:
+            return
+        if self.paused:
+            plt.pause(0.05)
+            return
+
+        # Track number of viewpoints for cycling
+        self._num_viewpoints = len(data.get("particles", []))
+
+        # Update all panels
+        for panel in self.panels:
+            panel.update(data)
+
+        # Redraw (throttled)
+        self.fig.canvas.draw_idle()
+        self.fig.canvas.flush_events()
+
+        # Save frame if recording
+        if self.record and self._writer is not None:
+            self._writer.grab_frame()
+            self._frame_count += 1
+
+        # Only pause occasionally (avoid blocking GUI every frame)
+        if self._frame_count % 5 == 0:
+            plt.pause(self.target_dt)
+
+
+        # Save frame if recording
+        if self.record and self._writer is not None:
+            self._writer.grab_frame()
+            self._frame_count += 1
+
+        plt.pause(self.target_dt)
+
+    # =========================================================
+    # Close viewer and finalize recording
+    # =========================================================
+    def close(self):
+        try:
+            if self.record and self._writer is not None:
+                self._writer.finish()
+                print(
+                    f"[Viewer] Saved {self._frame_count} frames → {self.out_path}"
+                )
+            plt.ioff()
+            plt.close(self.fig)
+        except Exception as e:
+            print(f"[Viewer] Error while closing: {e}")

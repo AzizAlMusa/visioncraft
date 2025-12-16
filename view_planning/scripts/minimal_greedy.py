@@ -22,7 +22,7 @@ visualizer.initializeWindow("3D View")
 visualizer.setBackgroundColor([0.0, 0.0, 0.0])
 
 model = Model()
-model.loadModel("../models/goku.ply", 200000)
+model.loadModel("../models/gorilla.ply", 200000)
 visibility_manager = VisibilityManager(model)
 
 # Greedy algorithm setup

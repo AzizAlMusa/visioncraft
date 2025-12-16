@@ -74,12 +74,20 @@ void VisibilityManager::trackViewpoints(const std::vector<std::shared_ptr<Viewpo
 }
 
 void VisibilityManager::untrackAllViewpoints() {
-    for (const auto& viewpoint : tracked_viewpoints_) {
-        viewpoint->removeObserver(shared_from_this());
+    // Copy to a vector because untrackViewpoint() mutates tracked_viewpoints_
+    std::vector<std::shared_ptr<Viewpoint>> to_untrack(
+        tracked_viewpoints_.begin(), tracked_viewpoints_.end());
+
+    for (auto& vp : to_untrack) {
+        untrackViewpoint(vp);  // this updates visibility_count_, visible_voxels_, voxel props, coverage_score_
     }
+
+    // After this, tracked_viewpoints_ and visibility_map_ should already be consistent,
+    // but we can defensively clear them to be explicit.
     tracked_viewpoints_.clear();
-    visibility_map_.clear();  
+    visibility_map_.clear();
 }
+
 
 
 void VisibilityManager::updateVisibility(const std::shared_ptr<Viewpoint>& viewpoint) {

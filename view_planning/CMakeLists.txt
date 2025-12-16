@@ -38,6 +38,8 @@ find_package(VTK 9.1 COMPONENTS
     RenderingGL2PSOpenGL2
     RenderingOpenGL2
     RenderingAnnotation
+    IOImage
+    IOCore
     Python
     REQUIRED)
 find_package(pybind11 REQUIRED)

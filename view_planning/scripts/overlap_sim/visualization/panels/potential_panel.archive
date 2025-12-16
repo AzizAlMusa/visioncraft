@@ -1,0 +1,96 @@
+# visualization/panels/potential_panel.py
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.patches import Circle
+from .base_panel import ViewerPanel
+
+     
+class PotentialPanel(ViewerPanel):
+    """Left panel: Potential map with viewpoint markers."""
+    def __init__(self, grid_size, fov_radius=20.0, cmap="plasma"):
+        super().__init__(title="Potential Field")
+        self.grid_size = grid_size
+        self.fov_radius = fov_radius
+        self.cmap = cmap
+
+    def init(self, ax):
+
+
+        super().init(ax)
+        self.ax.set_facecolor("#111111")
+
+        # === fix: consistent world scaling ===
+        self.ax.set_xlim(0, self.grid_size)
+        self.ax.set_ylim(0, self.grid_size)
+        self.ax.set_aspect("equal", "box")
+
+        # === main potential image ===
+        self.im = self.ax.imshow(
+            np.zeros((self.grid_size, self.grid_size)),
+            cmap=self.cmap,
+            origin="lower",
+            extent=[0, self.grid_size, 0, self.grid_size],
+            interpolation="nearest"
+        )
+
+        # === clean, aligned colorbar ===
+        divider = make_axes_locatable(self.ax)
+        cax = divider.append_axes("right", size="3%", pad=0.08)  # thin and aligned
+        self.cbar = plt.colorbar(self.im, cax=cax)
+        self.cbar.ax.tick_params(labelsize=8, width=0.8)
+        self.cbar.set_label("Potential", fontsize=9, labelpad=4)
+
+        # === viewpoint overlays ===
+        self.scat = self.ax.scatter([], [], s=60, c="#FFD166",
+                                    edgecolors="black", linewidths=0.8, zorder=4)
+        self.text = self.ax.text(3, self.grid_size - 4, "",
+                                color="white", fontsize=10,
+                                ha="left", va="top")
+        self.fov_patches = []
+        self.initialized = True
+
+
+
+    def _update_fov(self, particles):
+        """Efficiently reuse FOV circles instead of recreating every frame."""
+        g, r = self.grid_size, self.fov_radius
+        offsets = [(0, 0), (-g, 0), (g, 0), (0, -g), (0, g),
+                (-g, -g), (-g, g), (g, -g), (g, g)]
+
+        total_needed = len(particles) * len(offsets)
+
+        # Initialize circles only once
+        if len(self.fov_patches) < total_needed:
+            # clear existing
+            for c in self.fov_patches:
+                c.remove()
+            self.fov_patches.clear()
+            for _ in range(total_needed):
+                circ = Circle((0, 0), radius=r,
+                            edgecolor="white", facecolor="none",
+                            lw=0.8, alpha=0.3, zorder=2)
+                self.ax.add_patch(circ)
+                self.fov_patches.append(circ)
+
+        # update centers only (fast)
+        i = 0
+        for p in particles:
+            for dx, dy in offsets:
+                self.fov_patches[i].center = (p[0] + dx, p[1] + dy)
+                i += 1
+
+
+    def update(self, data):
+        potential = data.get("potential")
+        particles = data.get("particles")
+        step = data.get("step", 0)
+
+        self.im.set_array(potential)
+        # Only rescale colorbar occasionally
+        if data.get("step", 0) % 20 == 0:
+            self.im.set_clim(np.nanmin(potential), np.nanmax(potential))
+
+        self.scat.set_offsets(particles)
+        self._update_fov(particles)
+        self.text.set_text(f"Step {step}")

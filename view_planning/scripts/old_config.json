@@ -33,7 +33,7 @@
     "need_hard_clip": true,
     "need_clip_threshold": 0.98,
   
-    "max_viewpoints": 12,
+    "max_viewpoints": 8,
     "no_auto_terminate": true,
     "frames_per_stage": 12,
   

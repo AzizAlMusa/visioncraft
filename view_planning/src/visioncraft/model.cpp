@@ -1415,6 +1415,38 @@ bool Model::findInternalVoxels(float escape_threshold) {
 }
 
 
+Eigen::MatrixXd Model::getPointCloudEigen() const {
+    // Uses pointCloud_ produced by generatePointCloud()
+    if (!pointCloud_) {
+        return Eigen::MatrixXd(0, 3);
+    }
+
+    const auto &pts = pointCloud_->points_;
+    Eigen::MatrixXd M(pts.size(), 3);
+    for (size_t i = 0; i < pts.size(); ++i) {
+        M(i, 0) = pts[i].x();
+        M(i, 1) = pts[i].y();
+        M(i, 2) = pts[i].z();
+    }
+    return M;
+}
+
+Eigen::MatrixXd Model::getSurfaceVoxelCentersEigen() const {
+    // Uses meta_voxel_map_ built in generateVoxelMap()
+    const auto &m = meta_voxel_map_.getMap();  // unordered_map<OcTreeKey, MetaVoxel> :contentReference[oaicite:1]{index=1}
+
+    Eigen::MatrixXd M(m.size(), 3);
+    size_t i = 0;
+    for (const auto &kv : m) {
+        const MetaVoxel &vox = kv.second;
+        const Eigen::Vector3d &p = vox.getPosition();  // world coords :contentReference[oaicite:2]{index=2}
+        M(i, 0) = p.x();
+        M(i, 1) = p.y();
+        M(i, 2) = p.z();
+        ++i;
+    }
+    return M;
+}
 
 
 
